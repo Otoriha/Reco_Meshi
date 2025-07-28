@@ -155,3 +155,180 @@ Figma : https://www.figma.com/design/4ZFqeNbGgZQqJvzzgT31hK/Reco_Meshi?node-id=0
 ### 各画面の作り込み
 画面遷移だけでなく、必要なボタンやフォームが確認できるくらい作り込めているか？
 - [ ] 作り込みはある程度完了している（Figmaを見て画面の作成ができる状態にある）
+
+### ER図
+
+https://gyazo.com/b186592c661ddc18a1e1c4661f27c754
+
+```mermaid
+erDiagram
+    users ||--o{ user_ingredients : ""
+    users ||--o{ recipe_histories : ""
+    users ||--o{ favorite_recipes : ""
+    users ||--o{ shopping_lists : ""
+    users ||--o{ allergy_ingredients : ""
+    users ||--o{ disliked_ingredients : ""
+    users ||--o| notification_settings : ""
+    users ||--o| line_accounts : ""
+    users ||--o{ fridge_images : ""
+    
+    ingredients ||--o{ user_ingredients : ""
+    ingredients ||--o{ recipe_ingredients : ""
+    ingredients ||--o{ allergy_ingredients : ""
+    ingredients ||--o{ disliked_ingredients : ""
+    ingredients ||--o{ shopping_list_items : ""
+    
+    recipes ||--o{ recipe_ingredients : ""
+    recipes ||--o{ recipe_histories : ""
+    recipes ||--o{ favorite_recipes : ""
+    recipes ||--o{ shopping_lists : ""
+    
+    shopping_lists ||--o{ shopping_list_items : ""
+
+    fridge_images ||--o{ user_ingredients : ""
+
+    users {
+        integer id PK
+        string email
+        string encrypted_password
+        string name
+        string reset_password_token
+        timestamp reset_password_sent_at
+        string confirmation_token
+        timestamp confirmed_at
+        timestamp confirmation_sent_at
+        string unconfirmed_email
+        timestamp remember_created_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    line_accounts {
+        integer id PK
+        integer user_id FK
+        string line_user_id
+        string line_display_name
+        string line_picture_url
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ingredients {
+        integer id PK
+        string name
+        ingredient_category category "ENUM(vegetables, meat, fish, dairy, seasonings, others)"
+        string unit
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    user_ingredients {
+        integer id PK
+        integer user_id FK
+        integer ingredient_id FK
+        decimal quantity
+        integer fridge_image_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    recipes {
+        integer id PK
+        string title
+        text description
+        integer cooking_time
+        integer serving_size
+        recipe_difficulty difficulty "ENUM(easy, normal, hard)"
+        text instructions
+        string image_url
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    recipe_ingredients {
+        integer id PK
+        integer recipe_id FK
+        integer ingredient_id FK
+        decimal quantity
+        string unit
+        boolean is_optional
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    recipe_histories {
+        integer id PK
+        integer user_id FK
+        integer recipe_id FK
+        timestamp cooked_at
+        text memo
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    favorite_recipes {
+        integer id PK
+        integer user_id FK
+        integer recipe_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    shopping_lists {
+        integer id PK
+        integer user_id FK
+        integer recipe_id FK
+        shopping_list_status status "ENUM(active, completed, cancelled)"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    shopping_list_items {
+        integer id PK
+        integer shopping_list_id FK
+        integer ingredient_id FK
+        decimal quantity
+        string unit
+        boolean is_checked
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    allergy_ingredients {
+        integer id PK
+        integer user_id FK
+        integer ingredient_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    disliked_ingredients {
+        integer id PK
+        integer user_id FK
+        integer ingredient_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notification_settings {
+        integer id PK
+        integer user_id FK
+        boolean recipe_suggestion_enabled
+        time recipe_suggestion_time
+        boolean inventory_reminder_enabled
+        boolean email_notification_enabled
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    fridge_images {
+        integer id PK
+        integer user_id FK
+        string image_url
+        jsonb recognized_ingredients
+        jsonb image_metadata
+        timestamp captured_at
+        timestamp created_at
+        timestamp updated_at
+    }
+```
