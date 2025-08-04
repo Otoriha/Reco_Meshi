@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recomeshi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recomeshi_password}
+      POSTGRES_DB: ${POSTGRES_DB:-recomeshi_development}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - rails_bundle:/usr/local/bundle
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-recomeshi}:${POSTGRES_PASSWORD:-recomeshi_password}@postgres:5432/${POSTGRES_DB:-recomeshi_development}
+      REDIS_URL: redis://redis:6379/0
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  rails_bundle:
