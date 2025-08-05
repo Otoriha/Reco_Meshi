@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# package*.jsonをコピーして依存関係をインストール
+COPY package*.json ./
+RUN npm ci
+
+# ソースコードをコピー
+COPY . .
+
+# ポート3001を公開
+EXPOSE 3001
+
+# 開発サーバーを起動
+CMD ["npm", "run", "dev"]
