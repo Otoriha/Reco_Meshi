@@ -38,7 +38,23 @@ services:
     stdin_open: true
     tty: true
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+    ports:
+      - "3001:3001"
+    environment:
+      REACT_APP_API_URL: http://localhost:3000/api/v1
+      REACT_APP_APP_URL: http://localhost:3001
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data:
   redis_data:
   rails_bundle:
+  node_modules:
