@@ -1,7 +1,7 @@
 # fly.toml app configuration file generated for reco-meshi
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 
-app = 'reco-meshi'
+app = 'reco-meshi-api'
 primary_region = 'nrt'  # Tokyo region
 console_command = '/rails/bin/rails console'
 
@@ -37,6 +37,10 @@ console_command = '/rails/bin/rails console'
   cpu_kind = 'shared'
   cpus = 1
   processes = ['app']
+
+[mounts]
+  source = "data"
+  destination = "/data"
 
 [[statics]]
   guest_path = '/rails/public'
