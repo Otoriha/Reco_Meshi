@@ -1,0 +1,73 @@
+# fly.toml app configuration file generated for reco-meshi
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = 'reco-meshi'
+primary_region = 'nrt'  # Tokyo region
+console_command = '/rails/bin/rails console'
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[deploy]
+  release_command = './bin/rails db:prepare'
+
+[env]
+  PORT = '3000'
+  RAILS_LOG_TO_STDOUT = 'true'
+  RAILS_SERVE_STATIC_FILES = 'true'
+  # CORS settings - Update with actual frontend URLs after deployment
+  # FRONTEND_URL = 'https://your-frontend.vercel.app'
+  # LIFF_URL = 'https://your-liff.vercel.app'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  processes = ['app']
+
+[[statics]]
+  guest_path = '/rails/public'
+  url_prefix = '/'
+
+[checks]
+  [checks.status]
+    port = 3000
+    type = 'http'
+    interval = '20s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/up'
+    protocol = 'http'
+    tls_skip_verify = false
+    
+    [checks.status.headers]
+      X-Forwarded-Proto = 'https'
+
+# Sidekiq worker process (optional - comment out if not using background jobs)
+[processes]
+  app = ''
+  worker = 'bundle exec sidekiq'
+
+[[services]]
+  processes = ['worker']
+  internal_port = 3000
+
+  [[services.http_checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    path = '/sidekiq/stats'
