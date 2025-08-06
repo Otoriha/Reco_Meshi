@@ -6,7 +6,8 @@ primary_region = 'nrt'  # Tokyo region
 console_command = '/rails/bin/rails console'
 
 [build]
-  dockerfile = "backend/Dockerfile"
+  context = "backend"
+  dockerfile = "Dockerfile"
 
 [deploy]
   release_command = './bin/rails db:prepare'
