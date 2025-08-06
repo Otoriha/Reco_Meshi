@@ -70,6 +70,15 @@ test:
 #
 production:
   <<: *default
-  database: app_production
-  username: app
-  password: <%= ENV["APP_DATABASE_PASSWORD"] %>
+  # Fly.io uses DATABASE_URL for connection
+  url: <%= ENV["DATABASE_URL"] %>
+  # Fallback configuration if DATABASE_URL is not set
+  database: <%= ENV.fetch("POSTGRES_DB") { "recomeshi_production" } %>
+  username: <%= ENV.fetch("POSTGRES_USER") { "recomeshi" } %>
+  password: <%= ENV["POSTGRES_PASSWORD"] %>
+  host: <%= ENV.fetch("POSTGRES_HOST") { "localhost" } %>
+  port: <%= ENV.fetch("POSTGRES_PORT") { "5432" } %>
+  # Connection pool optimization for production
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 10 } %>
+  # Statement timeout to prevent long-running queries
+  statement_timeout: 5000
