@@ -62,16 +62,9 @@ console_command = '/rails/bin/rails console'
       X-Forwarded-Proto = 'https'
 
 # Sidekiq worker process (optional - comment out if not using background jobs)
-[processes]
-  app = ''
-  worker = 'bundle exec sidekiq'
+# [processes]
+#   app = ''
+#   worker = 'bundle exec sidekiq'
 
-[[services]]
-  processes = ['worker']
-  internal_port = 3000
-
-  [[services.http_checks]]
-    interval = '30s'
-    timeout = '5s'
-    grace_period = '10s'
-    path = '/sidekiq/stats'
+# Sidekiq worker doesn't need HTTP service or health checks
+# Remove or comment out the services section for worker
