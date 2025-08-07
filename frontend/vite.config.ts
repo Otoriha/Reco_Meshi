@@ -8,4 +8,19 @@ export default defineConfig({
     port: 3001,
     host: '0.0.0.0',
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          axios: ['axios'],
+        },
+      },
+    },
+  },
+  define: {
+    'process.env': {},
+  },
 })
