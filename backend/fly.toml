@@ -15,9 +15,11 @@ console_command = '/rails/bin/rails console'
   PORT = '3000'
   RAILS_LOG_TO_STDOUT = 'true'
   RAILS_SERVE_STATIC_FILES = 'true'
-  # CORS settings - Update with actual frontend URLs after deployment
-  # FRONTEND_URL = 'https://your-frontend.vercel.app'
-  # LIFF_URL = 'https://your-liff.vercel.app'
+  # CORS settings - Production URLs
+  FRONTEND_URL = 'https://reco-meshiweb.vercel.app'
+  LIFF_URL = 'https://reco-meshi.vercel.app'
+  # Allow Vercel preview deployments (set to "false" in production)
+  ALLOW_VERCEL_PREVIEW = 'false'
 
 [http_service]
   internal_port = 3000
