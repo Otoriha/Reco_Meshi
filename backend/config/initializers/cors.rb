@@ -7,15 +7,42 @@
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    # Development origins
-    origins "localhost:3001", "localhost:3002",
-            # Production origins - Update these with your actual frontend URLs
-            ENV.fetch("FRONTEND_URL", "").split(","),
-            ENV.fetch("LIFF_URL", "").split(",")
+    # Configure origins based on environment
+    if Rails.env.development?
+      # Development environment - Allow local hosts
+      origins "localhost:3001",     # Frontend (Web)
+              "localhost:3002",     # LIFF
+              "127.0.0.1:3001",    # Alternative localhost
+              "127.0.0.1:3002",    # Alternative localhost
+              "0.0.0.0:3001",      # Docker network
+              "0.0.0.0:3002"       # Docker network
+    else
+      # Production environment - Allow specific domains
+      allowed_origins = []
+      
+      # Frontend URLs (Vercel or custom domain)
+      if ENV["FRONTEND_URL"].present?
+        allowed_origins += ENV["FRONTEND_URL"].split(",").map(&:strip)
+      end
+      
+      # LIFF URLs (Vercel or custom domain)
+      if ENV["LIFF_URL"].present?
+        allowed_origins += ENV["LIFF_URL"].split(",").map(&:strip)
+      end
+      
+      # Default Vercel preview URLs (optional - remove in production for security)
+      if ENV["ALLOW_VERCEL_PREVIEW"] == "true"
+        allowed_origins << /https:\/\/.*\.vercel\.app/
+      end
+      
+      # Apply origins
+      origins *allowed_origins if allowed_origins.any?
+    end
 
     resource "*",
       headers: :any,
       methods: [:get, :post, :put, :patch, :delete, :options, :head],
-      credentials: true
+      credentials: true,
+      expose: ["X-Total-Count", "X-Page", "X-Per-Page"] # 必要に応じてカスタムヘッダーを公開
   end
 end
