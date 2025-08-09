@@ -8,7 +8,17 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     namespace :v1 do
-      # API endpoints will be added here
+      devise_for :users,
+        controllers: {
+          sessions: 'api/v1/users/sessions',
+          registrations: 'api/v1/users/registrations'
+        },
+        path: 'auth',
+        path_names: {
+          sign_in: 'login',
+          sign_out: 'logout',
+          registration: 'signup'
+        }
     end
   end
 
