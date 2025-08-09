@@ -4,7 +4,6 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable, :confirmable
 
-  # Validations
+  # Validations (emailはvalidatableモジュールに委譲)
   validates :name, presence: true, length: { maximum: 50 }
-  validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
 end
