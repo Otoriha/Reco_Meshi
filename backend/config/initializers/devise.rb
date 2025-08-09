@@ -267,6 +267,9 @@ Devise.setup do |config|
   
   # API mode configuration - no navigational formats
   config.navigational_formats = []
+  
+  # Skip session storage for API-only applications
+  config.skip_session_storage = [:http_auth, :params_auth]
 
   # The default HTTP method used to sign out a resource. Default is :delete.
   config.sign_out_via = :delete
