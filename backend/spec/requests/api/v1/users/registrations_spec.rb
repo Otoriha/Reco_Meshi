@@ -38,6 +38,14 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
         expect {
           post "/api/v1/auth/signup", params: valid_params, as: :json
         }.to change { ActionMailer::Base.deliveries.count }.by(1)
+      end
+
+      it "新規登録時にJWTトークンは発行されない（メール確認前のため）" do
+        post "/api/v1/auth/signup", params: valid_params, as: :json
+        
+        expect(response).to have_http_status(:ok)
+        # 確認前のユーザーにはトークンを発行しない
+        expect(response.headers['Authorization']).to be_nil
         
         mail = ActionMailer::Base.deliveries.last
         expect(mail.to).to eq(["test@example.com"])

@@ -1,5 +1,5 @@
 class Api::V1::Users::RegistrationsController < Devise::RegistrationsController
-  skip_before_action :verify_authenticity_token
+  protect_from_forgery with: :null_session if respond_to?(:protect_from_forgery)
   respond_to :json
 
   before_action :configure_sign_up_params, only: [:create]

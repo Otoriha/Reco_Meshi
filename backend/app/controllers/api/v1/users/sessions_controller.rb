@@ -1,5 +1,5 @@
 class Api::V1::Users::SessionsController < Devise::SessionsController
-  skip_before_action :verify_authenticity_token
+  protect_from_forgery with: :null_session if respond_to?(:protect_from_forgery)
   respond_to :json
 
   private
@@ -12,7 +12,7 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   end
 
   def respond_to_on_destroy
-    if current_user
+    if request.headers['Authorization'].present?
       render json: {
         status: 200,
         message: "Logged out successfully."
