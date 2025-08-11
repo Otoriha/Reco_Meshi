@@ -269,7 +269,8 @@ Devise.setup do |config|
   config.navigational_formats = []
   
   # Skip session storage for API-only applications
-  config.skip_session_storage = [:http_auth, :params_auth]
+  # Keep params authentication enabled for devise-jwt
+  config.skip_session_storage = [:http_auth]
 
   # The default HTTP method used to sign out a resource. Default is :delete.
   config.sign_out_via = :delete
@@ -319,7 +320,7 @@ Devise.setup do |config|
 
   # ==> JWT configuration
   config.jwt do |jwt|
-    jwt.secret = ENV['DEVISE_JWT_SECRET_KEY']
+    jwt.secret = ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base)
     jwt.dispatch_requests = [
       ['POST', %r{^/api/v1/auth/login$}],
       ['POST', %r{^/api/v1/auth/signup$}]
