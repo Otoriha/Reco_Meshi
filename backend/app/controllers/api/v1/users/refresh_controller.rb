@@ -16,8 +16,11 @@ class Api::V1::Users::RefreshController < ApplicationController
     # 使用したトークンをブラックリストに追加（他端末のトークンは維持）
     JwtDenylist.create!(jti: payload['jti'], exp: Time.at(payload['exp']))
     
-    # 新しいJWTトークンを発行（devise-jwtが自動でAuthorizationヘッダに設定）
+    # 新しいJWTトークンを発行
+    # 1) devise-jwtのdispatchに頼らず、明示的にエンコードしてヘッダ付与
     sign_in(:user, current_user, store: false)
+    token, _ = Warden::JWTAuth::UserEncoder.new.call(current_user, :user, nil)
+    response.set_header('Authorization', "Bearer #{token}")
     
     render json: {
       status: { code: 200, message: 'Token refreshed successfully.' }

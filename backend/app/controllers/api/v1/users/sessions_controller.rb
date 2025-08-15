@@ -3,8 +3,10 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   respond_to :json
   wrap_parameters false
 
-  # ApplicationControllerのauthenticate_user!をスキップ（ログイン時は認証不要）
-  skip_before_action :authenticate_user!, only: [:create]
+  # ApplicationControllerのauthenticate_user!をスキップ
+  # - ログイン時は認証不要
+  # - ログアウトはトークンの有無/妥当性で応答を制御するため認証不要
+  skip_before_action :authenticate_user!, only: [:create, :destroy]
 
   before_action :normalize_devise_param_keys, only: [:create]
 
@@ -49,15 +51,41 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   end
 
   def respond_to_on_destroy
-    if request.headers['Authorization'].present?
+    token = request.headers['Authorization'].to_s.split(' ').last
+
+    if token.blank?
+      render json: {
+        status: 401,
+        message: "Couldn't find an active session."
+      }, status: :unauthorized
+      return
+    end
+
+    # トークン署名の妥当性のみ確認（Wardenミドルウェアでのrevocationを無効化したためここで完結）
+    begin
+      JWT.decode(
+        token,
+        ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base),
+        true,
+        { algorithm: 'HS256' }
+      )
+
+      # ログアウト要求に使用したトークンをブラックリストに追加
+      begin
+        payload = JWT.decode(token, nil, false).first
+        JwtDenylist.create!(jti: payload['jti'], exp: Time.at(payload['exp'])) if payload['jti'] && payload['exp']
+      rescue StandardError
+        # 失敗時はブラックリスト登録をスキップ（応答は成功でよい）
+      end
+
       render json: {
         status: 200,
         message: "Logged out successfully."
       }, status: :ok
-    else
+    rescue JWT::DecodeError
       render json: {
         status: 401,
-        message: "Couldn't find an active session."
+        message: "Invalid token."
       }, status: :unauthorized
     end
   end

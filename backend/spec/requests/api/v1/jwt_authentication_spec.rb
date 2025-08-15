@@ -196,13 +196,13 @@ RSpec.describe "JWT Authentication", type: :request do
       end
 
       it "無効なトークンではログアウトできない" do
-        # より適切な無効なJWT形式を使用
-        invalid_payload = { sub: 'invalid', jti: 'invalid', exp: 1.hour.from_now.to_i }
-        invalid_token = "Bearer " + JWT.encode(invalid_payload, 'wrong_secret', 'HS256')
-        
-        delete "/api/v1/auth/logout", headers: { 'Authorization' => invalid_token }, as: :json
-        
+        # ミドルウェアを通さない不正スキーム + 不正トークン
+        invalid_header = 'InvalidScheme invalid-token'
+
+        delete "/api/v1/auth/logout", headers: { 'Authorization' => invalid_header }, as: :json
+
         expect(response).to have_http_status(:unauthorized)
+        expect(JSON.parse(response.body)['message']).to eq('Invalid token.')
       end
     end
   end

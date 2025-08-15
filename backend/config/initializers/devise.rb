@@ -326,8 +326,10 @@ Devise.setup do |config|
       ['POST', %r{^/api/v1/auth/signup$}],
       ['POST', %r{^/api/v1/auth/refresh$}]
     ]
+    # Revocation is handled manually in SessionsController#respond_to_on_destroy
+    # ここでミドルウェアの自動revocationを無効化（絶対にマッチしないパスに設定）
     jwt.revocation_requests = [
-      ['DELETE', %r{^/api/v1/auth/logout$}]
+      ['DELETE', %r{^/never/revoke$}]
     ]
     jwt.expiration_time = 1.day.to_i
   end
