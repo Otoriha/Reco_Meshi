@@ -19,6 +19,10 @@ Rails.application.routes.draw do
           sign_out: 'logout',
           registration: 'signup'
         }
+
+      devise_scope :user do
+        post 'auth/refresh', to: 'users/refresh#create'
+      end
     end
   end
 
