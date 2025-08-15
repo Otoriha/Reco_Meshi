@@ -3,6 +3,9 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   respond_to :json
   wrap_parameters false
 
+  # ApplicationControllerのauthenticate_user!をスキップ（ログイン時は認証不要）
+  skip_before_action :authenticate_user!, only: [:create, :destroy]
+
   before_action :normalize_devise_param_keys, only: [:create]
 
   # カスタム認証（devise-jwtのdispatchは sign_in 呼び出しで発火）

@@ -10,6 +10,6 @@ class User < ApplicationRecord
 
   # JWT payloadの追加クレームを定義（subはdevise-jwtが自動付与）
   def jwt_payload
-    { 'email' => email }
-  end
+  { 'email' => email, 'confirmed' => confirmed_at.present? }
+end
 end

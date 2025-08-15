@@ -40,13 +40,18 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
         }.to change { ActionMailer::Base.deliveries.count }.by(1)
       end
 
-      it "新規登録時にJWTトークンは発行されない（メール確認前のため）" do
+      it "新規登録時にJWTトークンが発行され、confirmed=falseが含まれる" do
         post "/api/v1/auth/signup", params: valid_params, as: :json
-        
+
         expect(response).to have_http_status(:ok)
-        # 確認前のユーザーにはトークンを発行しない
-        expect(response.headers['Authorization']).to be_nil
-        
+        token = response.headers['Authorization']
+        expect(token).to be_present
+        expect(token).to match(/^Bearer /)
+
+        payload = JWT.decode(token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first
+        expect(payload['email']).to eq('test@example.com')
+        expect(payload['confirmed']).to eq(false)
+
         mail = ActionMailer::Base.deliveries.last
         expect(mail.to).to eq(["test@example.com"])
         expect(mail.subject).to include("Confirmation instructions")
