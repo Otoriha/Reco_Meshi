@@ -133,7 +133,9 @@ RSpec.describe "JWT Authentication", type: :request do
       end
 
       it "無効なトークンではリフレッシュできない" do
-        invalid_token = "Bearer invalid.token.here"
+        # より適切な無効なJWT形式を使用
+        invalid_payload = { sub: 'invalid', jti: 'invalid', exp: 1.hour.from_now.to_i }
+        invalid_token = "Bearer " + JWT.encode(invalid_payload, 'wrong_secret', 'HS256')
         
         post "/api/v1/auth/refresh", headers: { 'Authorization' => invalid_token }, as: :json
         
@@ -194,7 +196,9 @@ RSpec.describe "JWT Authentication", type: :request do
       end
 
       it "無効なトークンではログアウトできない" do
-        invalid_token = "Bearer invalid.token.here"
+        # より適切な無効なJWT形式を使用
+        invalid_payload = { sub: 'invalid', jti: 'invalid', exp: 1.hour.from_now.to_i }
+        invalid_token = "Bearer " + JWT.encode(invalid_payload, 'wrong_secret', 'HS256')
         
         delete "/api/v1/auth/logout", headers: { 'Authorization' => invalid_token }, as: :json
         

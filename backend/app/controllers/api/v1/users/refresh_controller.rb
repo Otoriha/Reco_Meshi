@@ -1,5 +1,12 @@
 class Api::V1::Users::RefreshController < ApplicationController
-  before_action :authenticate_user!
+  include Devise::Controllers::Helpers
+  
+  # ApplicationControllerのauthenticate_user!をskipして独自に実装
+  skip_before_action :authenticate_user!
+  before_action :authenticate_refresh_token!
+  
+  protect_from_forgery with: :null_session if respond_to?(:protect_from_forgery)
+  respond_to :json
 
   def create
     # 現在のJWTトークンからjtiを取得
@@ -23,5 +30,36 @@ class Api::V1::Users::RefreshController < ApplicationController
     render json: {
       status: { code: 500, message: 'Token refresh failed.' }
     }, status: :internal_server_error
+  end
+
+  private
+
+  def authenticate_refresh_token!
+    token = request.headers['Authorization'].to_s.split(' ').last
+    
+    if token.blank?
+      render json: { status: { code: 401, message: 'Token required.' } }, status: :unauthorized
+      return
+    end
+
+    begin
+      payload = JWT.decode(token, ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base), true, { algorithm: 'HS256' })
+      user_id = payload.first['sub']
+      @current_user = User.find(user_id)
+      
+      # ブラックリストチェック
+      if JwtDenylist.exists?(jti: payload.first['jti'])
+        render json: { status: { code: 401, message: 'Token has been revoked.' } }, status: :unauthorized
+        return
+      end
+    rescue JWT::DecodeError
+      render json: { status: { code: 401, message: 'Invalid token.' } }, status: :unauthorized
+    rescue ActiveRecord::RecordNotFound
+      render json: { status: { code: 401, message: 'User not found.' } }, status: :unauthorized
+    end
+  end
+
+  def current_user
+    @current_user
   end
 end

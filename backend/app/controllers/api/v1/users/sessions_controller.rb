@@ -4,7 +4,7 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   wrap_parameters false
 
   # ApplicationControllerのauthenticate_user!をスキップ（ログイン時は認証不要）
-  skip_before_action :authenticate_user!, only: [:create, :destroy]
+  skip_before_action :authenticate_user!, only: [:create]
 
   before_action :normalize_devise_param_keys, only: [:create]
 
