@@ -23,7 +23,7 @@ RSpec.describe "JWT Authentication", type: :request do
       it "トークンに正しいクレームが含まれる" do
         token_payload = JWT.decode(@token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first
         
-        expect(token_payload['sub']).to eq(user.id)
+        expect(token_payload['sub']).to eq(user.id.to_s)
         expect(token_payload['email']).to eq(user.email)
         expect(token_payload['jti']).to be_present
         expect(token_payload['exp']).to be_present
