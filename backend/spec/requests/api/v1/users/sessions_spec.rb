@@ -32,6 +32,14 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         expect(json['status']['message']).to eq('Logged in successfully.')
         expect(json['data']['email']).to eq(user.email)
       end
+
+      it "JWTトークンがAuthorizationヘッダーに含まれる" do
+        post "/api/v1/auth/login", params: valid_credentials, as: :json
+        
+        expect(response).to have_http_status(:ok)
+        expect(response.headers['Authorization']).to be_present
+        expect(response.headers['Authorization']).to match(/^Bearer /)
+      end
     end
 
     context "未確認ユーザーがログインを試みる場合" do
@@ -75,6 +83,41 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         expect(response).to have_http_status(:unauthorized)
         json = JSON.parse(response.body)
         expect(json['error']).to include("Invalid Email or password")
+      end
+    end
+  end
+
+  describe "DELETE /api/v1/auth/logout" do
+    let(:user) { create(:user, :confirmed) }
+
+    context "認証済みユーザーがログアウトする場合" do
+      it "ログアウトに成功し、トークンがブラックリストに追加される" do
+        # まずログイン
+        post "/api/v1/auth/login", params: {
+          user: { email: user.email, password: "password123" }
+        }, as: :json
+
+        token = response.headers['Authorization']
+        expect(token).to be_present
+
+        # ログアウト
+        delete "/api/v1/auth/logout", headers: { 'Authorization' => token }, as: :json
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json['message']).to eq('Logged out successfully.')
+
+        # トークンがブラックリストに追加されていることを確認
+        jti = JWT.decode(token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first['jti']
+        expect(JwtDenylist.exists?(jti: jti)).to be true
+      end
+    end
+
+    context "トークンなしでログアウトを試みる場合" do
+      it "エラーを返す（401）" do
+        delete "/api/v1/auth/logout", as: :json
+
+        expect(response).to have_http_status(:unauthorized)
       end
     end
   end

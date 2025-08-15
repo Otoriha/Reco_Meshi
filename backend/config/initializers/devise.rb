@@ -269,7 +269,8 @@ Devise.setup do |config|
   config.navigational_formats = []
   
   # Skip session storage for API-only applications
-  config.skip_session_storage = [:http_auth, :params_auth]
+  # Keep params authentication enabled for devise-jwt
+  config.skip_session_storage = [:http_auth]
 
   # The default HTTP method used to sign out a resource. Default is :delete.
   config.sign_out_via = :delete
@@ -316,4 +317,17 @@ Devise.setup do |config|
   # When set to false, does not sign a user in automatically after their password is
   # changed. Defaults to true, so a user is signed in automatically after changing a password.
   # config.sign_in_after_change_password = true
+
+  # ==> JWT configuration
+  config.jwt do |jwt|
+    jwt.secret = ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base)
+    jwt.dispatch_requests = [
+      ['POST', %r{^/api/v1/auth/login$}],
+      ['POST', %r{^/api/v1/auth/signup$}]
+    ]
+    jwt.revocation_requests = [
+      ['DELETE', %r{^/api/v1/auth/logout$}]
+    ]
+    jwt.expiration_time = 1.day.to_i
+  end
 end
