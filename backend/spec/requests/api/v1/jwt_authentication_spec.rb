@@ -99,5 +99,111 @@ RSpec.describe "JWT Authentication", type: :request do
         # expect(response).to have_http_status(:ok)
       end
     end
+
+    context "リフレッシュトークン機能" do
+      before do
+        # ログインしてトークンを取得
+        post "/api/v1/auth/login", params: {
+          user: { email: user.email, password: "password123" }
+        }, as: :json
+        
+        @original_token = response.headers['Authorization']
+      end
+
+      it "有効なトークンでリフレッシュが成功する" do
+        post "/api/v1/auth/refresh", headers: { 'Authorization' => @original_token }, as: :json
+        
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['status']['message']).to eq('Token refreshed successfully.')
+        
+        # 新しいトークンが発行される
+        new_token = response.headers['Authorization']
+        expect(new_token).to be_present
+        expect(new_token).not_to eq(@original_token)
+      end
+
+      it "リフレッシュ後、元のトークンは無効になる" do
+        # リフレッシュ実行
+        post "/api/v1/auth/refresh", headers: { 'Authorization' => @original_token }, as: :json
+        expect(response).to have_http_status(:ok)
+        
+        # 元のトークンのjtiがJwtDenylistに登録されていることを確認
+        original_payload = JWT.decode(@original_token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first
+        expect(JwtDenylist.exists?(jti: original_payload['jti'])).to be_truthy
+      end
+
+      it "無効なトークンではリフレッシュできない" do
+        # より適切な無効なJWT形式を使用
+        invalid_payload = { sub: 'invalid', jti: 'invalid', exp: 1.hour.from_now.to_i }
+        invalid_token = "Bearer " + JWT.encode(invalid_payload, 'wrong_secret', 'HS256')
+        
+        post "/api/v1/auth/refresh", headers: { 'Authorization' => invalid_token }, as: :json
+        
+        expect(response).to have_http_status(:unauthorized)
+        expect(JSON.parse(response.body)['status']['message']).to eq('Invalid token.')
+      end
+
+      it "トークンなしではリフレッシュできない" do
+        post "/api/v1/auth/refresh", as: :json
+        
+        expect(response).to have_http_status(:unauthorized)
+      end
+
+      it "ブラックリストに追加済みのトークンではリフレッシュできない" do
+        # 一度リフレッシュして元のトークンをブラックリストに追加
+        post "/api/v1/auth/refresh", headers: { 'Authorization' => @original_token }, as: :json
+        expect(response).to have_http_status(:ok)
+        
+        # 再度同じトークンでリフレッシュを試行
+        post "/api/v1/auth/refresh", headers: { 'Authorization' => @original_token }, as: :json
+        
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "ログアウト機能" do
+      before do
+        # ログインしてトークンを取得
+        post "/api/v1/auth/login", params: {
+          user: { email: user.email, password: "password123" }
+        }, as: :json
+        
+        @token = response.headers['Authorization']
+      end
+
+      it "有効なトークンでログアウトが成功する" do
+        delete "/api/v1/auth/logout", headers: { 'Authorization' => @token }, as: :json
+        
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['message']).to eq('Logged out successfully.')
+      end
+
+      it "ログアウト後、トークンがブラックリストに追加される" do
+        # ログアウト実行
+        delete "/api/v1/auth/logout", headers: { 'Authorization' => @token }, as: :json
+        expect(response).to have_http_status(:ok)
+        
+        # トークンのjtiがJwtDenylistに登録されていることを確認
+        payload = JWT.decode(@token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first
+        expect(JwtDenylist.exists?(jti: payload['jti'])).to be_truthy
+      end
+
+      it "トークンなしではログアウトできない" do
+        delete "/api/v1/auth/logout", as: :json
+        
+        expect(response).to have_http_status(:unauthorized)
+        expect(JSON.parse(response.body)['message']).to eq("Couldn't find an active session.")
+      end
+
+      it "無効なトークンではログアウトできない" do
+        # ミドルウェアを通さない不正スキーム + 不正トークン
+        invalid_header = 'InvalidScheme invalid-token'
+
+        delete "/api/v1/auth/logout", headers: { 'Authorization' => invalid_header }, as: :json
+
+        expect(response).to have_http_status(:unauthorized)
+        expect(JSON.parse(response.body)['message']).to eq('Invalid token.')
+      end
+    end
   end
 end
