@@ -1,6 +1,10 @@
 import React from 'react';
 
-const Login: React.FC = () => {
+type LoginProps = {
+  onSwitchToSignup?: () => void;
+};
+
+const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-lg shadow p-6">
@@ -33,6 +37,16 @@ const Login: React.FC = () => {
             ログイン
           </button>
         </form>
+        <div className="mt-4 text-center text-sm text-gray-600">
+          アカウントをお持ちでない方は{' '}
+          <button
+            type="button"
+            onClick={onSwitchToSignup}
+            className="text-blue-600 hover:underline"
+          >
+            新規登録はこちら
+          </button>
+        </div>
       </div>
     </div>
   );

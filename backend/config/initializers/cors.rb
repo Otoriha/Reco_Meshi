@@ -43,6 +43,6 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       headers: :any,
       methods: [:get, :post, :put, :patch, :delete, :options, :head],
       credentials: true,
-      expose: ["X-Total-Count", "X-Page", "X-Per-Page"] # 必要に応じてカスタムヘッダーを公開
+      expose: ["Authorization", "X-Total-Count", "X-Page", "X-Per-Page"] # フロントからAuthorizationヘッダーを参照可能に
   end
 end
