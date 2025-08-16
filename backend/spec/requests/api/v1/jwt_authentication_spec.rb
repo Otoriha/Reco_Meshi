@@ -175,7 +175,7 @@ RSpec.describe "JWT Authentication", type: :request do
         delete "/api/v1/auth/logout", headers: { 'Authorization' => @token }, as: :json
         
         expect(response).to have_http_status(:ok)
-        expect(JSON.parse(response.body)['message']).to eq('Logged out successfully.')
+        expect(JSON.parse(response.body)['message']).to eq('ログアウトしました。')
       end
 
       it "ログアウト後、トークンがブラックリストに追加される" do
@@ -192,7 +192,7 @@ RSpec.describe "JWT Authentication", type: :request do
         delete "/api/v1/auth/logout", as: :json
         
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)['message']).to eq("Couldn't find an active session.")
+        expect(JSON.parse(response.body)['message']).to eq("アクティブなセッションが見つかりません。")
       end
 
       it "無効なトークンではログアウトできない" do
@@ -202,7 +202,7 @@ RSpec.describe "JWT Authentication", type: :request do
         delete "/api/v1/auth/logout", headers: { 'Authorization' => invalid_header }, as: :json
 
         expect(response).to have_http_status(:unauthorized)
-        expect(JSON.parse(response.body)['message']).to eq('Invalid token.')
+        expect(JSON.parse(response.body)['message']).to eq('無効なトークンです。')
       end
     end
   end

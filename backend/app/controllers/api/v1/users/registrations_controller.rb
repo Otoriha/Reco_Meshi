@@ -11,6 +11,36 @@ class Api::V1::Users::RegistrationsController < Devise::RegistrationsController
   before_action :configure_sign_up_params, only: [:create]
   before_action :configure_account_update_params, only: [:update]
 
+  # Override create to control auto sign-in behavior
+  def create
+    build_resource(sign_up_params)
+
+    if resource.save
+      if ENV['CONFIRMABLE_ENABLED'] != 'true'
+        # Confirmable disabled: Auto sign-in and issue JWT
+        sign_in(resource_name, resource, store: false)
+        
+        # Manual JWT generation since we excluded signup from dispatch_requests
+        token = generate_jwt_token(resource)
+        response.set_header('Authorization', "Bearer #{token}")
+        
+        render json: {
+          status: { code: 200, message: '新規登録が完了しました。' },
+          data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
+        }, status: :ok
+      else
+        # Confirmable enabled: No auto sign-in, no JWT, just success message
+        render json: {
+          status: { code: 200, message: '確認メールを送信しました。メールをご確認ください。' }
+        }, status: :ok
+      end
+    else
+      render json: {
+        status: { message: "ユーザー登録に失敗しました。#{resource.errors.full_messages.to_sentence}" }
+      }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   # テスト/クライアント互換のため、params[:user] を Devise の resource_name にマップ
@@ -26,23 +56,6 @@ class Api::V1::Users::RegistrationsController < Devise::RegistrationsController
     source = params[resource_name] || params[:user] || ActionController::Parameters.new
     source.permit(:name, :email, :password, :password_confirmation)
   end
-
-  def respond_with(resource, _opts = {})
-  if resource.persisted?
-    # APIモードではsign_inではなく、JWTトークンを手動で生成
-    token = generate_jwt_token(resource)
-    response.set_header('Authorization', "Bearer #{token}")
-    
-    render json: {
-      status: { code: 200, message: 'Signed up successfully.' },
-      data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
-    }, status: :ok
-  else
-    render json: {
-      status: { message: "User couldn't be created successfully. #{resource.errors.full_messages.to_sentence}" }
-    }, status: :unprocessable_entity
-  end
-end
 
 # APIモードでJWTトークンを手動生成するためのヘルパーメソッド
 def generate_jwt_token(user)
