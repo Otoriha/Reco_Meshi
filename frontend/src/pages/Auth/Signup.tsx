@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { signup } from '../../api/auth';
 
+const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
+
 type SignupProps = {
   onSwitchToLogin?: () => void;
   onSignupSuccess?: () => void;
@@ -119,14 +121,25 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
         passwordConfirmation: formData.passwordConfirmation,
       });
 
-      // 成功メッセージを表示
-      setSuccessMessage('登録完了しました。ログイン画面に移動します。');
-      
-      // 2秒後にログイン画面へ遷移
-      setTimeout(() => {
-        onSignupSuccess?.();
-        onSwitchToLogin?.();
-      }, 2000);
+      if (isConfirmableEnabled) {
+        // 確認メール有効時：確認メールメッセージ表示、ログイン画面へ遷移
+        setSuccessMessage('登録完了しました。確認メールをご確認ください。');
+        
+        // 2秒後にログイン画面へ遷移
+        setTimeout(() => {
+          onSignupSuccess?.();
+          onSwitchToLogin?.();
+        }, 2000);
+      } else {
+        // 確認メール無効時：自動ログイン（トークンは既にauth.tsで保存済み）
+        setSuccessMessage('登録完了しました。自動的にログインします。');
+        
+        // 1秒後に自動ログイン状態へ遷移
+        setTimeout(() => {
+          onSignupSuccess?.();
+          // 親コンポーネントでログイン状態が更新される
+        }, 1000);
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '登録に失敗しました。';

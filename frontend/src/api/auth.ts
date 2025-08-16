@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 
+const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
+
 export interface SignupData {
   name: string;
   email: string;
@@ -48,11 +50,12 @@ export const signup = async (data: SignupData): Promise<UserData> => {
 
     // AuthorizationヘッダーからJWTトークンを取得
     const authHeader = response.headers['authorization'];
-    if (authHeader) {
-      // "Bearer "を除去してlocalStorageに保存
+    if (authHeader && !isConfirmableEnabled) {
+      // 確認メール無効時のみトークンを保存（自動ログイン）
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
     }
+    // 確認メール有効時はトークンを保存せず、メール確認後にログインしてもらう
 
     return response.data.data;
   } catch (error: any) {

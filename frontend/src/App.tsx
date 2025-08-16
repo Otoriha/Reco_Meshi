@@ -1,25 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
+import { isAuthenticated, logout } from './api/auth'
 
 type AuthMode = 'login' | 'signup';
+
+const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
 
+  // 初期化時にトークンの存在をチェック
+  useEffect(() => {
+    setIsLoggedIn(isAuthenticated());
+  }, []);
+
   const handleSwitchToLogin = () => setAuthMode('login')
   const handleSwitchToSignup = () => setAuthMode('signup')
   
   const handleSignupSuccess = () => {
-    // 新規登録成功時の処理（必要に応じて追加）
+    // 確認メール無効時は自動ログイン状態に
+    if (!isConfirmableEnabled) {
+      setIsLoggedIn(true);
+    }
     console.log('Sign up successful')
   }
 
-  const handleLogout = () => {
-    setIsLoggedIn(false)
-    setAuthMode('login')
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggedIn(false);
+      setAuthMode('login');
+    }
   }
 
   return (

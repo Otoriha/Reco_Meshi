@@ -15,7 +15,8 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
     self.resource = User.find_for_database_authentication(email: sign_in_params[:email])
 
     if resource&.valid_password?(sign_in_params[:password])
-      if !resource.respond_to?(:confirmed?) || resource.confirmed?
+      # Check email confirmation only if CONFIRMABLE_ENABLED is true
+      if ENV['CONFIRMABLE_ENABLED'] != 'true' || !resource.respond_to?(:confirmed?) || resource.confirmed?
         # APIモードではセッションを書かない
         sign_in(resource_name, resource, store: false)
         respond_with(resource)
