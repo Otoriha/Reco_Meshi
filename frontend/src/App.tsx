@@ -1,21 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
-import { isAuthenticated, logout } from './api/auth'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 
 type AuthMode = 'login' | 'signup';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+function AppContent() {
   const [authMode, setAuthMode] = useState<AuthMode>('login')
-
-  // 初期化時にトークンの存在をチェック
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
-  }, []);
+  const { isLoggedIn, logout, setAuthState } = useAuth();
 
   const handleSwitchToLogin = () => setAuthMode('login')
   const handleSwitchToSignup = () => setAuthMode('signup')
@@ -23,7 +19,7 @@ function App() {
   const handleSignupSuccess = () => {
     // 確認メール無効時は自動ログイン状態に
     if (!isConfirmableEnabled) {
-      setIsLoggedIn(true);
+      setAuthState(true);
     }
     console.log('Sign up successful')
   }
@@ -31,11 +27,9 @@ function App() {
   const handleLogout = async () => {
     try {
       await logout();
+      setAuthMode('login');
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      setIsLoggedIn(false);
-      setAuthMode('login');
     }
   }
 
@@ -72,6 +66,14 @@ function App() {
         )}
       </main>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
