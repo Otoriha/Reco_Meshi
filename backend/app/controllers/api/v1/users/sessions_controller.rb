@@ -15,14 +15,15 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
     self.resource = User.find_for_database_authentication(email: sign_in_params[:email])
 
     if resource&.valid_password?(sign_in_params[:password])
-      # Check email confirmation only if CONFIRMABLE_ENABLED is true
-      if ENV['CONFIRMABLE_ENABLED'] != 'true' || !resource.respond_to?(:confirmed?) || resource.confirmed?
-        # APIモードではセッションを書かない
-        sign_in(resource_name, resource, store: false)
-        respond_with(resource)
-      else
+      # CONFIRMABLE_ENABLED が有効な場合は confirmed_at を厳密に確認
+      if ENV['CONFIRMABLE_ENABLED'] == 'true' && !resource.confirmed_at.present?
         render json: { error: 'メールアドレスの確認が必要です' }, status: :unauthorized
+        return
       end
+
+      # APIモードではセッションを書かない
+      sign_in(resource_name, resource, store: false)
+      respond_with(resource)
     else
       render json: { error: 'メールアドレスまたはパスワードが正しくありません' }, status: :unauthorized
     end

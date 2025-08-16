@@ -29,7 +29,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
-        expect(json['status']['message']).to eq('Logged in successfully.')
+        expect(json['status']['message']).to eq('ログインしました。')
         expect(json['data']['email']).to eq(user.email)
       end
 
@@ -42,8 +42,8 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
       end
     end
 
-    context "未確認ユーザーがログインを試みる場合" do
-      it "ログインに失敗する（401）" do
+    context "未確認ユーザーがログインを試みる場合（CONFIRMABLE_ENABLED=false）" do
+      it "ログインに成功する（200）" do
         credentials = {
           user: {
             email: unconfirmed_user.email,
@@ -53,9 +53,9 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         
         post "/api/v1/auth/login", params: credentials, as: :json
         
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
-        expect(json['error']).to include("You have to confirm your email address")
+        expect(json['status']['message']).to eq('ログインしました。')
       end
     end
 
@@ -65,7 +65,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         
         expect(response).to have_http_status(:unauthorized)
         json = JSON.parse(response.body)
-        expect(json['error']).to include("Invalid Email or password")
+        expect(json['error']).to include("メールアドレスまたはパスワードが正しくありません")
       end
     end
 
@@ -82,7 +82,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
         
         expect(response).to have_http_status(:unauthorized)
         json = JSON.parse(response.body)
-        expect(json['error']).to include("Invalid Email or password")
+        expect(json['error']).to include("メールアドレスまたはパスワードが正しくありません")
       end
     end
   end
@@ -105,7 +105,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
 
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
-        expect(json['message']).to eq('Logged out successfully.')
+        expect(json['message']).to eq('ログアウトしました。')
 
         # トークンがブラックリストに追加されていることを確認
         jti = JWT.decode(token.split(' ').last, ENV['DEVISE_JWT_SECRET_KEY'], false).first['jti']
