@@ -43,11 +43,12 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
         if (value.trim().length < 2) return '名前は2文字以上で入力してください。';
         if (value.trim().length > 50) return '名前は50文字以内で入力してください。';
         break;
-      case 'email':
+      case 'email': {
         if (!value.trim()) return 'メールアドレスは必須です。';
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) return '正しいメールアドレスを入力してください。';
         break;
+      }
       case 'password':
         if (!value) return 'パスワードは必須です。';
         if (value.length < 6) return 'パスワードは6文字以上で入力してください。';

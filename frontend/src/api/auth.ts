@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import axios from 'axios';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
@@ -59,8 +60,8 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
 
     // Return user data if available, otherwise void for confirmable enabled case
     return response.data.data;
-  } catch (error: any) {
-    if (error.response?.data) {
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
       // サインアップエラー（422）はstatus.messageに詳細メッセージが含まれる
       if (errorData.status?.message) {
@@ -97,8 +98,8 @@ export const login = async (data: LoginData): Promise<UserData> => {
     }
 
     return response.data.data;
-  } catch (error: any) {
-    if (error.response?.data) {
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
       // ログインエラー（401）はerrorフィールドに含まれる
       if (errorData.error) {
