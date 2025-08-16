@@ -120,7 +120,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
       });
 
       // 成功メッセージを表示
-      setSuccessMessage('登録完了しました。確認メールをご確認ください。');
+      setSuccessMessage('登録完了しました。ログイン画面に移動します。');
       
       // 2秒後にログイン画面へ遷移
       setTimeout(() => {
