@@ -49,7 +49,7 @@ function App() {
             </h1>
             <nav className="space-x-4">
               <button 
-                onClick={() => isLoggedIn ? handleLogout() : setIsLoggedIn(true)}
+                onClick={() => isLoggedIn ? handleLogout() : setAuthMode('login')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 {isLoggedIn ? 'ログアウト' : 'ログイン'}

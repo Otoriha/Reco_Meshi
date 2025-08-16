@@ -323,8 +323,8 @@ Devise.setup do |config|
     jwt.secret = ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base)
     jwt.dispatch_requests = [
       ['POST', %r{^/api/v1/auth/login$}],
-      ['POST', %r{^/api/v1/auth/signup$}],
       ['POST', %r{^/api/v1/auth/refresh$}]
+      # NOTE: /auth/signup is excluded to allow manual JWT control based on CONFIRMABLE_ENABLED
     ]
     # Revocation is handled manually in SessionsController#respond_to_on_destroy
     # ここでミドルウェアの自動revocationを無効化（絶対にマッチしないパスに設定）
