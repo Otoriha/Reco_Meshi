@@ -25,18 +25,18 @@ class Api::V1::Users::RegistrationsController < Devise::RegistrationsController
         response.set_header('Authorization', "Bearer #{token}")
         
         render json: {
-          status: { code: 200, message: 'Signed up successfully.' },
+          status: { code: 200, message: '新規登録が完了しました。' },
           data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
         }, status: :ok
       else
         # Confirmable enabled: No auto sign-in, no JWT, just success message
         render json: {
-          status: { code: 200, message: 'A confirmation email has been sent to your email address.' }
+          status: { code: 200, message: '確認メールを送信しました。メールをご確認ください。' }
         }, status: :ok
       end
     else
       render json: {
-        status: { message: "User couldn't be created successfully. #{resource.errors.full_messages.to_sentence}" }
+        status: { message: "ユーザー登録に失敗しました。#{resource.errors.full_messages.to_sentence}" }
       }, status: :unprocessable_entity
     end
   end

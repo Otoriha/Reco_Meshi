@@ -27,7 +27,7 @@ export interface AuthResponse {
     code: number;
     message: string;
   };
-  data: UserData;
+  data?: UserData; // Optional because confirmable enabled returns no data
 }
 
 export interface AuthError {
@@ -37,7 +37,7 @@ export interface AuthError {
   error?: string;
 }
 
-export const signup = async (data: SignupData): Promise<UserData> => {
+export const signup = async (data: SignupData): Promise<UserData | void> => {
   try {
     const response = await apiClient.post<AuthResponse>('/auth/signup', {
       user: {
@@ -57,6 +57,7 @@ export const signup = async (data: SignupData): Promise<UserData> => {
     }
     // 確認メール有効時はトークンを保存せず、メール確認後にログインしてもらう
 
+    // Return user data if available, otherwise void for confirmable enabled case
     return response.data.data;
   } catch (error: any) {
     if (error.response?.data) {
@@ -89,6 +90,10 @@ export const login = async (data: LoginData): Promise<UserData> => {
       // "Bearer "を除去してlocalStorageに保存
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
+    }
+
+    if (!response.data.data) {
+      throw new Error('ログイン情報の取得に失敗しました。');
     }
 
     return response.data.data;

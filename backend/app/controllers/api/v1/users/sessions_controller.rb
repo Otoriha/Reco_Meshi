@@ -21,10 +21,10 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
         sign_in(resource_name, resource, store: false)
         respond_with(resource)
       else
-        render json: { error: 'You have to confirm your email address' }, status: :unauthorized
+        render json: { error: 'メールアドレスの確認が必要です' }, status: :unauthorized
       end
     else
-      render json: { error: 'Invalid Email or password' }, status: :unauthorized
+      render json: { error: 'メールアドレスまたはパスワードが正しくありません' }, status: :unauthorized
     end
   end
 
@@ -46,7 +46,7 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
 
   def respond_with(resource, _opts = {})
     render json: {
-      status: { code: 200, message: 'Logged in successfully.' },
+      status: { code: 200, message: 'ログインしました。' },
       data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
     }, status: :ok
   end
@@ -57,7 +57,7 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
     if token.blank?
       render json: {
         status: 401,
-        message: "Couldn't find an active session."
+        message: "アクティブなセッションが見つかりません。"
       }, status: :unauthorized
       return
     end
@@ -81,12 +81,12 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
 
       render json: {
         status: 200,
-        message: "Logged out successfully."
+        message: "ログアウトしました。"
       }, status: :ok
     rescue JWT::DecodeError
       render json: {
         status: 401,
-        message: "Invalid token."
+        message: "無効なトークンです。"
       }, status: :unauthorized
     end
   end
