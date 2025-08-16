@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import Login from '../src/pages/Auth/Login'
 import { AuthProvider } from '../src/contexts/AuthContext'
+import * as authApi from '../src/api/auth'
+import * as useAuthHook from '../src/hooks/useAuth'
 
 // auth.tsとuseAuthをモック
 vi.mock('../src/api/auth', () => ({
@@ -27,7 +29,7 @@ const mockUseAuth = {
 describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(vi.importMock('../src/hooks/useAuth')).useAuth.mockReturnValue(mockUseAuth)
+    vi.mocked(useAuthHook.useAuth).mockReturnValue(mockUseAuth)
   })
 
   it('ログインフォームが正しく表示される', () => {
@@ -96,7 +98,7 @@ describe('Login', () => {
       updated_at: ''
     })
     
-    vi.mocked(vi.importMock('../src/api/auth')).login.mockImplementation(mockLoginApi)
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
 
     render(
       <AuthProvider>
@@ -130,7 +132,7 @@ describe('Login', () => {
     const user = userEvent.setup()
     const mockLoginApi = vi.fn().mockRejectedValue(new Error('ログインに失敗しました'))
     
-    vi.mocked(vi.importMock('../src/api/auth')).login.mockImplementation(mockLoginApi)
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
 
     render(
       <AuthProvider>
@@ -154,7 +156,7 @@ describe('Login', () => {
     const user = userEvent.setup()
     const mockLoginApi = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)))
     
-    vi.mocked(vi.importMock('../src/api/auth')).login.mockImplementation(mockLoginApi)
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
 
     render(
       <AuthProvider>
@@ -193,7 +195,7 @@ describe('Login', () => {
     const user = userEvent.setup()
     const mockLoginApi = vi.fn()
     
-    vi.mocked(vi.importMock('../src/api/auth')).login.mockImplementation(mockLoginApi)
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
 
     render(
       <AuthProvider>

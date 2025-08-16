@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { AuthProvider } from '../src/contexts/AuthContext'
 import { useAuth } from '../src/hooks/useAuth'
+import * as authApi from '../src/api/auth'
 
 // auth.tsをモック
 vi.mock('../src/api/auth', () => ({
@@ -41,7 +42,7 @@ describe('AuthContext', () => {
   })
 
   it('初期状態ではログアウト状態である', () => {
-    vi.mocked(vi.importMock('../src/api/auth')).isAuthenticated.mockReturnValue(false)
+    vi.mocked(authApi.isAuthenticated).mockReturnValue(false)
 
     render(
       <AuthProvider>
@@ -54,7 +55,7 @@ describe('AuthContext', () => {
   })
 
   it('login関数でログイン状態になる', async () => {
-    vi.mocked(vi.importMock('../src/api/auth')).isAuthenticated.mockReturnValue(false)
+    vi.mocked(authApi.isAuthenticated).mockReturnValue(false)
 
     render(
       <AuthProvider>
@@ -73,8 +74,8 @@ describe('AuthContext', () => {
 
   it('logout関数でログアウト状態になる', async () => {
     const mockLogout = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(vi.importMock('../src/api/auth')).logout.mockImplementation(mockLogout)
-    vi.mocked(vi.importMock('../src/api/auth')).isAuthenticated.mockReturnValue(false)
+    vi.mocked(authApi.logout).mockImplementation(mockLogout)
+    vi.mocked(authApi.isAuthenticated).mockReturnValue(false)
 
     render(
       <AuthProvider>
@@ -103,7 +104,7 @@ describe('AuthContext', () => {
   })
 
   it('setAuthState関数で認証状態を設定できる', async () => {
-    vi.mocked(vi.importMock('../src/api/auth')).isAuthenticated.mockReturnValue(false)
+    vi.mocked(authApi.isAuthenticated).mockReturnValue(false)
 
     render(
       <AuthProvider>
