@@ -23,6 +23,9 @@ Rails.application.routes.draw do
       devise_scope :user do
         post 'auth/refresh', to: 'users/refresh#create'
       end
+
+      # LINE Bot Webhook
+      post 'line/webhook', to: 'line#webhook'
     end
   end
 
