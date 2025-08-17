@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:prod": "cp .env.production .env.local && vite",
     "build": "tsc -b && vite build",
+    "build:prod": "cp .env.production .env.local && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "env:prod": "cp .env.production .env.local && echo 'Switched to production environment'"
   },
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",
