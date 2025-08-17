@@ -2,8 +2,9 @@ import React from 'react';
 
 const Dashboard: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">
           ダッシュボード
         </h1>
@@ -20,6 +21,7 @@ const Dashboard: React.FC = () => {
             <h2 className="text-xl font-semibold mb-4">クイックアクション</h2>
             <p className="text-gray-600">よく使う機能へのショートカット</p>
           </div>
+        </div>
         </div>
       </div>
     </div>
