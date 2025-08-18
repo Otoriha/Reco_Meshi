@@ -1,1 +1,1 @@
-require 'line-bot-api'
+require 'line/bot'
