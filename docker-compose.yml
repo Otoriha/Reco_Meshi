@@ -35,6 +35,11 @@ services:
       RAILS_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-recomeshi}:${POSTGRES_PASSWORD:-recomeshi_password}@postgres:5432/${POSTGRES_DB:-recomeshi_development}
       REDIS_URL: redis://redis:6379/0
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+      LIFF_ID: ${LIFF_ID}
+      FRONTEND_URL: ${FRONTEND_URL}
+      LIFF_URL: ${LIFF_URL}
     stdin_open: true
     tty: true
 
