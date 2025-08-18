@@ -18,11 +18,9 @@ class Api::V1::LineController < ApplicationController
     end
 
     render json: { status: 'ok' }
-  rescue Line::Bot::API::Error => e
-    Rails.logger.error "LINE Bot API Error: #{e.message}"
-    render json: { error: 'LINE Bot API Error' }, status: :internal_server_error
-  rescue StandardError => e
-    Rails.logger.error "Webhook Error: #{e.message}"
+  rescue => e
+    Rails.logger.error "Webhook Error: #{e.class}: #{e.message}"
+    Rails.logger.error "Backtrace: #{e.backtrace&.first(5)&.join(', ')}"
     render json: { error: 'Internal server error' }, status: :internal_server_error
   end
 
