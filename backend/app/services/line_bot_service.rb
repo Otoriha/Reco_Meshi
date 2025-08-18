@@ -1,5 +1,6 @@
+require 'line-bot-api'
+
 class LineBotService
-  require 'line/bot'
 
   def initialize
     @client = Line::Bot::Client.new do |config|

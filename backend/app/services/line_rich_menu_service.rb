@@ -1,5 +1,6 @@
+require 'line-bot-api'
+
 class LineRichMenuService
-  require 'line/bot'
 
   def initialize
     @client = Line::Bot::Client.new do |config|
