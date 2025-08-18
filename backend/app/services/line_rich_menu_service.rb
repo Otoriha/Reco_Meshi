@@ -1,5 +1,3 @@
-require 'line-bot-api'
-
 class LineRichMenuService
 
   def initialize
