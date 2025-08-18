@@ -1,3 +1,5 @@
+require 'line-bot-api'
+
 class LineBotService
 
   def initialize
