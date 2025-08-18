@@ -1,5 +1,5 @@
 class Api::V1::LineController < ApplicationController
-  skip_before_action :authenticate_user!
+  skip_before_action :authenticate_user!, only: :webhook
   before_action :verify_signature
 
   def webhook
@@ -7,7 +7,7 @@ class Api::V1::LineController < ApplicationController
     signature = request.env['HTTP_X_LINE_SIGNATURE']
     
     unless line_bot_service.validate_signature(body, signature)
-      render json: { error: 'Invalid signature' }, status: :bad_request
+      render json: { error: 'Invalid signature' }, status: :unauthorized
       return
     end
 
@@ -29,15 +29,12 @@ class Api::V1::LineController < ApplicationController
   private
 
   def verify_signature
-    body = request.body.read
     signature = request.env['HTTP_X_LINE_SIGNATURE']
     
     unless signature
       render json: { error: 'Missing signature' }, status: :bad_request
       return
     end
-
-    request.body.rewind
   end
 
   def handle_event(event)
@@ -176,7 +173,7 @@ class Api::V1::LineController < ApplicationController
         line_bot_service.create_postback_action("📸 レシピ提案", "recipe_request", "レシピを提案して"),
         line_bot_service.create_postback_action("📝 食材リスト", "ingredients_list", "食材リストを見せて"),
         line_bot_service.create_uri_action("🌐 Webアプリ", ENV['FRONTEND_URL'] || "https://reco-meshiweb.vercel.app"),
-        line_bot_service.create_uri_action("📱 LIFFアプリ", "https://liff.line.me/#{ENV['LIFF_ID']}")
+        line_bot_service.create_uri_action("📱 LIFFアプリ", "https://liff.line.me/#{ENV['LIFF_ID'] || raise('LIFF_ID environment variable is required')}")
       ]
     )
     

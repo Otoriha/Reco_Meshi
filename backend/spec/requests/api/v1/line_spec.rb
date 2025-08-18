@@ -91,6 +91,40 @@ RSpec.describe "Api::V1::Line", type: :request do
       }.to_json
     end
 
+    let(:sticker_message_event) do
+      {
+        "events" => [
+          {
+            "type" => "message",
+            "message" => {
+              "type" => "sticker",
+              "packageId" => "446",
+              "stickerId" => "1988"
+            },
+            "source" => {
+              "userId" => "test_user_id",
+              "type" => "user"
+            },
+            "replyToken" => "test_reply_token"
+          }
+        ]
+      }.to_json
+    end
+
+    let(:unfollow_event) do
+      {
+        "events" => [
+          {
+            "type" => "unfollow",
+            "source" => {
+              "userId" => "test_user_id",
+              "type" => "user"
+            }
+          }
+        ]
+      }.to_json
+    end
+
     context "with valid signature" do
       before do
         allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(true)
@@ -174,6 +208,40 @@ RSpec.describe "Api::V1::Line", type: :request do
         expect(response).to have_http_status(:ok)
         expect(JSON.parse(response.body)['status']).to eq('ok')
       end
+
+      it "handles sticker message successfully" do
+        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
+          double(
+            'Line::Bot::Event::Message',
+            class: Line::Bot::Event::Message,
+            type: Line::Bot::Event::MessageType::Sticker,
+            message: { 'packageId' => '446', 'stickerId' => '1988' },
+            'source' => { 'userId' => 'test_user_id' },
+            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' || 'test_reply_token' if key == 'replyToken' }
+          )
+        ])
+
+        post '/api/v1/line/webhook', params: sticker_message_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['status']).to eq('ok')
+      end
+
+      it "handles unfollow event successfully" do
+        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
+          double(
+            'Line::Bot::Event::Unfollow',
+            class: Line::Bot::Event::Unfollow,
+            'source' => { 'userId' => 'test_user_id' },
+            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' }
+          )
+        ])
+
+        post '/api/v1/line/webhook', params: unfollow_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(JSON.parse(response.body)['status']).to eq('ok')
+      end
     end
 
     context "with invalid signature" do
@@ -188,10 +256,10 @@ RSpec.describe "Api::V1::Line", type: :request do
         allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(false)
       end
 
-      it "returns bad request for invalid signature" do
+      it "returns unauthorized for invalid signature" do
         post '/api/v1/line/webhook', params: text_message_event, headers: headers_with_invalid_signature
 
-        expect(response).to have_http_status(:bad_request)
+        expect(response).to have_http_status(:unauthorized)
         expect(JSON.parse(response.body)['error']).to eq('Invalid signature')
       end
     end

@@ -124,6 +124,8 @@ class LineRichMenuService
   private
 
   def create_rich_menu_object
+    raise "LIFF_ID environment variable is required" unless ENV['LIFF_ID']
+    
     {
       size: {
         width: 2500,
@@ -168,7 +170,7 @@ class LineRichMenuService
           },
           action: {
             type: "uri",
-            uri: "https://liff.line.me/#{ENV['LIFF_ID'] || '2007895268-QyEmzdxA'}"
+            uri: "https://liff.line.me/#{ENV['LIFF_ID']}"
           }
         },
         {
