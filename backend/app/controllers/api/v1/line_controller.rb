@@ -5,6 +5,12 @@ class Api::V1::LineController < ApplicationController
   raw_body = request.raw_post
   signature = request.get_header('HTTP_X_LINE_SIGNATURE')
   
+  # 署名ヘッダーが存在しない場合は400エラーを返す
+  if signature.blank?
+    render json: { error: 'Missing signature' }, status: :bad_request
+    return
+  end
+  
   begin
     events = line_bot_service.parse_events_v2(raw_body, signature)
     

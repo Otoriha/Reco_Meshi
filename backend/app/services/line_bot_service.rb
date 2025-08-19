@@ -61,13 +61,78 @@ end
       sticker_id: message_hash[:stickerId]
     )
   when 'template'
-    # テンプレートメッセージは複雑なのでV1互換で一旦処理
-    # 将来的にV2テンプレートに対応予定
-    raise "Template messages not yet implemented for V2"
+    convert_template_to_v2_message(message_hash)
   else
     raise "Unsupported message type: #{message_hash[:type]}"
   end
 end
+
+  def convert_template_to_v2_message(message_hash)
+    template = message_hash[:template]
+    case template[:type]
+    when 'buttons'
+      actions = template[:actions].map { |action| convert_action_to_v2(action) }
+      Line::Bot::V2::MessagingApi::TemplateMessage.new(
+        alt_text: message_hash[:altText] || template[:text] || 'テンプレートメッセージ',
+        template: Line::Bot::V2::MessagingApi::ButtonsTemplate.new(
+          text: template[:text],
+          actions: actions,
+          title: template[:title],
+          thumbnail_image_url: template[:thumbnailImageUrl]
+        )
+      )
+    when 'confirm'
+      actions = template[:actions].map { |action| convert_action_to_v2(action) }
+      Line::Bot::V2::MessagingApi::TemplateMessage.new(
+        alt_text: message_hash[:altText] || template[:text] || '確認メッセージ',
+        template: Line::Bot::V2::MessagingApi::ConfirmTemplate.new(
+          text: template[:text],
+          actions: actions
+        )
+      )
+    when 'carousel'
+      columns = template[:columns].map do |column|
+        actions = column[:actions].map { |action| convert_action_to_v2(action) }
+        Line::Bot::V2::MessagingApi::CarouselColumn.new(
+          text: column[:text],
+          title: column[:title],
+          thumbnail_image_url: column[:thumbnailImageUrl],
+          actions: actions
+        )
+      end
+      Line::Bot::V2::MessagingApi::TemplateMessage.new(
+        alt_text: message_hash[:altText] || 'カルーセルメッセージ',
+        template: Line::Bot::V2::MessagingApi::CarouselTemplate.new(
+          columns: columns
+        )
+      )
+    else
+      raise "Unsupported template type: #{template[:type]}"
+    end
+  end
+
+  def convert_action_to_v2(action)
+    case action[:type]
+    when 'postback'
+      Line::Bot::V2::MessagingApi::PostbackAction.new(
+        label: action[:label],
+        data: action[:data],
+        display_text: action[:displayText]
+      )
+    when 'message'
+      Line::Bot::V2::MessagingApi::MessageAction.new(
+        label: action[:label],
+        text: action[:text]
+      )
+    when 'uri'
+      Line::Bot::V2::MessagingApi::URIAction.new(
+        label: action[:label],
+        uri: action[:uri]
+      )
+    else
+      raise "Unsupported action type: #{action[:type]}"
+    end
+  end
 
   public
 

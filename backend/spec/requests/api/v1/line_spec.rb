@@ -125,23 +125,97 @@ RSpec.describe "Api::V1::Line", type: :request do
       }.to_json
     end
 
+    # V2 API用のモックイベント作成ヘルパー
+    def create_v2_text_message_event(text = "こんにちは")
+      # doubleを使用してモックオブジェクトを作成
+      text_message = double('Line::Bot::V2::Webhook::TextMessageContent')
+      allow(text_message).to receive(:text).and_return(text)
+
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::MessageEvent')
+      allow(event).to receive(:message).and_return(text_message)
+      allow(event).to receive(:source).and_return(source)
+      allow(event).to receive(:reply_token).and_return("test_reply_token")
+      event
+    end
+
+    def create_v2_image_message_event
+      # doubleを使用してモックオブジェクトを作成
+      image_message = double('Line::Bot::V2::Webhook::ImageMessageContent')
+      allow(image_message).to receive(:id).and_return("test_message_id")
+
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::MessageEvent')
+      allow(event).to receive(:message).and_return(image_message)
+      allow(event).to receive(:source).and_return(source)
+      allow(event).to receive(:reply_token).and_return("test_reply_token")
+      event
+    end
+
+    def create_v2_sticker_message_event
+      # doubleを使用してモックオブジェクトを作成
+      sticker_message = double('Line::Bot::V2::Webhook::StickerMessageContent')
+      allow(sticker_message).to receive(:package_id).and_return("446")
+      allow(sticker_message).to receive(:sticker_id).and_return("1988")
+
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::MessageEvent')
+      allow(event).to receive(:message).and_return(sticker_message)
+      allow(event).to receive(:source).and_return(source)
+      allow(event).to receive(:reply_token).and_return("test_reply_token")
+      event
+    end
+
+    def create_v2_follow_event
+      # doubleを使用してモックオブジェクトを作成
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::FollowEvent')
+      allow(event).to receive(:source).and_return(source)
+      allow(event).to receive(:reply_token).and_return("test_reply_token")
+      event
+    end
+
+    def create_v2_unfollow_event
+      # doubleを使用してモックオブジェクトを作成
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::UnfollowEvent')
+      allow(event).to receive(:source).and_return(source)
+      event
+    end
+
+    def create_v2_postback_event(data = "recipe_request")
+      # doubleを使用してモックオブジェクトを作成
+      postback = double('Line::Bot::V2::Webhook::PostbackContent')
+      allow(postback).to receive(:data).and_return(data)
+
+      source = double('Line::Bot::V2::Webhook::UserSource')
+      allow(source).to receive(:user_id).and_return("test_user_id")
+
+      event = double('Line::Bot::V2::Webhook::PostbackEvent')
+      allow(event).to receive(:postback).and_return(postback)
+      allow(event).to receive(:source).and_return(source)
+      allow(event).to receive(:reply_token).and_return("test_reply_token")
+      event
+    end
+
     context "with valid signature" do
       before do
-        allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(true)
         allow_any_instance_of(LineBotService).to receive(:reply_message).and_return(double(code: '200'))
       end
 
       it "handles text message successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Message',
-            class: Line::Bot::Event::Message,
-            type: Line::Bot::Event::MessageType::Text,
-            message: { 'text' => 'こんにちは' },
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' || 'test_reply_token' if key == 'replyToken' }
-          )
-        ])
+        mock_event = create_v2_text_message_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -150,16 +224,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       it "handles image message successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Message',
-            class: Line::Bot::Event::Message,
-            type: Line::Bot::Event::MessageType::Image,
-            message: { 'id' => 'test_message_id' },
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' || 'test_reply_token' if key == 'replyToken' }
-          )
-        ])
+        mock_event = create_v2_image_message_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: image_message_event, headers: headers
 
@@ -168,14 +234,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       it "handles follow event successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Follow',
-            class: Line::Bot::Event::Follow,
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' || 'test_reply_token' if key == 'replyToken' }
-          )
-        ])
+        mock_event = create_v2_follow_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: follow_event, headers: headers
 
@@ -184,24 +244,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       it "handles postback event successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Postback',
-            class: Line::Bot::Event::Postback,
-            'postback' => { 'data' => 'recipe_request' },
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| 
-              case key
-              when 'source'
-                { 'userId' => 'test_user_id' }
-              when 'replyToken'
-                'test_reply_token'
-              when 'postback'
-                { 'data' => 'recipe_request' }
-              end
-            }
-          )
-        ])
+        mock_event = create_v2_postback_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -210,16 +254,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       it "handles sticker message successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Message',
-            class: Line::Bot::Event::Message,
-            type: Line::Bot::Event::MessageType::Sticker,
-            message: { 'packageId' => '446', 'stickerId' => '1988' },
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' || 'test_reply_token' if key == 'replyToken' }
-          )
-        ])
+        mock_event = create_v2_sticker_message_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: sticker_message_event, headers: headers
 
@@ -228,14 +264,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       it "handles unfollow event successfully" do
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_return([
-          double(
-            'Line::Bot::Event::Unfollow',
-            class: Line::Bot::Event::Unfollow,
-            'source' => { 'userId' => 'test_user_id' },
-            '[]' => proc { |key| { 'userId' => 'test_user_id' }[key] if key == 'source' }
-          )
-        ])
+        mock_event = create_v2_unfollow_event
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
 
         post '/api/v1/line/webhook', params: unfollow_event, headers: headers
 
@@ -253,7 +283,8 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
 
       before do
-        allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(false)
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2)
+          .and_raise(Line::Bot::V2::WebhookParser::InvalidSignatureError.new('Invalid signature'))
       end
 
       it "returns unauthorized for invalid signature" do
@@ -277,27 +308,27 @@ RSpec.describe "Api::V1::Line", type: :request do
       end
     end
 
-    context "when LINE Bot API error occurs" do
+    context "when general error occurs" do
       before do
-        allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(true)
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_raise(Line::Bot::API::Error.new('LINE API Error'))
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2)
+          .and_raise(StandardError.new('General Error'))
       end
 
       it "returns internal server error" do
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
         expect(response).to have_http_status(:internal_server_error)
-        expect(JSON.parse(response.body)['error']).to eq('LINE Bot API Error')
+        expect(JSON.parse(response.body)['error']).to eq('Internal server error')
       end
     end
 
-    context "when general error occurs" do
+    context "when webhook parsing fails" do
       before do
-        allow_any_instance_of(LineBotService).to receive(:validate_signature).and_return(true)
-        allow_any_instance_of(LineBotService).to receive(:parse_events_from).and_raise(StandardError.new('General Error'))
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2)
+          .and_raise(ArgumentError.new('Invalid JSON'))
       end
 
-      it "returns internal server error" do
+      it "returns internal server error for parsing errors" do
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
         expect(response).to have_http_status(:internal_server_error)

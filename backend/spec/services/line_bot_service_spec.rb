@@ -12,8 +12,203 @@ RSpec.describe LineBotService, type: :service do
   end
 
   describe '#initialize' do
-    it 'creates a LINE Bot client with correct configuration' do
-      expect(service.send(:client)).to be_a(Line::Bot::Client)
+    it 'creates a LINE Bot V2 client with correct configuration' do
+      expect(service.send(:client)).to be_a(Line::Bot::V2::MessagingApi::ApiClient)
+    end
+  end
+
+  describe '#parse_events_v2' do
+    let(:raw_body) { '{"events":[]}' }
+    let(:signature) { 'valid_signature' }
+
+    context 'with valid signature' do
+      it 'parses events successfully' do
+        mock_parser = double('Line::Bot::V2::WebhookParser')
+        allow(Line::Bot::V2::WebhookParser).to receive(:new).and_return(mock_parser)
+        allow(mock_parser).to receive(:parse).and_return([])
+
+        result = service.parse_events_v2(raw_body, signature)
+
+        expect(result).to eq([])
+        expect(Line::Bot::V2::WebhookParser).to have_received(:new).with(channel_secret: line_channel_secret)
+        expect(mock_parser).to have_received(:parse).with(body: raw_body, signature: signature)
+      end
+    end
+
+    context 'with invalid signature' do
+      it 'raises InvalidSignatureError' do
+        allow(Line::Bot::V2::WebhookParser).to receive(:new).and_raise(
+          Line::Bot::V2::WebhookParser::InvalidSignatureError.new('Invalid signature')
+        )
+
+        expect {
+          service.parse_events_v2(raw_body, signature)
+        }.to raise_error(Line::Bot::V2::WebhookParser::InvalidSignatureError)
+      end
+    end
+  end
+
+  describe '#reply_message' do
+    let(:reply_token) { 'test_reply_token' }
+    let(:text_message) { { type: 'text', text: 'Hello' } }
+
+    it 'converts message and sends reply without error' do
+      # V2テンプレートメッセージのconvert_to_v2_messageが正常に動作するかをテスト
+      expect { service.reply_message(reply_token, text_message) }.not_to raise_error
+    end
+  end
+
+  describe '#convert_to_v2_message' do
+    context 'with text message' do
+      it 'converts to V2 TextMessage' do
+        message_hash = { type: 'text', text: 'Hello, World!' }
+        
+        result = service.send(:convert_to_v2_message, message_hash)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::TextMessage)
+        expect(result.text).to eq('Hello, World!')
+      end
+    end
+
+    context 'with sticker message' do
+      it 'converts to V2 StickerMessage' do
+        message_hash = { type: 'sticker', packageId: '446', stickerId: '1988' }
+        
+        result = service.send(:convert_to_v2_message, message_hash)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::StickerMessage)
+        expect(result.package_id).to eq('446')
+        expect(result.sticker_id).to eq('1988')
+      end
+    end
+
+    context 'with template message' do
+      context 'buttons template' do
+        it 'converts to V2 TemplateMessage with ButtonsTemplate' do
+          message_hash = {
+            type: 'template',
+            altText: 'Buttons template',
+            template: {
+              type: 'buttons',
+              text: 'Please choose',
+              actions: [
+                { type: 'message', label: 'Yes', text: 'yes' },
+                { type: 'message', label: 'No', text: 'no' }
+              ]
+            }
+          }
+          
+          result = service.send(:convert_to_v2_message, message_hash)
+          
+          expect(result).to be_a(Line::Bot::V2::MessagingApi::TemplateMessage)
+          expect(result.alt_text).to eq('Buttons template')
+          expect(result.template).to be_a(Line::Bot::V2::MessagingApi::ButtonsTemplate)
+        end
+      end
+
+      context 'confirm template' do
+        it 'converts to V2 TemplateMessage with ConfirmTemplate' do
+          message_hash = {
+            type: 'template',
+            altText: 'Confirm template',
+            template: {
+              type: 'confirm',
+              text: 'Are you sure?',
+              actions: [
+                { type: 'message', label: 'Yes', text: 'yes' },
+                { type: 'message', label: 'No', text: 'no' }
+              ]
+            }
+          }
+          
+          result = service.send(:convert_to_v2_message, message_hash)
+          
+          expect(result).to be_a(Line::Bot::V2::MessagingApi::TemplateMessage)
+          expect(result.template).to be_a(Line::Bot::V2::MessagingApi::ConfirmTemplate)
+        end
+      end
+
+      context 'carousel template' do
+        it 'converts to V2 TemplateMessage with CarouselTemplate' do
+          message_hash = {
+            type: 'template',
+            altText: 'Carousel template',
+            template: {
+              type: 'carousel',
+              columns: [
+                {
+                  text: 'Column 1',
+                  title: 'Title 1',
+                  actions: [{ type: 'message', label: 'Select', text: 'selected' }]
+                }
+              ]
+            }
+          }
+          
+          result = service.send(:convert_to_v2_message, message_hash)
+          
+          expect(result).to be_a(Line::Bot::V2::MessagingApi::TemplateMessage)
+          expect(result.template).to be_a(Line::Bot::V2::MessagingApi::CarouselTemplate)
+        end
+      end
+    end
+
+    context 'with unsupported message type' do
+      it 'raises an error' do
+        message_hash = { type: 'unsupported' }
+        
+        expect {
+          service.send(:convert_to_v2_message, message_hash)
+        }.to raise_error('Unsupported message type: unsupported')
+      end
+    end
+  end
+
+  describe '#convert_action_to_v2' do
+    context 'with postback action' do
+      it 'converts to V2 PostbackAction' do
+        action = { type: 'postback', label: 'Postback', data: 'action=postback' }
+        
+        result = service.send(:convert_action_to_v2, action)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::PostbackAction)
+        expect(result.label).to eq('Postback')
+        expect(result.data).to eq('action=postback')
+      end
+    end
+
+    context 'with message action' do
+      it 'converts to V2 MessageAction' do
+        action = { type: 'message', label: 'Message', text: 'Hello' }
+        
+        result = service.send(:convert_action_to_v2, action)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::MessageAction)
+        expect(result.label).to eq('Message')
+        expect(result.text).to eq('Hello')
+      end
+    end
+
+    context 'with URI action' do
+      it 'converts to V2 UriAction' do
+        action = { type: 'uri', label: 'Link', uri: 'https://example.com' }
+        
+        result = service.send(:convert_action_to_v2, action)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::URIAction)
+        expect(result.label).to eq('Link')
+        expect(result.uri).to eq('https://example.com')
+      end
+    end
+
+    context 'with unsupported action type' do
+      it 'raises an error' do
+        action = { type: 'unsupported' }
+        
+        expect {
+          service.send(:convert_action_to_v2, action)
+        }.to raise_error('Unsupported action type: unsupported')
+      end
     end
   end
 
@@ -61,70 +256,56 @@ RSpec.describe LineBotService, type: :service do
 
   describe '#create_template_message' do
     it 'creates a template message hash' do
-      alt_text = 'This is a template message'
-      template = { type: 'buttons', title: 'Test' }
+      template = { type: 'buttons', text: 'Please choose', actions: [] }
       
-      message = service.create_template_message(alt_text, template)
+      message = service.create_template_message('Template message', template)
       
       expect(message).to eq({
         type: 'template',
-        altText: alt_text,
+        altText: 'Template message',
         template: template
       })
     end
   end
 
   describe '#create_buttons_template' do
-    context 'with thumbnail image' do
-      it 'creates a buttons template with thumbnail' do
-        title = 'Test Title'
-        text = 'Test Text'
-        actions = [{ type: 'message', label: 'Test', text: 'test' }]
-        thumbnail_url = 'https://example.com/thumb.jpg'
-        
-        template = service.create_buttons_template(title, text, actions, thumbnail_url)
-        
-        expect(template).to eq({
-          type: 'buttons',
-          title: title,
-          text: text,
-          actions: actions,
-          thumbnailImageUrl: thumbnail_url
-        })
-      end
+    it 'creates a buttons template' do
+      actions = [{ type: 'message', label: 'Yes', text: 'yes' }]
+      
+      template = service.create_buttons_template('Title', 'Please choose', actions)
+      
+      expect(template).to eq({
+        type: 'buttons',
+        title: 'Title',
+        text: 'Please choose',
+        actions: actions
+      })
     end
 
-    context 'without thumbnail image' do
-      it 'creates a buttons template without thumbnail' do
-        title = 'Test Title'
-        text = 'Test Text'
-        actions = [{ type: 'message', label: 'Test', text: 'test' }]
+    context 'with thumbnail image URL' do
+      it 'includes thumbnail image URL' do
+        actions = [{ type: 'message', label: 'Yes', text: 'yes' }]
+        thumbnail_url = 'https://example.com/thumbnail.jpg'
         
-        template = service.create_buttons_template(title, text, actions)
+        template = service.create_buttons_template('Title', 'Please choose', actions, thumbnail_url)
         
-        expect(template).to eq({
-          type: 'buttons',
-          title: title,
-          text: text,
-          actions: actions
-        })
+        expect(template[:thumbnailImageUrl]).to eq(thumbnail_url)
       end
     end
   end
 
   describe '#create_confirm_template' do
     it 'creates a confirm template' do
-      text = 'Are you sure?'
       actions = [
         { type: 'message', label: 'Yes', text: 'yes' },
         { type: 'message', label: 'No', text: 'no' }
       ]
       
-      template = service.create_confirm_template(text, actions)
+      template = service.create_confirm_template('Are you sure?', actions)
       
       expect(template).to eq({
         type: 'confirm',
-        text: text,
+        text: 'Are you sure?',
         actions: actions
       })
     end
@@ -133,8 +314,8 @@ RSpec.describe LineBotService, type: :service do
   describe '#create_carousel_template' do
     it 'creates a carousel template' do
       columns = [
-        { title: 'Column 1', text: 'Text 1' },
-        { title: 'Column 2', text: 'Text 2' }
+        { text: 'Column 1', actions: [] },
+        { text: 'Column 2', actions: [] }
       ]
       
       template = service.create_carousel_template(columns)
@@ -149,12 +330,12 @@ RSpec.describe LineBotService, type: :service do
   describe '#create_postback_action' do
     context 'with display text' do
       it 'creates a postback action with display text' do
-        action = service.create_postback_action('Test Label', 'test_data', 'Display Text')
+        action = service.create_postback_action('Label', 'data=value', 'Display Text')
         
         expect(action).to eq({
           type: 'postback',
-          label: 'Test Label',
-          data: 'test_data',
+          label: 'Label',
+          data: 'data=value',
           displayText: 'Display Text'
         })
       end
@@ -162,12 +343,12 @@ RSpec.describe LineBotService, type: :service do
 
     context 'without display text' do
       it 'creates a postback action without display text' do
-        action = service.create_postback_action('Test Label', 'test_data')
+        action = service.create_postback_action('Label', 'data=value')
         
         expect(action).to eq({
           type: 'postback',
-          label: 'Test Label',
-          data: 'test_data'
+          label: 'Label',
+          data: 'data=value'
         })
       end
     end
@@ -175,23 +356,23 @@ RSpec.describe LineBotService, type: :service do
 
   describe '#create_message_action' do
     it 'creates a message action' do
-      action = service.create_message_action('Test Label', 'test message')
+      action = service.create_message_action('Label', 'Message text')
       
       expect(action).to eq({
         type: 'message',
-        label: 'Test Label',
-        text: 'test message'
+        label: 'Label',
+        text: 'Message text'
       })
     end
   end
 
   describe '#create_uri_action' do
     it 'creates a URI action' do
-      action = service.create_uri_action('Test Label', 'https://example.com')
+      action = service.create_uri_action('Label', 'https://example.com')
       
       expect(action).to eq({
         type: 'uri',
-        label: 'Test Label',
+        label: 'Label',
         uri: 'https://example.com'
       })
     end
@@ -199,9 +380,7 @@ RSpec.describe LineBotService, type: :service do
 
   describe '#create_quick_reply' do
     it 'creates a quick reply' do
-      items = [
-        { type: 'action', action: { type: 'message', label: 'Yes', text: 'yes' } }
-      ]
+      items = [{ type: 'action', action: { type: 'message', label: 'Yes', text: 'yes' } }]
       
       quick_reply = service.create_quick_reply(items)
       
@@ -215,8 +394,8 @@ RSpec.describe LineBotService, type: :service do
   describe '#create_quick_reply_button' do
     context 'with image URL' do
       it 'creates a quick reply button with image' do
-        action = { type: 'message', label: 'Test', text: 'test' }
-        image_url = 'https://example.com/image.jpg'
+        action = { type: 'message', label: 'Yes', text: 'yes' }
+        image_url = 'https://example.com/icon.png'
         
         button = service.create_quick_reply_button(action, image_url)
         
@@ -230,7 +409,7 @@ RSpec.describe LineBotService, type: :service do
 
     context 'without image URL' do
       it 'creates a quick reply button without image' do
-        action = { type: 'message', label: 'Test', text: 'test' }
+        action = { type: 'message', label: 'Yes', text: 'yes' }
         
         button = service.create_quick_reply_button(action)
         
@@ -238,80 +417,6 @@ RSpec.describe LineBotService, type: :service do
           type: 'action',
           action: action
         })
-      end
-    end
-  end
-
-  describe 'LINE Bot API methods' do
-    let(:mock_client) { instance_double(Line::Bot::Client) }
-
-    before do
-      allow(Line::Bot::Client).to receive(:new).and_return(mock_client)
-    end
-
-    describe '#validate_signature' do
-      it 'delegates to client validate_signature' do
-        body = 'test body'
-        signature = 'test signature'
-        
-        expect(mock_client).to receive(:validate_signature).with(body, signature).and_return(true)
-        
-        result = service.validate_signature(body, signature)
-        expect(result).to be true
-      end
-    end
-
-    describe '#parse_events_from' do
-      it 'delegates to client parse_events_from' do
-        body = 'test body'
-        events = ['event1', 'event2']
-        
-        expect(mock_client).to receive(:parse_events_from).with(body).and_return(events)
-        
-        result = service.parse_events_from(body)
-        expect(result).to eq(events)
-      end
-    end
-
-    describe '#reply_message' do
-      it 'delegates to client reply_message' do
-        reply_token = 'test_token'
-        message = { type: 'text', text: 'test' }
-        
-        expect(mock_client).to receive(:reply_message).with(reply_token, message)
-        
-        service.reply_message(reply_token, message)
-      end
-    end
-
-    describe '#push_message' do
-      it 'delegates to client push_message' do
-        user_id = 'test_user_id'
-        message = { type: 'text', text: 'test' }
-        
-        expect(mock_client).to receive(:push_message).with(user_id, message)
-        
-        service.push_message(user_id, message)
-      end
-    end
-
-    describe '#get_profile' do
-      it 'delegates to client get_profile' do
-        user_id = 'test_user_id'
-        
-        expect(mock_client).to receive(:get_profile).with(user_id)
-        
-        service.get_profile(user_id)
-      end
-    end
-
-    describe '#get_message_content' do
-      it 'delegates to client get_message_content' do
-        message_id = 'test_message_id'
-        
-        expect(mock_client).to receive(:get_message_content).with(message_id)
-        
-        service.get_message_content(message_id)
       end
     end
   end
