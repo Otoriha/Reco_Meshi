@@ -137,7 +137,7 @@ GEM
     jwt (2.10.2)
       base64
     language_server-protocol (3.17.0.5)
-    line-bot-api (2.1.1)
+    line-bot-api (1.30.0)
       base64 (~> 0.2)
       multipart-post (~> 2.4)
     lint_roller (1.1.0)
@@ -335,7 +335,7 @@ DEPENDENCIES
   factory_bot_rails
   faker
   jsonapi-serializer
-  line-bot-api
+  line-bot-api (~> 1.28)
   pg (~> 1.1)
   pry-rails
   puma (>= 5.0)
