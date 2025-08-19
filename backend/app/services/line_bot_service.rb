@@ -5,11 +5,15 @@ require 'base64'
 class LineBotService
 
   def initialize
-    @client = Line::Bot::Client.new do |config|
-      config.channel_secret = Rails.application.credentials.line_channel_secret || ENV['LINE_CHANNEL_SECRET']
-      config.channel_token = Rails.application.credentials.line_channel_access_token || ENV['LINE_CHANNEL_ACCESS_TOKEN']
-    end
-  end
+  # V2 APIのMessaging APIクライアント
+  @channel_secret = Rails.application.credentials.line_channel_secret || ENV['LINE_CHANNEL_SECRET']
+  @channel_token = Rails.application.credentials.line_channel_access_token || ENV['LINE_CHANNEL_ACCESS_TOKEN']
+  
+  # V2 Messaging API Client
+  @client = Line::Bot::V2::MessagingApi::ApiClient.new(
+    channel_access_token: @channel_token
+  )
+end
 
   def parse_events_v2(raw_body, signature)
   Rails.logger.info "Using V2 WebhookParser: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{raw_body&.length}"
