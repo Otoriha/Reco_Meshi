@@ -16,8 +16,8 @@ class LineBotService
   Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
   
   parser = Line::Bot::V2::WebhookParser.new(ENV['LINE_CHANNEL_SECRET'])
-  parser.parse(raw_body, signature)
-rescue Line::Bot::SignatureError => e
+  parser.parse(body: raw_body, signature: signature)
+rescue Line::Bot::V2::WebhookParser::InvalidSignatureError => e
   Rails.logger.error "Signature validation failed: #{e.message}"
   raise e
 rescue => e

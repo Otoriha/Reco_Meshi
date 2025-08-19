@@ -13,7 +13,7 @@ class Api::V1::LineController < ApplicationController
     end
     
     render json: { status: 'ok' }
-  rescue Line::Bot::SignatureError
+  rescue Line::Bot::V2::WebhookParser::InvalidSignatureError
     render json: { error: 'Invalid signature' }, status: :unauthorized
   rescue => e
     Rails.logger.error "Webhook Error: #{e.class}: #{e.message}"
