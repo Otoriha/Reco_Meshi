@@ -1,4 +1,6 @@
 require 'line/bot'
+require 'openssl'
+require 'base64'
 
 class LineBotService
 
@@ -18,7 +20,13 @@ class LineBotService
       return false
     end
     
-    result = @client.validate_signature(body, signature)
+    # LINE Bot SDK V1では、手動で署名を検証する
+    channel_secret = Rails.application.credentials.line_channel_secret || ENV['LINE_CHANNEL_SECRET']
+    hash = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), channel_secret, body)
+    expected_signature = Base64.strict_encode64(hash)
+    
+    Rails.logger.info "Expected signature calculated"
+    result = signature == expected_signature
     Rails.logger.info "Signature validation result: #{result}"
     result
   rescue => e
