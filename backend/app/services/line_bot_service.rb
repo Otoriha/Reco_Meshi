@@ -19,7 +19,7 @@ end
   Rails.logger.info "Using V2 WebhookParser: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{raw_body&.length}"
   Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
   
-  parser = Line::Bot::V2::WebhookParser.new(ENV['LINE_CHANNEL_SECRET'])
+  parser = Line::Bot::V2::WebhookParser.new(channel_secret: ENV['LINE_CHANNEL_SECRET'])
   parser.parse(body: raw_body, signature: signature)
 rescue Line::Bot::V2::WebhookParser::InvalidSignatureError => e
   Rails.logger.error "Signature validation failed: #{e.message}"
