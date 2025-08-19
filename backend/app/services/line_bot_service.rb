@@ -125,7 +125,7 @@ end
         text: action[:text]
       )
     when 'uri'
-      Line::Bot::V2::MessagingApi::UriAction.new(
+      Line::Bot::V2::MessagingApi::URIAction.new(
         label: action[:label],
         uri: action[:uri]
       )

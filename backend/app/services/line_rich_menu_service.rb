@@ -1,103 +1,91 @@
 class LineRichMenuService
 
   def initialize
-    @client = Line::Bot::Client.new do |config|
-      config.channel_secret = Rails.application.credentials.line_channel_secret || ENV['LINE_CHANNEL_SECRET']
-      config.channel_token = Rails.application.credentials.line_channel_access_token || ENV['LINE_CHANNEL_ACCESS_TOKEN']
-    end
+    # V2 API対応: Rich Menu APIもV2クライアントを使用
+    @channel_token = Rails.application.credentials.line_channel_access_token || ENV['LINE_CHANNEL_ACCESS_TOKEN']
+    @client = Line::Bot::V2::MessagingApi::ApiClient.new(
+      channel_access_token: @channel_token
+    )
   end
 
   def create_rich_menu
     rich_menu_object = create_rich_menu_object
-    response = @client.create_rich_menu(rich_menu_object)
+    # V2 API: キーワード引数でリクエストを作成
+    rich_menu_request = Line::Bot::V2::MessagingApi::CreateRichMenuRequest.new(rich_menu: rich_menu_object)
+    response = @client.create_rich_menu(rich_menu_request: rich_menu_request)
     
-    if response.code == '200'
-      rich_menu_id = JSON.parse(response.body)['richMenuId']
-      Rails.logger.info "Rich menu created with ID: #{rich_menu_id}"
-      rich_menu_id
+    if response.rich_menu_id
+      Rails.logger.info "Rich menu created with ID: #{response.rich_menu_id}"
+      response.rich_menu_id
     else
-      Rails.logger.error "Failed to create rich menu: #{response.body}"
+      Rails.logger.error "Failed to create rich menu"
       nil
     end
+  rescue => e
+    Rails.logger.error "Failed to create rich menu: #{e.message}"
+    nil
   end
 
   def set_rich_menu_image(rich_menu_id, image_path)
     File.open(image_path, 'rb') do |file|
-      response = @client.create_rich_menu_image(rich_menu_id, file)
-      
-      if response.code == '200'
-        Rails.logger.info "Rich menu image uploaded for ID: #{rich_menu_id}"
-        true
-      else
-        Rails.logger.error "Failed to upload rich menu image: #{response.body}"
-        false
-      end
+      # V2 API: Rich Menu Image設定
+      @client.set_rich_menu_image(rich_menu_id: rich_menu_id, body: file.read, content_type: 'image/png')
+      Rails.logger.info "Rich menu image uploaded for ID: #{rich_menu_id}"
+      true
     end
+  rescue => e
+    Rails.logger.error "Failed to upload rich menu image: #{e.message}"
+    false
   end
 
   def set_default_rich_menu(rich_menu_id)
-    response = @client.set_default_rich_menu(rich_menu_id)
-    
-    if response.code == '200'
-      Rails.logger.info "Default rich menu set to: #{rich_menu_id}"
-      true
-    else
-      Rails.logger.error "Failed to set default rich menu: #{response.body}"
-      false
-    end
+    @client.set_default_rich_menu(rich_menu_id: rich_menu_id)
+    Rails.logger.info "Default rich menu set to: #{rich_menu_id}"
+    true
+  rescue => e
+    Rails.logger.error "Failed to set default rich menu: #{e.message}"
+    false
   end
 
   def get_rich_menu_list
     response = @client.get_rich_menu_list
-    
-    if response.code == '200'
-      JSON.parse(response.body)['richmenus']
-    else
-      Rails.logger.error "Failed to get rich menu list: #{response.body}"
-      []
-    end
+    response.richmenus || []
+  rescue => e
+    Rails.logger.error "Failed to get rich menu list: #{e.message}"
+    []
   end
 
   def delete_rich_menu(rich_menu_id)
-    response = @client.delete_rich_menu(rich_menu_id)
-    
-    if response.code == '200'
-      Rails.logger.info "Rich menu deleted: #{rich_menu_id}"
-      true
-    else
-      Rails.logger.error "Failed to delete rich menu: #{response.body}"
-      false
-    end
+    @client.delete_rich_menu(rich_menu_id: rich_menu_id)
+    Rails.logger.info "Rich menu deleted: #{rich_menu_id}"
+    true
+  rescue => e
+    Rails.logger.error "Failed to delete rich menu: #{e.message}"
+    false
   end
 
   def get_default_rich_menu_id
     response = @client.get_default_rich_menu
-    
-    if response.code == '200'
-      JSON.parse(response.body)['richMenuId']
-    else
-      Rails.logger.info "No default rich menu set"
-      nil
-    end
+    response.rich_menu_id
+  rescue => e
+    Rails.logger.info "No default rich menu set: #{e.message}"
+    nil
   end
 
   def cancel_default_rich_menu
-    response = @client.cancel_default_rich_menu
-    
-    if response.code == '200'
-      Rails.logger.info "Default rich menu cancelled"
-      true
-    else
-      Rails.logger.error "Failed to cancel default rich menu: #{response.body}"
-      false
-    end
+    @client.cancel_default_rich_menu
+    Rails.logger.info "Default rich menu cancelled"
+    true
+  rescue => e
+    Rails.logger.error "Failed to cancel default rich menu: #{e.message}"
+    false
   end
 
   def cleanup_all_rich_menus
     rich_menus = get_rich_menu_list
     
     rich_menus.each do |menu|
-      delete_rich_menu(menu['richMenuId'])
+      delete_rich_menu(menu.rich_menu_id)
     end
     
     Rails.logger.info "Cleaned up #{rich_menus.count} rich menus"
@@ -124,80 +112,35 @@ class LineRichMenuService
   def create_rich_menu_object
     raise "LIFF_ID environment variable is required" unless ENV['LIFF_ID']
     
-    {
-      size: {
-        width: 2500,
-        height: 1686
-      },
+    # V2 API: RichMenu オブジェクトを作成
+    Line::Bot::V2::MessagingApi::RichMenu.new(
+      size: Line::Bot::V2::MessagingApi::RichMenuSize.new(width: 2500, height: 1686),
       selected: false,
       name: "レコめしメニュー",
-      chatBarText: "メニューを開く",
+      chat_bar_text: "メニューを開く",
       areas: [
-        {
-          bounds: {
-            x: 0,
-            y: 0,
-            width: 833,
-            height: 843
-          },
-          action: {
-            type: "postback",
-            data: "recipe_request",
-            displayText: "レシピを提案して"
-          }
-        },
-        {
-          bounds: {
-            x: 833,
-            y: 0,
-            width: 834,
-            height: 843
-          },
-          action: {
-            type: "postback",
-            data: "ingredients_list",
-            displayText: "食材リストを見せて"
-          }
-        },
-        {
-          bounds: {
-            x: 1667,
-            y: 0,
-            width: 833,
-            height: 843
-          },
-          action: {
-            type: "uri",
-            uri: "https://liff.line.me/#{ENV['LIFF_ID']}"
-          }
-        },
-        {
-          bounds: {
-            x: 0,
-            y: 843,
-            width: 1250,
-            height: 843
-          },
-          action: {
-            type: "uri",
-            uri: ENV['FRONTEND_URL'] || "https://reco-meshiweb.vercel.app"
-          }
-        },
-        {
-          bounds: {
-            x: 1250,
-            y: 843,
-            width: 1250,
-            height: 843
-          },
-          action: {
-            type: "postback",
-            data: "help",
-            displayText: "ヘルプ"
-          }
-        }
+        Line::Bot::V2::MessagingApi::RichMenuArea.new(
+          bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 0, y: 0, width: 833, height: 843),
+          action: Line::Bot::V2::MessagingApi::PostbackAction.new(data: "recipe_request", display_text: "レシピを提案して")
+        ),
+        Line::Bot::V2::MessagingApi::RichMenuArea.new(
+          bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 833, y: 0, width: 834, height: 843),
+          action: Line::Bot::V2::MessagingApi::PostbackAction.new(data: "ingredients_list", display_text: "食材リストを見せて")
+        ),
+        Line::Bot::V2::MessagingApi::RichMenuArea.new(
+          bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 1667, y: 0, width: 833, height: 843),
+          action: Line::Bot::V2::MessagingApi::URIAction.new(uri: "https://liff.line.me/#{ENV['LIFF_ID']}")
+        ),
+        Line::Bot::V2::MessagingApi::RichMenuArea.new(
+          bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 0, y: 843, width: 1250, height: 843),
+          action: Line::Bot::V2::MessagingApi::URIAction.new(uri: ENV['FRONTEND_URL'] || "https://reco-meshiweb.vercel.app")
+        ),
+        Line::Bot::V2::MessagingApi::RichMenuArea.new(
+          bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 1250, y: 843, width: 1250, height: 843),
+          action: Line::Bot::V2::MessagingApi::PostbackAction.new(data: "help", display_text: "ヘルプ")
+        )
       ]
-    }
+    )
   end
 
   attr_reader :client
