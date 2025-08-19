@@ -52,22 +52,24 @@ end
   private
 
   def convert_to_v2_message(message_hash)
-    case message_hash[:type]
-    when 'text'
-      Line::Bot::V2::MessagingApi::TextMessage.new(text: message_hash[:text])
-    when 'sticker'
-      Line::Bot::V2::MessagingApi::StickerMessage.new(
-        package_id: message_hash[:packageId],
-        sticker_id: message_hash[:stickerId]
-      )
-    when 'template'
-      # テンプレートメッセージは複雑なのでV1互換で一旦処理
-      # 将来的にV2テンプレートに対応予定
-      raise "Template messages not yet implemented for V2"
-    else
-      raise "Unsupported message type: #{message_hash[:type]}"
-    end
+  case message_hash[:type]
+  when 'text'
+    Line::Bot::V2::MessagingApi::TextMessage.new(text: message_hash[:text])
+  when 'sticker'
+    Line::Bot::V2::MessagingApi::StickerMessage.new(
+      package_id: message_hash[:packageId],
+      sticker_id: message_hash[:stickerId]
+    )
+  when 'template'
+    # テンプレートメッセージは複雑なのでV1互換で一旦処理
+    # 将来的にV2テンプレートに対応予定
+    raise "Template messages not yet implemented for V2"
+  else
+    raise "Unsupported message type: #{message_hash[:type]}"
   end
+end
+
+  public
 
   def push_message(user_id, message)
     @client.push_message(user_id, message)
