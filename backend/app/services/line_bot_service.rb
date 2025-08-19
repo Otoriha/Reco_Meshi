@@ -10,7 +10,20 @@ class LineBotService
   end
 
   def validate_signature(body, signature)
-    @client.validate_signature(body, signature)
+    Rails.logger.info "Validating signature: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{body&.length}"
+    Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
+    
+    if signature.blank?
+      Rails.logger.warn "Signature is missing"
+      return false
+    end
+    
+    result = @client.validate_signature(body, signature)
+    Rails.logger.info "Signature validation result: #{result}"
+    result
+  rescue => e
+    Rails.logger.error "Signature validation error: #{e.class}: #{e.message}"
+    false
   end
 
   def parse_events_from(body)
