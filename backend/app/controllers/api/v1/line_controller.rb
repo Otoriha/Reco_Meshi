@@ -1,39 +1,28 @@
 class Api::V1::LineController < ApplicationController
   skip_before_action :authenticate_user!, only: :webhook
-  before_action :verify_signature
 
   def webhook
-    body = request.body.read
-    signature = request.env['HTTP_X_LINE_SIGNATURE']
-    
-    unless line_bot_service.validate_signature(body, signature)
-      render json: { error: 'Invalid signature' }, status: :unauthorized
-      return
-    end
-
-    events = line_bot_service.parse_events_from(body)
+  raw_body = request.raw_post
+  signature = request.get_header('HTTP_X_LINE_SIGNATURE')
+  
+  begin
+    events = line_bot_service.parse_events_v2(raw_body, signature)
     
     events.each do |event|
       handle_event(event)
     end
-
+    
     render json: { status: 'ok' }
+  rescue Line::Bot::SignatureError
+    render json: { error: 'Invalid signature' }, status: :unauthorized
   rescue => e
     Rails.logger.error "Webhook Error: #{e.class}: #{e.message}"
     Rails.logger.error "Backtrace: #{e.backtrace&.first(5)&.join(', ')}"
     render json: { error: 'Internal server error' }, status: :internal_server_error
   end
+end
 
   private
-
-  def verify_signature
-    signature = request.env['HTTP_X_LINE_SIGNATURE']
-    
-    unless signature
-      render json: { error: 'Missing signature' }, status: :bad_request
-      return
-    end
-  end
 
   def handle_event(event)
     case event

@@ -11,30 +11,19 @@ class LineBotService
     end
   end
 
-  def validate_signature(body, signature)
-    Rails.logger.info "Validating signature: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{body&.length}"
-    Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
-    
-    if signature.blank?
-      Rails.logger.warn "Signature is missing"
-      return false
-    end
-    
-    # LINE Botの署名検証（正しい実装）
-    channel_secret = Rails.application.credentials.line_channel_secret || ENV['LINE_CHANNEL_SECRET']
-    hash = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), channel_secret, body)
-    expected_signature = Base64.strict_encode64(hash)
-    
-    Rails.logger.info "Expected signature: #{expected_signature}"
-    Rails.logger.info "Received signature: #{signature}"
-    
-    result = signature == expected_signature
-    Rails.logger.info "Signature validation result: #{result}"
-    result
-  rescue => e
-    Rails.logger.error "Signature validation error: #{e.class}: #{e.message}"
-    false
-  end
+  def parse_events_v2(raw_body, signature)
+  Rails.logger.info "Using V2 WebhookParser: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{raw_body&.length}"
+  Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
+  
+  parser = Line::Bot::V2::WebhookParser.new(ENV['LINE_CHANNEL_SECRET'])
+  parser.parse(raw_body, signature)
+rescue Line::Bot::SignatureError => e
+  Rails.logger.error "Signature validation failed: #{e.message}"
+  raise e
+rescue => e
+  Rails.logger.error "Event parsing error: #{e.class}: #{e.message}"
+  raise e
+end
 
   def parse_events_from(body)
     @client.parse_events_from(body)
