@@ -34,7 +34,39 @@ end
   end
 
   def reply_message(reply_token, message)
-    @client.reply_message(reply_token, message)
+  # V2 MessagingApi用のリクエスト作成
+  messages = if message.is_a?(Array)
+    message.map { |msg| convert_to_v2_message(msg) }
+  else
+    [convert_to_v2_message(message)]
+  end
+  
+  request = Line::Bot::V2::MessagingApi::ReplyMessageRequest.new(
+    reply_token: reply_token,
+    messages: messages
+  )
+  
+  @client.reply_message(reply_message_request: request)
+end
+
+  private
+
+  def convert_to_v2_message(message_hash)
+    case message_hash[:type]
+    when 'text'
+      Line::Bot::V2::MessagingApi::TextMessage.new(text: message_hash[:text])
+    when 'sticker'
+      Line::Bot::V2::MessagingApi::StickerMessage.new(
+        package_id: message_hash[:packageId],
+        sticker_id: message_hash[:stickerId]
+      )
+    when 'template'
+      # テンプレートメッセージは複雑なのでV1互換で一旦処理
+      # 将来的にV2テンプレートに対応予定
+      raise "Template messages not yet implemented for V2"
+    else
+      raise "Unsupported message type: #{message_hash[:type]}"
+    end
   end
 
   def push_message(user_id, message)
