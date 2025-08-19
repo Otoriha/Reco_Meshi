@@ -6,12 +6,14 @@ class LineRichMenuService
     @client = Line::Bot::V2::MessagingApi::ApiClient.new(
       channel_access_token: @channel_token
     )
+    # ApiBlobClient for image operations
+    @blob_client = Line::Bot::V2::MessagingApi::ApiBlobClient.new(
+      channel_access_token: @channel_token
+    )
   end
 
   def create_rich_menu
-    rich_menu_object = create_rich_menu_object
-    # V2 API: キーワード引数でリクエストを作成
-    rich_menu_request = Line::Bot::V2::MessagingApi::CreateRichMenuRequest.new(rich_menu: rich_menu_object)
+    rich_menu_request = create_rich_menu_object
     response = @client.create_rich_menu(rich_menu_request: rich_menu_request)
     
     if response.rich_menu_id
@@ -28,8 +30,8 @@ class LineRichMenuService
 
   def set_rich_menu_image(rich_menu_id, image_path)
     File.open(image_path, 'rb') do |file|
-      # V2 API: Rich Menu Image設定
-      @client.set_rich_menu_image(rich_menu_id: rich_menu_id, body: file.read, content_type: 'image/png')
+      # V2 API: Rich Menu Image設定はApiBlobClientで実行（content_typeは不要）
+      @blob_client.set_rich_menu_image(rich_menu_id: rich_menu_id, body: file.read)
       Rails.logger.info "Rich menu image uploaded for ID: #{rich_menu_id}"
       true
     end
@@ -65,7 +67,7 @@ class LineRichMenuService
   end
 
   def get_default_rich_menu_id
-    response = @client.get_default_rich_menu
+    response = @client.get_default_rich_menu_id
     response.rich_menu_id
   rescue => e
     Rails.logger.info "No default rich menu set: #{e.message}"
@@ -112,8 +114,8 @@ class LineRichMenuService
   def create_rich_menu_object
     raise "LIFF_ID environment variable is required" unless ENV['LIFF_ID']
     
-    # V2 API: RichMenu オブジェクトを作成
-    Line::Bot::V2::MessagingApi::RichMenu.new(
+    # V2 API: RichMenuRequest オブジェクトを作成
+    Line::Bot::V2::MessagingApi::RichMenuRequest.new(
       size: Line::Bot::V2::MessagingApi::RichMenuSize.new(width: 2500, height: 1686),
       selected: false,
       name: "レコめしメニュー",
