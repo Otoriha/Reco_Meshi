@@ -38,8 +38,8 @@ class MessageResponseService
 
   def create_recipe_suggestion_message
     # 将来的にはユーザーの食材データベースから取得してAIでレシピ生成
-    mock_ingredients = ["玉ねぎ", "人参", "じゃがいも", "豚肉"]
-    
+    mock_ingredients = [ "玉ねぎ", "人参", "じゃがいも", "豚肉" ]
+
     @line_bot_service.create_text_message(
       "🍳 今ある食材でのレシピ提案\n\n" \
       "現在の食材: #{mock_ingredients.join(', ')}\n\n" \
@@ -65,7 +65,7 @@ class MessageResponseService
     mock_ingredients.each do |ingredient|
       message += "• #{ingredient[:name]} (#{ingredient[:quantity]}) - 消費期限: #{ingredient[:expiry]}\n"
     end
-    
+
     message += "\n🥕 食材の詳細管理はLIFFアプリをご利用ください！\n"
     message += "\n※現在はサンプルデータを表示しています。"
 
@@ -85,7 +85,7 @@ class MessageResponseService
     mock_shopping_items.each do |item|
       message += "• #{item[:name]}\n  (#{item[:reason]})\n\n"
     end
-    
+
     message += "💡 レシピに必要な食材も自動で追加予定です！\n"
     message += "\n※現在はサンプルデータを表示しています。"
 

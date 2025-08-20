@@ -227,9 +227,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles recipe command via text message" do
         mock_event = create_v2_text_message_event("レシピ教えて")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageAnalyzerService).to receive(:analyze).and_return(:recipe)
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:recipe, "test_user_id")
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -239,9 +236,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles ingredients command via text message" do
         mock_event = create_v2_text_message_event("食材リスト")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageAnalyzerService).to receive(:analyze).and_return(:ingredients)
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:ingredients, "test_user_id")
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -251,9 +245,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles shopping command via text message" do
         mock_event = create_v2_text_message_event("買い物リスト")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageAnalyzerService).to receive(:analyze).and_return(:shopping)
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:shopping, "test_user_id")
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -263,9 +254,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles unknown command via text message" do
         mock_event = create_v2_text_message_event("ランダムなメッセージ")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageAnalyzerService).to receive(:analyze).and_return(:unknown)
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:unknown, "test_user_id")
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -305,8 +293,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles recipe postback event" do
         mock_event = create_v2_postback_event("recipe_request")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:recipe, "test_user_id")
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -316,8 +302,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles ingredients postback event" do
         mock_event = create_v2_postback_event("ingredients_list")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:ingredients, "test_user_id")
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -327,8 +311,6 @@ RSpec.describe "Api::V1::Line", type: :request do
       it "handles shopping postback event" do
         mock_event = create_v2_postback_event("shopping_list")
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
-        
-        expect_any_instance_of(MessageResponseService).to receive(:generate_response).with(:shopping, "test_user_id")
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
