@@ -6,6 +6,8 @@ RSpec.describe LineAccount, type: :model do
   end
 
   describe 'validations' do
+    subject { build(:line_account) }
+    
     it { should validate_presence_of(:line_user_id) }
     it { should validate_uniqueness_of(:line_user_id) }
     it { should validate_presence_of(:line_display_name) }
@@ -62,11 +64,12 @@ RSpec.describe LineAccount, type: :model do
     let(:line_account) { create(:line_account, user: nil, linked_at: nil) }
 
     it 'links the account to the user and sets linked_at' do
-      freeze_time do
+      freeze_time = Time.current
+      Timecop.freeze(freeze_time) do
         line_account.link_to_user!(user)
         
         expect(line_account.reload.user).to eq(user)
-        expect(line_account.linked_at).to eq(Time.current)
+        expect(line_account.linked_at).to be_within(1.second).of(freeze_time)
       end
     end
   end

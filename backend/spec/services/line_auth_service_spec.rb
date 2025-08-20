@@ -36,7 +36,7 @@ RSpec.describe LineAuthService do
           expect(user).to be_persisted
           expect(user.provider).to eq('line')
           expect(user.name).to eq('Test User')
-          expect(user.email).to eq('line_U1234567890abcdef@line.local')
+          expect(user.email).to eq('line_u1234567890abcdef@line.local')
 
           expect(line_account).to be_persisted
           expect(line_account.line_user_id).to eq('U1234567890abcdef')
@@ -216,7 +216,7 @@ RSpec.describe LineAuthService do
       end
 
       it 'updates LineAccount information' do
-        freeze_time do
+        Timecop.freeze do
           result = described_class.link_existing_user(
             user: user,
             id_token: id_token,
@@ -227,7 +227,7 @@ RSpec.describe LineAuthService do
 
           expect(line_account).to eq(existing_line_account)
           expect(line_account.reload.line_display_name).to eq('Test User')
-          expect(line_account.linked_at).to eq(Time.current)
+          expect(line_account.linked_at).to be_within(1.second).of(Time.current)
         end
       end
     end

@@ -128,6 +128,6 @@ class LineAuthService
   end
 
   def generate_dummy_email(line_user_id)
-    "line_#{line_user_id}@line.local"
+    "line_#{line_user_id.downcase}@line.local"
   end
 end

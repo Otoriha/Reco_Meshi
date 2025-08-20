@@ -81,7 +81,7 @@ class Api::V1::Auth::LineAuthController < ApplicationController
           code: 'invalid_request',
           message: 'idTokenとnonceが必要です'
         }
-      }, status: :bad_request
+      }, status: :bad_request and return
     end
   end
 

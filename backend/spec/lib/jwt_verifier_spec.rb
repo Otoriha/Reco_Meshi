@@ -180,7 +180,19 @@ RSpec.describe JwtVerifier do
   end
 
   describe 'JWKS caching' do
+    around do |example|
+      original_cache = Rails.cache
+      Rails.cache = ActiveSupport::Cache::MemoryStore.new
+      Rails.cache.clear
+      example.run
+    ensure
+      Rails.cache = original_cache
+    end
+
     it 'caches JWKS response' do
+      # Clear cache first
+      Rails.cache.clear
+      
       expect(Net::HTTP).to receive(:get_response).once.and_return(
         double('response', is_a?: true, body: jwks_response.to_json)
       )
