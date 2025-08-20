@@ -12,10 +12,13 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       # Development environment - Allow local hosts
       origins "localhost:3001",     # Frontend (Web)
               "localhost:3002",     # LIFF
+              "https://localhost:3002", # LIFF (HTTPS)
               "127.0.0.1:3001",    # Alternative localhost
               "127.0.0.1:3002",    # Alternative localhost
+              "https://127.0.0.1:3002", # Alternative localhost (HTTPS)
               "0.0.0.0:3001",      # Docker network
-              "0.0.0.0:3002"       # Docker network
+              "0.0.0.0:3002",      # Docker network
+              "https://0.0.0.0:3002" # Docker network (HTTPS)
     else
       # Production environment - Allow specific domains
       allowed_origins = []

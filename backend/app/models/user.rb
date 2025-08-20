@@ -12,8 +12,13 @@ class User < ApplicationRecord
   
   devise(*devise_modules, jwt_revocation_strategy: JwtDenylist)
 
-  # Validations (emailはvalidatableモジュールに委譲)
+  # Associations
+  has_one :line_account, dependent: :destroy
+
+  # Validations
   validates :name, presence: true, length: { maximum: 50 }
+  validates :email, presence: true, if: -> { provider == 'email' }
+  validates :provider, inclusion: { in: %w[email line] }
 
   # JWT payloadの追加クレームを定義（subはdevise-jwtが自動付与）
   def jwt_payload
