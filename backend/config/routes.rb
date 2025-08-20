@@ -24,6 +24,14 @@ Rails.application.routes.draw do
         post 'auth/refresh', to: 'users/refresh#create'
       end
 
+      # LINE Authentication
+      namespace :auth do
+        post 'line_login', to: 'line_auth#line_login'
+        post 'line_link', to: 'line_auth#line_link'
+        get 'line_profile', to: 'line_auth#line_profile'
+        post 'generate_nonce', to: 'line_auth#generate_nonce'
+      end
+
       # LINE Bot Webhook
       post 'line/webhook', to: 'line#webhook'
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_11_072337) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_20_031102) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -21,6 +21,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_11_072337) do
     t.datetime "updated_at", null: false
     t.index ["exp"], name: "index_jwt_denylists_on_exp"
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
+  end
+
+  create_table "line_accounts", force: :cascade do |t|
+    t.string "line_user_id", null: false
+    t.bigint "user_id"
+    t.string "line_display_name"
+    t.string "line_picture_url"
+    t.datetime "linked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["line_user_id"], name: "index_line_accounts_on_line_user_id", unique: true
+    t.index ["user_id"], name: "index_line_accounts_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -36,8 +48,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_11_072337) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "provider", default: "email"
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "line_accounts", "users", on_delete: :nullify
 end
