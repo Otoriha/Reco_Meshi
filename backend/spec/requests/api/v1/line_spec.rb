@@ -211,6 +211,7 @@ RSpec.describe "Api::V1::Line", type: :request do
     context "with valid signature" do
       before do
         allow_any_instance_of(LineBotService).to receive(:reply_message).and_return(double(code: '200'))
+        allow_any_instance_of(LineBotService).to receive(:create_text_message).and_return(double('message'))
       end
 
       it "handles text message successfully" do
@@ -221,6 +222,42 @@ RSpec.describe "Api::V1::Line", type: :request do
 
         expect(response).to have_http_status(:ok)
         expect(JSON.parse(response.body)['status']).to eq('ok')
+      end
+
+      it "handles recipe command via text message" do
+        mock_event = create_v2_text_message_event("レシピ教えて")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: text_message_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "handles ingredients command via text message" do
+        mock_event = create_v2_text_message_event("食材リスト")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: text_message_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "handles shopping command via text message" do
+        mock_event = create_v2_text_message_event("買い物リスト")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: text_message_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "handles unknown command via text message" do
+        mock_event = create_v2_text_message_event("ランダムなメッセージ")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: text_message_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
       end
 
       it "handles image message successfully" do
@@ -251,6 +288,33 @@ RSpec.describe "Api::V1::Line", type: :request do
 
         expect(response).to have_http_status(:ok)
         expect(JSON.parse(response.body)['status']).to eq('ok')
+      end
+
+      it "handles recipe postback event" do
+        mock_event = create_v2_postback_event("recipe_request")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "handles ingredients postback event" do
+        mock_event = create_v2_postback_event("ingredients_list")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "handles shopping postback event" do
+        mock_event = create_v2_postback_event("shopping_list")
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+        post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+        expect(response).to have_http_status(:ok)
       end
 
       it "handles sticker message successfully" do
