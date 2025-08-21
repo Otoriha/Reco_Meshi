@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe GoogleCloudVisionService, type: :service do
-  let(:mock_client) { instance_double(Google::Cloud::Vision::ImageAnnotator) }
+  let(:mock_client) { instance_double(Google::Cloud::Vision::V1::ImageAnnotator::Client) }
   let(:service) { described_class.new(client: mock_client) }
   
   # テスト用画像データ（Base64エンコードされた小さなPNG）
@@ -179,7 +179,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
   
   describe 'ingredient mapping' do
     it 'maps English labels to Japanese ingredient names' do
-      service_instance = described_class.new
+      service_instance = described_class.new(client: mock_client)
       
       # privateメソッドのテスト
       expect(service_instance.send(:find_ingredient_name, 'tomato')).to eq('トマト')
@@ -188,7 +188,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
     end
     
     it 'handles partial matches' do
-      service_instance = described_class.new
+      service_instance = described_class.new(client: mock_client)
       
       expect(service_instance.send(:find_ingredient_name, 'bell pepper')).to eq('ピーマン')
       expect(service_instance.send(:find_ingredient_name, 'green onion')).to eq('ネギ')
@@ -197,7 +197,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
   
   describe 'feature request building' do
     it 'builds correct feature requests' do
-      service_instance = described_class.new
+      service_instance = described_class.new(client: mock_client)
       features = [:label, :object, :text]
       
       requests = service_instance.send(:build_feature_requests, features)
