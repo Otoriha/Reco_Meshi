@@ -15,6 +15,12 @@ RSpec.describe LineBotService, type: :service do
     it 'creates a LINE Bot V2 client with correct configuration' do
       expect(service.send(:client)).to be_a(Line::Bot::V2::MessagingApi::ApiClient)
     end
+    
+    it 'creates a LINE Bot V2 Blob client' do
+      # プライベートインスタンス変数にアクセス
+      blob_client = service.instance_variable_get(:@blob_client)
+      expect(blob_client).to be_a(Line::Bot::V2::MessagingApiBlob::ApiClient)
+    end
   end
 
   describe '#parse_events_v2' do
@@ -417,6 +423,69 @@ RSpec.describe LineBotService, type: :service do
           type: 'action',
           action: action
         })
+      end
+    end
+  end
+
+  describe '#get_message_content' do
+    let(:message_id) { 'test_message_123' }
+    let(:image_content) { 'fake_image_binary_data' }
+    let(:mock_blob_client) { instance_double(Line::Bot::V2::MessagingApiBlob::ApiClient) }
+    
+    before do
+      allow(Line::Bot::V2::MessagingApiBlob::ApiClient).to receive(:new).and_return(mock_blob_client)
+      service.instance_variable_set(:@blob_client, mock_blob_client)
+    end
+    
+    context 'when blob client returns content successfully' do
+      before do
+        allow(mock_blob_client).to receive(:get_message_content)
+          .with(message_id: message_id)
+          .and_return(image_content)
+      end
+      
+      it 'fetches message content using blob client' do
+        result = service.get_message_content(message_id)
+        
+        expect(result).to eq(image_content)
+        expect(mock_blob_client).to have_received(:get_message_content).with(message_id: message_id)
+      end
+    end
+  end
+
+  describe '#push_message' do
+    let(:user_id) { 'test_user_123' }
+    let(:message) { { type: 'text', text: 'Test message' } }
+    let(:mock_client) { instance_double(Line::Bot::V2::MessagingApi::ApiClient) }
+    let(:mock_request) { instance_double(Line::Bot::V2::MessagingApi::PushMessageRequest) }
+    let(:mock_v2_message) { instance_double(Line::Bot::V2::MessagingApi::TextMessage) }
+    
+    before do
+      allow(Line::Bot::V2::MessagingApi::ApiClient).to receive(:new).and_return(mock_client)
+      service.instance_variable_set(:@client, mock_client)
+    end
+    
+    context 'when sending a single message' do
+      before do
+        allow(Line::Bot::V2::MessagingApi::TextMessage).to receive(:new)
+          .with(text: 'Test message')
+          .and_return(mock_v2_message)
+        
+        allow(Line::Bot::V2::MessagingApi::PushMessageRequest).to receive(:new)
+          .with(to: user_id, messages: [mock_v2_message])
+          .and_return(mock_request)
+        
+        allow(mock_client).to receive(:push_message)
+          .with(push_message_request: mock_request)
+      end
+      
+      it 'creates V2 request and sends message' do
+        service.push_message(user_id, message)
+        
+        expect(Line::Bot::V2::MessagingApi::PushMessageRequest).to have_received(:new)
+          .with(to: user_id, messages: [mock_v2_message])
+        expect(mock_client).to have_received(:push_message)
+          .with(push_message_request: mock_request)
       end
     end
   end
