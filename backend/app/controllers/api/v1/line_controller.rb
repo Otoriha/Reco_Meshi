@@ -91,12 +91,15 @@ end
 
   Rails.logger.info "Received image message from #{user_id}: #{message_id}"
 
-  # 画像認識処理をバックグラウンドジョブで実行予定
-  # ImageRecognitionJob.perform_later(user_id, message_id, event.reply_token)
-
-  # 暫定レスポンス
-  response_message = line_bot_service.create_text_message("📸 画像を受信しました！\n\n現在、画像認識機能を開発中です。もうしばらくお待ちください🙏")
+  # 即時ACK返信
+  response_message = line_bot_service.create_text_message(
+    "📸 画像を受信しました！\n\n" \
+    "🔍 食材を解析中です。少々お待ちください..."
+  )
   line_bot_service.reply_message(event.reply_token, response_message)
+
+  # 画像認識処理をバックグラウンドジョブで実行
+  ImageRecognitionJob.perform_later(user_id, message_id)
 end
 
   def handle_sticker_message(event)

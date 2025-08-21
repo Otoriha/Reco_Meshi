@@ -13,6 +13,11 @@ class LineBotService
   @client = Line::Bot::V2::MessagingApi::ApiClient.new(
     channel_access_token: @channel_token
   )
+  
+  # V2 Blob API Client for content downloads
+  @blob_client = Line::Bot::V2::MessagingApi::ApiBlobClient.new(
+    channel_access_token: @channel_token
+  )
 end
 
   def parse_events_v2(raw_body, signature)
@@ -137,7 +142,19 @@ end
   public
 
   def push_message(user_id, message)
-    @client.push_message(user_id, message)
+    # V2 MessagingApi用のリクエスト作成
+    messages = if message.is_a?(Array)
+      message.map { |msg| convert_to_v2_message(msg) }
+    else
+      [convert_to_v2_message(message)]
+    end
+    
+    request = Line::Bot::V2::MessagingApi::PushMessageRequest.new(
+      to: user_id,
+      messages: messages
+    )
+    
+    @client.push_message(push_message_request: request)
   end
 
   def multicast_message(user_ids, message)
@@ -157,7 +174,7 @@ end
   end
 
   def get_message_content(message_id)
-    @client.get_message_content(message_id)
+    @blob_client.get_message_content(message_id: message_id)
   end
 
   def create_text_message(text)

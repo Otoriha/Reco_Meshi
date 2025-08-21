@@ -1,0 +1,174 @@
+class ImageRecognitionJob < ApplicationJob
+  queue_as :default
+  
+  # Sidekiqリトライ設定
+  retry_on Google::Cloud::DeadlineExceededError, wait: :polynomially_longer, attempts: 3
+  retry_on Google::Cloud::UnavailableError, wait: :polynomially_longer, attempts: 3
+  retry_on Timeout::Error, wait: :polynomially_longer, attempts: 2
+  
+  discard_on Google::Cloud::PermissionDeniedError
+  discard_on Google::Cloud::NotFoundError
+
+  def perform(line_user_id, message_id)
+    Rails.logger.info "Starting image recognition job: user=#{line_user_id}, message=#{message_id}"
+    
+    line_bot_service = LineBotService.new
+    vision_service = GoogleCloudVisionService.new
+    
+    begin
+      # LINEから画像コンテンツを取得
+      image_content = fetch_image_content(line_bot_service, message_id)
+      return send_error_message(line_bot_service, line_user_id, '画像の取得に失敗しました') unless image_content
+      
+      # Vision APIで画像解析
+      result = vision_service.analyze_image(image_content, features: %i[label object text])
+      
+      # エラーチェック
+      if result.ingredients.any? { |ingredient| ingredient[:error] }
+        error_ingredient = result.ingredients.find { |ingredient| ingredient[:error] }
+        return send_error_message(line_bot_service, line_user_id, error_ingredient[:error])
+      end
+      
+      # 結果をLINEで送信
+      send_recognition_result(line_bot_service, line_user_id, result)
+      
+      Rails.logger.info "Image recognition completed successfully: user=#{line_user_id}, ingredients=#{result.ingredients.size}"
+      
+    rescue => e
+      Rails.logger.error "ImageRecognitionJob failed: #{e.class}: #{e.message}"
+      Rails.logger.error "Backtrace: #{e.backtrace&.first(5)&.join(', ')}"
+      
+      # 最終失敗時のエラーメッセージ
+      send_error_message(line_bot_service, line_user_id, '画像解析中にエラーが発生しました。しばらく経ってから再度お試しください。')
+      raise e # Sidekiqのログに残すために再発生
+    end
+  end
+
+  private
+
+  def fetch_image_content(line_bot_service, message_id)
+    begin
+      Rails.logger.info "Fetching image content from LINE: message_id=#{message_id}"
+      
+      response = line_bot_service.get_message_content(message_id)
+      
+      # レスポンスがStringかIOかによって処理を分ける
+      content = case response
+                when String
+                  response
+                when IO, StringIO
+                  response.read
+                else
+                  response.body if response.respond_to?(:body)
+                end
+      
+      if content.nil? || content.empty?
+        Rails.logger.error "Empty image content received"
+        return nil
+      end
+      
+      # 画像サイズチェック（20MB制限）
+      if content.bytesize > 20.megabytes
+        Rails.logger.error "Image too large: #{content.bytesize} bytes"
+        return nil
+      end
+      
+      Rails.logger.info "Image content fetched successfully: size=#{content.bytesize} bytes"
+      content
+      
+    rescue => e
+      Rails.logger.error "Failed to fetch image content: #{e.class}: #{e.message}"
+      nil
+    end
+  end
+
+  def send_recognition_result(line_bot_service, line_user_id, result)
+    if result.ingredients.empty?
+      # 食材が認識できなかった場合
+      message = line_bot_service.create_text_message(
+        "🤔 申し訳ありません。\n" \
+        "この画像からは食材を認識できませんでした。\n\n" \
+        "📷 もう一度、冷蔵庫の中身がはっきり写った写真を送ってください。"
+      )
+    else
+      # 食材が認識できた場合
+      ingredients_text = result.ingredients.first(5).map.with_index(1) do |ingredient, index|
+        "#{index}. #{ingredient[:name]} (信頼度: #{(ingredient[:confidence] * 100).round}%)"
+      end.join("\n")
+      
+      # LIFF URLの設定（環境変数から取得）
+      liff_url = ENV['REACT_APP_LIFF_URL'] || 'https://liff.line.me/your-liff-id'
+      
+      message_text = "🥬 食材を認識しました！\n\n" \
+                     "【認識した食材】\n#{ingredients_text}\n\n" \
+                     "📱 在庫リストの確認・編集はこちら\n#{liff_url}"
+      
+      message = line_bot_service.create_text_message(message_text)
+    end
+    
+    # OCRで賞味期限らしきテキストが見つかった場合の追加情報
+    if result.texts[:full_text].present?
+      date_patterns = extract_date_patterns(result.texts[:full_text])
+      if date_patterns.any?
+        additional_text = "\n\n💡 賞味期限らしき文字も見つかりました：\n#{date_patterns.first(3).join(', ')}"
+        message[:text] += additional_text
+      end
+    end
+    
+    begin
+      line_bot_service.push_message(line_user_id, message)
+      Rails.logger.info "Recognition result sent successfully to user: #{line_user_id}"
+    rescue => e
+      Rails.logger.error "Failed to send recognition result: #{e.class}: #{e.message}"
+      # プッシュ送信失敗は非同期で再試行
+      retry_push_message(line_bot_service, line_user_id, message, attempts: 3)
+    end
+  end
+
+  def send_error_message(line_bot_service, line_user_id, error_text)
+    message = line_bot_service.create_text_message(
+      "❌ #{error_text}\n\n" \
+      "🔄 再度お試しいただくか、しばらく経ってからお試しください。"
+    )
+    
+    begin
+      line_bot_service.push_message(line_user_id, message)
+    rescue => e
+      Rails.logger.error "Failed to send error message: #{e.class}: #{e.message}"
+    end
+  end
+
+  def extract_date_patterns(text)
+    # 賞味期限のパターンマッチング（簡易版）
+    date_patterns = []
+    
+    # 年月日パターン
+    patterns = [
+      /\d{4}[\/\-年]\d{1,2}[\/\-月]\d{1,2}[日]?/,  # 2024/12/31, 2024-12-31, 2024年12月31日
+      /\d{2}[\/\-]\d{1,2}[\/\-]\d{1,2}/,          # 24/12/31
+      /\d{1,2}[\/\-]\d{1,2}/                       # 12/31
+    ]
+    
+    patterns.each do |pattern|
+      matches = text.scan(pattern)
+      date_patterns.concat(matches.flatten) if matches.any?
+    end
+    
+    date_patterns.uniq.first(3)
+  end
+
+  def retry_push_message(line_bot_service, line_user_id, message, attempts: 3)
+    attempts.times do |i|
+      sleep(2 ** i) # 指数バックオフ
+      begin
+        line_bot_service.push_message(line_user_id, message)
+        Rails.logger.info "Push message retry succeeded on attempt #{i + 1}"
+        return
+      rescue => e
+        Rails.logger.warn "Push message retry #{i + 1} failed: #{e.message}"
+        next if i < attempts - 1
+        Rails.logger.error "All push message retries failed"
+      end
+    end
+  end
+end
