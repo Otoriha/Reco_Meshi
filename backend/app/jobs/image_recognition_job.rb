@@ -4,7 +4,7 @@ class ImageRecognitionJob < ApplicationJob
   # Sidekiqリトライ設定
   retry_on Google::Cloud::DeadlineExceededError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Cloud::UnavailableError, wait: :polynomially_longer, attempts: 3
-  retry_on Net::TimeoutError, wait: :polynomially_longer, attempts: 2
+  retry_on Timeout::Error, wait: :polynomially_longer, attempts: 2
   
   discard_on Google::Cloud::PermissionDeniedError
   discard_on Google::Cloud::NotFoundError

@@ -15,7 +15,7 @@ class LineBotService
   )
   
   # V2 Blob API Client for content downloads
-  @blob_client = Line::Bot::V2::MessagingApiBlob::ApiClient.new(
+  @blob_client = Line::Bot::V2::MessagingApi::ApiBlobClient.new(
     channel_access_token: @channel_token
   )
 end

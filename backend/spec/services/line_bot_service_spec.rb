@@ -19,7 +19,7 @@ RSpec.describe LineBotService, type: :service do
     it 'creates a LINE Bot V2 Blob client' do
       # プライベートインスタンス変数にアクセス
       blob_client = service.instance_variable_get(:@blob_client)
-      expect(blob_client).to be_a(Line::Bot::V2::MessagingApiBlob::ApiClient)
+      expect(blob_client).to be_a(Line::Bot::V2::MessagingApi::ApiBlobClient)
     end
   end
 
@@ -430,10 +430,10 @@ RSpec.describe LineBotService, type: :service do
   describe '#get_message_content' do
     let(:message_id) { 'test_message_123' }
     let(:image_content) { 'fake_image_binary_data' }
-    let(:mock_blob_client) { instance_double(Line::Bot::V2::MessagingApiBlob::ApiClient) }
+    let(:mock_blob_client) { instance_double(Line::Bot::V2::MessagingApi::ApiBlobClient) }
     
     before do
-      allow(Line::Bot::V2::MessagingApiBlob::ApiClient).to receive(:new).and_return(mock_blob_client)
+      allow(Line::Bot::V2::MessagingApi::ApiBlobClient).to receive(:new).and_return(mock_blob_client)
       service.instance_variable_set(:@blob_client, mock_blob_client)
     end
     

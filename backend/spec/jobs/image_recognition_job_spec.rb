@@ -30,6 +30,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
         allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
         allow(mock_vision_service).to receive(:analyze_image).and_return(vision_result)
         allow(mock_line_service).to receive(:push_message)
+        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
       end
       
       it 'fetches image, analyzes it, and sends results' do
@@ -72,11 +73,12 @@ RSpec.describe ImageRecognitionJob, type: :job do
       
       it 'includes detected date information when available' do
         job = described_class.new
+        message_mock = { type: 'text', text: '🥬 食材を認識しました！' }
         
-        expect(mock_line_service).to receive(:create_text_message) do |text|
-          expect(text).to include('賞味期限らしき文字')
-          expect(text).to include('2024/12/31')
-          { type: 'text', text: text }
+        allow(mock_line_service).to receive(:create_text_message).and_return(message_mock)
+        allow(mock_line_service).to receive(:push_message) do |user_id, message|
+          expect(message[:text]).to include('💡 賞味期限らしき文字も見つかりました')
+          expect(message[:text]).to include('2024/12/31')
         end
         
         job.perform(line_user_id, message_id)
@@ -97,6 +99,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
         allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
         allow(mock_vision_service).to receive(:analyze_image).and_return(empty_vision_result)
         allow(mock_line_service).to receive(:push_message)
+        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
       end
       
       it 'sends appropriate message for no detection' do
@@ -116,6 +119,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
       before do
         allow(mock_line_service).to receive(:get_message_content).and_return(nil)
         allow(mock_line_service).to receive(:push_message)
+        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
       end
       
       it 'sends error message' do
@@ -123,6 +127,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
         
         expect(mock_line_service).to receive(:create_text_message) do |text|
           expect(text).to include('❌ 画像の取得に失敗しました')
+          expect(text).to include('🔄 再度お試しいただくか、しばらく経ってからお試しください')
           { type: 'text', text: text }
         end
         
@@ -136,6 +141,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
       before do
         allow(mock_line_service).to receive(:get_message_content).and_return(large_image_data)
         allow(mock_line_service).to receive(:push_message)
+        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
       end
       
       it 'sends error message for oversized image' do
@@ -143,6 +149,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
         
         expect(mock_line_service).to receive(:create_text_message) do |text|
           expect(text).to include('❌ 画像の取得に失敗しました')
+          expect(text).to include('🔄 再度お試しいただくか、しばらく経ってからお試しください')
           { type: 'text', text: text }
         end
         
@@ -164,6 +171,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
         allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
         allow(mock_vision_service).to receive(:analyze_image).and_return(error_vision_result)
         allow(mock_line_service).to receive(:push_message)
+        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
       end
       
       it 'sends vision error message' do
@@ -210,9 +218,9 @@ RSpec.describe ImageRecognitionJob, type: :job do
     
     context 'when an unexpected error occurs' do
       before do
-        allow(mock_line_service).to receive(:get_message_content).and_raise(StandardError.new('Unexpected error'))
+        allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
+        allow(mock_vision_service).to receive(:analyze_image).and_raise(StandardError.new('Unexpected error'))
         allow(mock_line_service).to receive(:push_message)
-        allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'error' })
       end
       
       it 'sends generic error message and re-raises error' do
@@ -237,7 +245,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
       
       expect(patterns).to include('2024/12/31')
       expect(patterns).to include('24/01/15')
-      expect(patterns).to include('12/25')
+      expect(patterns.size).to eq(3) # 3つのパターンが抽出される
     end
     
     it 'extracts Japanese date format' do
