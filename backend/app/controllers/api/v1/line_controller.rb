@@ -70,7 +70,8 @@ end
       Rails.logger.info "=== DEBUG: Response generated: #{response_message.inspect} ==="
 
       Rails.logger.info "=== DEBUG: Sending reply ==="
-      line_bot_service.reply_message(event.reply_token, response_message)
+      response_result = line_bot_service.reply_message(event.reply_token, response_message)
+      Rails.logger.info "=== DEBUG: LINE API Response: #{response_result.inspect} ==="
       Rails.logger.info "=== DEBUG: Reply sent successfully ==="
     rescue => e
       Rails.logger.error "Text message handling error: #{e.class}: #{e.message}"
