@@ -57,16 +57,21 @@ end
     Rails.logger.info "Received text message from #{user_id}: #{message_text}"
 
     begin
-      # メッセージ解析
+      Rails.logger.info "=== DEBUG: Creating MessageAnalyzerService ==="
       analyzer = MessageAnalyzerService.new(message_text)
+      Rails.logger.info "=== DEBUG: Analyzing message ==="
       command = analyzer.analyze
+      Rails.logger.info "=== DEBUG: Command result: #{command} ==="
 
-      # 応答メッセージ生成
+      Rails.logger.info "=== DEBUG: Creating MessageResponseService ==="
       response_generator = MessageResponseService.new(line_bot_service)
+      Rails.logger.info "=== DEBUG: Generating response ==="
       response_message = response_generator.generate_response(command, user_id)
+      Rails.logger.info "=== DEBUG: Response generated: #{response_message.inspect} ==="
 
-      # メッセージ送信
+      Rails.logger.info "=== DEBUG: Sending reply ==="
       line_bot_service.reply_message(event.reply_token, response_message)
+      Rails.logger.info "=== DEBUG: Reply sent successfully ==="
     rescue => e
       Rails.logger.error "Text message handling error: #{e.class}: #{e.message}"
       Rails.logger.error "Backtrace: #{e.backtrace&.first(3)&.join(', ')}"
