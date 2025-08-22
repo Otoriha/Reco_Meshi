@@ -2,6 +2,7 @@ class FridgeImage < ApplicationRecord
   # アソシエーション
   belongs_to :user, optional: true
   belongs_to :line_account, optional: true
+  has_many :user_ingredients, dependent: :nullify
 
   # Enum定義
   enum :status, {

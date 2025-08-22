@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_22_090152) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_22_090154) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -34,6 +34,17 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090152) do
     t.index ["user_id"], name: "index_fridge_images_on_user_id"
   end
 
+  create_table "ingredients", force: :cascade do |t|
+    t.string "name", null: false, comment: "食材名"
+    t.string "category", null: false, comment: "カテゴリー（野菜、肉、魚など）"
+    t.string "unit", null: false, comment: "単位（個、g、mlなど）"
+    t.string "emoji", comment: "絵文字アイコン"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_ingredients_on_category"
+    t.index ["name"], name: "index_ingredients_on_name", unique: true
+  end
+
   create_table "jwt_denylists", force: :cascade do |t|
     t.string "jti", null: false
     t.datetime "exp", null: false
@@ -53,6 +64,23 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090152) do
     t.datetime "updated_at", null: false
     t.index ["line_user_id"], name: "index_line_accounts_on_line_user_id", unique: true
     t.index ["user_id"], name: "index_line_accounts_on_user_id"
+  end
+
+  create_table "user_ingredients", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "ユーザーID"
+    t.bigint "ingredient_id", null: false, comment: "食材ID"
+    t.decimal "quantity", precision: 10, scale: 2, null: false, comment: "数量"
+    t.date "expiry_date", comment: "賞味期限"
+    t.string "status", default: "available", comment: "available/used/expired"
+    t.bigint "fridge_image_id", comment: "認識元の画像"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expiry_date"], name: "index_user_ingredients_on_expiry_date"
+    t.index ["fridge_image_id"], name: "index_user_ingredients_on_fridge_image_id"
+    t.index ["ingredient_id"], name: "index_user_ingredients_on_ingredient_id"
+    t.index ["status"], name: "index_user_ingredients_on_status"
+    t.index ["user_id", "ingredient_id", "status"], name: "idx_user_ingredients_composite"
+    t.index ["user_id"], name: "index_user_ingredients_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -77,4 +105,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090152) do
   add_foreign_key "fridge_images", "line_accounts"
   add_foreign_key "fridge_images", "users"
   add_foreign_key "line_accounts", "users", on_delete: :nullify
+  add_foreign_key "user_ingredients", "fridge_images"
+  add_foreign_key "user_ingredients", "ingredients"
+  add_foreign_key "user_ingredients", "users"
 end
