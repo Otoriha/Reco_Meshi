@@ -1,4 +1,6 @@
 require 'google/cloud/vision'
+require 'base64'
+require 'json'
 
 # Vision API解析結果の構造体
 GoogleCloudVisionResult = Struct.new(
@@ -39,7 +41,7 @@ class GoogleCloudVisionService
   ].freeze
 
   def initialize(client: nil)
-    @client = client || Google::Cloud::Vision.image_annotator
+    @client = client || create_vision_client
   end
 
   # メインの解析メソッド
@@ -89,6 +91,36 @@ class GoogleCloudVisionService
   end
 
   private
+
+  def create_vision_client
+    # 環境変数からBase64エンコードされた認証情報を取得・デコード
+    if ENV['GOOGLE_CLOUD_CREDENTIALS']
+      begin
+        # Base64デコード
+        credentials_json = Base64.decode64(ENV['GOOGLE_CLOUD_CREDENTIALS'])
+        credentials_hash = JSON.parse(credentials_json)
+        
+        Rails.logger.info "Using Google Cloud credentials from environment variable"
+        
+        # 認証情報をファイルとして一時的に作成してクライアントを作成
+        require 'tempfile'
+        Tempfile.create(['google_credentials', '.json']) do |temp_file|
+          temp_file.write(credentials_json)
+          temp_file.rewind
+          
+          Google::Cloud::Vision.image_annotator do |config|
+            config.credentials = temp_file.path
+          end
+        end
+      rescue => e
+        Rails.logger.error "Failed to parse Google Cloud credentials: #{e.message}"
+        raise "Google Cloud認証情報の設定に失敗しました: #{e.message}"
+      end
+    else
+      Rails.logger.info "Using default Google Cloud credentials"
+      Google::Cloud::Vision.image_annotator
+    end
+  end
 
   def build_feature_requests(features)
     feature_mapping = {
