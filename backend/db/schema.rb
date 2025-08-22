@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_22_090154) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_22_090155) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -71,7 +71,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090154) do
     t.bigint "ingredient_id", null: false, comment: "食材ID"
     t.decimal "quantity", precision: 10, scale: 2, null: false, comment: "数量"
     t.date "expiry_date", comment: "賞味期限"
-    t.string "status", default: "available", comment: "available/used/expired"
+    t.string "status", default: "available", null: false, comment: "available/used/expired"
     t.bigint "fridge_image_id", comment: "認識元の画像"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -80,7 +80,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090154) do
     t.index ["ingredient_id"], name: "index_user_ingredients_on_ingredient_id"
     t.index ["status"], name: "index_user_ingredients_on_status"
     t.index ["user_id", "ingredient_id", "status"], name: "idx_user_ingredients_composite"
+    t.index ["user_id", "status", "expiry_date"], name: "idx_user_ingredients_user_status_expiry"
     t.index ["user_id"], name: "index_user_ingredients_on_user_id"
+    t.check_constraint "quantity >= 0::numeric", name: "chk_quantity_non_negative"
   end
 
   create_table "users", force: :cascade do |t|

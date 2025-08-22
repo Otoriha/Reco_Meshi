@@ -21,7 +21,7 @@ class Ingredient < ApplicationRecord
 
   # Scopes
   scope :by_category, ->(category) { where(category: category) }
-  scope :search, ->(query) { where('name ILIKE ?', "%#{query}%") if query.present? }
+  scope :search, ->(query) { query.present? ? where('name ILIKE ?', "%#{query}%") : all }
 
   # Class methods
   def self.search_by_name(query)

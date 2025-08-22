@@ -20,7 +20,10 @@ class UserIngredient < ApplicationRecord
   # Scopes
   scope :available, -> { where(status: 'available') }
   scope :expired, -> { where(status: 'expired') }
-  scope :expiring_soon, ->(days = 7) { available.where('expiry_date <= ?', Date.current + days.days) }
+  scope :expiring_soon, ->(days = 7) { 
+    available.where.not(expiry_date: nil)
+             .where(expiry_date: ..(Date.current + days.days))
+  }
   scope :by_category, ->(category) { joins(:ingredient).where(ingredients: { category: category }) }
   scope :recent, -> { order(created_at: :desc) }
 
