@@ -41,8 +41,11 @@ class ImageRecognitionJob < ApplicationJob
       # 認識結果をDBに保存
       save_recognition_result(fridge_image, result)
       
-      # 結果をLINEで送信
-      send_recognition_result(line_bot_service, line_user_id, result)
+      # 在庫変換処理
+      conversion_result = convert_to_inventory(fridge_image)
+      
+      # 結果をLINEで送信（変換結果も含む）
+      send_recognition_result(line_bot_service, line_user_id, result, conversion_result)
       
       Rails.logger.info "Image recognition completed successfully: user=#{line_user_id}, ingredients=#{result.ingredients.size}, fridge_image_id=#{fridge_image.id}"
       
@@ -142,7 +145,7 @@ class ImageRecognitionJob < ApplicationJob
     end
   end
 
-  def send_recognition_result(line_bot_service, line_user_id, result)
+  def send_recognition_result(line_bot_service, line_user_id, result, conversion_result = nil)
     if result.ingredients.empty?
       # 食材が認識できなかった場合
       message = line_bot_service.create_text_message(
@@ -159,9 +162,23 @@ class ImageRecognitionJob < ApplicationJob
       # LIFF URLの設定（環境変数から取得）
       liff_url = ENV['REACT_APP_LIFF_URL'] || 'https://liff.line.me/your-liff-id'
       
+      # 基本メッセージ
       message_text = "🥬 食材を認識しました！\n\n" \
-                     "【認識した食材】\n#{ingredients_text}\n\n" \
-                     "📱 在庫リストの確認・編集はこちら\n#{liff_url}"
+                     "【認識した食材】\n#{ingredients_text}"
+      
+      # 在庫変換結果の追加
+      if conversion_result && conversion_result[:success]
+        metrics = conversion_result[:metrics]
+        if metrics[:successful_conversions] > 0
+          message_text += "\n\n✅ 在庫に追加しました：\n"
+          message_text += "・新規追加：#{metrics[:new_ingredients]}件\n" if metrics[:new_ingredients] > 0
+          message_text += "・数量更新：#{metrics[:duplicate_updates]}件\n" if metrics[:duplicate_updates] > 0
+        end
+      elsif conversion_result && !conversion_result[:success]
+        message_text += "\n\n⚠️ 在庫への自動追加に一部問題がありました"
+      end
+      
+      message_text += "\n\n📱 在庫リストの確認・編集はこちら\n#{liff_url}"
       
       message = line_bot_service.create_text_message(message_text)
     end
@@ -229,6 +246,30 @@ class ImageRecognitionJob < ApplicationJob
         next if i < attempts - 1
         Rails.logger.error "All push message retries failed"
       end
+    end
+  end
+
+  def convert_to_inventory(fridge_image)
+    return { success: false, message: 'User not available' } unless fridge_image.user
+
+    begin
+      Rails.logger.info "Starting inventory conversion: fridge_image_id=#{fridge_image.id}, user_id=#{fridge_image.user.id}"
+      
+      converter = IngredientConverter.new(user: fridge_image.user, fridge_image: fridge_image)
+      result = converter.convert_and_save
+
+      Rails.logger.info "Inventory conversion completed: success=#{result[:success]}, " \
+                       "conversions=#{result[:metrics][:successful_conversions]}, " \
+                       "new=#{result[:metrics][:new_ingredients]}, " \
+                       "updates=#{result[:metrics][:duplicate_updates]}"
+
+      result
+    rescue IngredientConverter::ConversionError => e
+      Rails.logger.error "Ingredient conversion failed: #{e.message}"
+      { success: false, message: e.message, metrics: {} }
+    rescue => e
+      Rails.logger.error "Unexpected error in inventory conversion: #{e.class}: #{e.message}"
+      { success: false, message: 'Inventory conversion failed', metrics: {} }
     end
   end
 end
