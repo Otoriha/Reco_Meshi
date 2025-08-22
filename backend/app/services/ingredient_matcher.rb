@@ -1,4 +1,9 @@
 class IngredientMatcher
+  # 設定値
+  PARTIAL_MATCH_THRESHOLD = ENV.fetch('INGREDIENT_PARTIAL_MATCH_THRESHOLD', '0.6').to_f
+  AMBIGUOUS_SCORE_DIFF = ENV.fetch('INGREDIENT_AMBIGUOUS_SCORE_DIFF', '0.1').to_f
+  AUTO_CREATE_ENABLED = ENV.fetch('INGREDIENT_AUTO_CREATE_ENABLED', 'false') == 'true'
+
   # ひらがな・カタカナ正規化用のマッピング
   KANA_MAPPING = {
     'あ' => 'ア', 'い' => 'イ', 'う' => 'ウ', 'え' => 'エ', 'お' => 'オ',
@@ -20,83 +25,244 @@ class IngredientMatcher
     'っ' => 'ッ'
   }.freeze
 
+  # 全角・半角変換マッピング
+  ZENKAKU_TO_HANKAKU = {
+    '０' => '0', '１' => '1', '２' => '2', '３' => '3', '４' => '4',
+    '５' => '5', '６' => '6', '７' => '7', '８' => '8', '９' => '9',
+    'Ａ' => 'a', 'Ｂ' => 'b', 'Ｃ' => 'c', 'Ｄ' => 'd', 'Ｅ' => 'e',
+    'Ｆ' => 'f', 'Ｇ' => 'g', 'Ｈ' => 'h', 'Ｉ' => 'i', 'Ｊ' => 'j',
+    'Ｋ' => 'k', 'Ｌ' => 'l', 'Ｍ' => 'm', 'Ｎ' => 'n', 'Ｏ' => 'o',
+    'Ｐ' => 'p', 'Ｑ' => 'q', 'Ｒ' => 'r', 'Ｓ' => 's', 'Ｔ' => 't',
+    'Ｕ' => 'u', 'Ｖ' => 'v', 'Ｗ' => 'w', 'Ｘ' => 'x', 'Ｙ' => 'y',
+    'Ｚ' => 'z', 'ａ' => 'a', 'ｂ' => 'b', 'ｃ' => 'c', 'ｄ' => 'd',
+    'ｅ' => 'e', 'ｆ' => 'f', 'ｇ' => 'g', 'ｈ' => 'h', 'ｉ' => 'i',
+    'ｊ' => 'j', 'ｋ' => 'k', 'ｌ' => 'l', 'ｍ' => 'm', 'ｎ' => 'n',
+    'ｏ' => 'o', 'ｐ' => 'p', 'ｑ' => 'q', 'ｒ' => 'r', 'ｓ' => 's',
+    'ｔ' => 't', 'ｕ' => 'u', 'ｖ' => 'v', 'ｗ' => 'w', 'ｘ' => 'x',
+    'ｙ' => 'y', 'ｚ' => 'z', '　' => ' '
+  }.freeze
+
   def initialize
     @unmatched_ingredients = []
+    @ambiguous_matches = []
   end
 
-  def find_ingredient(name)
+  def find_ingredient(name, auto_create: AUTO_CREATE_ENABLED)
     return nil if name.blank?
 
-    normalized_name = normalize_name(name)
+    normalized_name = normalize_ingredient_name(name)
+    Rails.logger.debug "Normalized ingredient name: '#{name}' -> '#{normalized_name}'"
     
-    # 1. 完全一致検索
-    exact_match = find_exact_match(normalized_name)
-    return create_result(exact_match, 1.0) if exact_match
+    # 照合順序の固定: 1.完全一致 → 2.前方一致 → 3.部分一致
+    result = find_exact_match(normalized_name) ||
+             find_forward_match(normalized_name) ||
+             find_partial_match(normalized_name)
 
-    # 2. ひらがな・カタカナ正規化検索
-    katakana_name = hiragana_to_katakana(normalized_name)
-    normalized_match = find_normalized_match(katakana_name)
-    return create_result(normalized_match, 0.9) if normalized_match
+    return create_result(result[:ingredient], result[:score]) if result
 
-    # 3. 部分一致検索
-    partial_match = find_partial_match(normalized_name)
-    return create_result(partial_match[:ingredient], partial_match[:score]) if partial_match
+    # 自動作成が有効な場合
+    if auto_create
+      created_ingredient = create_unverified_ingredient(name, normalized_name)
+      return create_result(created_ingredient, 0.5) if created_ingredient
+    end
 
     # 未マッチの記録
-    record_unmatched_ingredient(name)
+    record_unmatched_ingredient(name, normalized_name)
     nil
   end
 
   def find_ingredients_batch(names)
-    names.map { |name| find_ingredient(name) }.compact
+    results = []
+    normalized_names = names.map { |name| [name, normalize_ingredient_name(name)] }
+    
+    # 一括でIngredientを取得してマッピング
+    all_normalized_names = normalized_names.map(&:last).uniq
+    ingredient_map = build_ingredient_map(all_normalized_names)
+    
+    normalized_names.each do |original_name, normalized_name|
+      ingredient = ingredient_map[normalized_name]
+      if ingredient
+        results << create_result(ingredient, determine_match_score(original_name, normalized_name, ingredient))
+      else
+        record_unmatched_ingredient(original_name, normalized_name)
+      end
+    end
+    
+    results
   end
 
   def unmatched_ingredients
     @unmatched_ingredients.dup
   end
 
+  def ambiguous_matches
+    @ambiguous_matches.dup
+  end
+
   private
 
-  def normalize_name(name)
-    name.to_s.strip.downcase.gsub(/\s+/, '')
+  # 統一された名称正規化関数
+  def normalize_ingredient_name(name)
+    return '' if name.blank?
+    
+    normalized = name.to_s.strip
+    
+    # 1. 全角・半角変換
+    normalized = normalized.chars.map { |char| ZENKAKU_TO_HANKAKU[char] || char }.join
+    
+    # 2. ひらがな→カタカナ変換
+    normalized = normalized.chars.map { |char| KANA_MAPPING[char] || char }.join
+    
+    # 3. 記号・空白除去
+    normalized = normalized.gsub(/[[:punct:][:space:]]/, '')
+    
+    # 4. 英字小文字化
+    normalized.downcase
   end
 
-  def hiragana_to_katakana(name)
-    name.chars.map { |char| KANA_MAPPING[char] || char }.join
+  def build_ingredient_map(normalized_names)
+    return {} if normalized_names.empty?
+    
+    # 正規化された名前でIngredientを検索してマッピングを作成
+    ingredients = Ingredient.all.to_a
+    ingredient_map = {}
+    
+    normalized_names.each do |normalized_name|
+      ingredient = find_best_match_from_list(normalized_name, ingredients)
+      ingredient_map[normalized_name] = ingredient if ingredient
+    end
+    
+    ingredient_map
   end
 
-  def find_exact_match(name)
-    Ingredient.find_by('LOWER(name) = ?', name)
+  def find_best_match_from_list(normalized_name, ingredients)
+    # 完全一致を優先
+    exact_match = ingredients.find { |ing| normalize_ingredient_name(ing.name) == normalized_name }
+    return exact_match if exact_match
+    
+    # 前方一致
+    forward_matches = ingredients.select { |ing| normalize_ingredient_name(ing.name).start_with?(normalized_name) }
+    return forward_matches.first if forward_matches.size == 1
+    
+    # 部分一致
+    partial_matches = ingredients.select { |ing| normalize_ingredient_name(ing.name).include?(normalized_name) }
+    
+    return nil if partial_matches.empty?
+    return partial_matches.first if partial_matches.size == 1
+    
+    # 複数候補がある場合は曖昧マッチとして記録
+    record_ambiguous_match(normalized_name, partial_matches)
+    partial_matches.first # とりあえず最初の候補を返す
   end
 
-  def find_normalized_match(katakana_name)
-    # カタカナ正規化後の検索
-    Ingredient.where(
-      'TRANSLATE(UPPER(name), \'あいうえおかきくけこがぎぐげごさしすせそざじずぜぞたちつてとだぢづでどなにぬねのはひふへほばびぶべぼぱぴぷぺぽまみむめもやゆよらりるれろわゐゑをんゃゅょっ\', 
-                             \'アイウエオカキクケコガギグゲゴサシスセソザジズゼゾタチツテトダヂヅデドナニヌネノハヒフヘホバビブベボパピプペポマミムメモヤユヨラリルレロワヰヱヲンャュョッ\') = ?',
-      katakana_name
-    ).first
+  def find_exact_match(normalized_name)
+    ingredient = Ingredient.find_by('LOWER(REGEXP_REPLACE(name, \'[[:punct:][:space:]]\', \'\', \'g\')) = ?', normalized_name)
+    ingredient ? { ingredient: ingredient, score: 1.0 } : nil
   end
 
-  def find_partial_match(name)
-    # 部分一致検索（前方一致、後方一致、中間一致）
-    candidates = []
+  def find_forward_match(normalized_name)
+    ingredients = Ingredient.where('LOWER(REGEXP_REPLACE(name, \'[[:punct:][:space:]]\', \'\', \'g\')) LIKE ?', "#{normalized_name}%").limit(10)
+    
+    return nil if ingredients.empty?
+    
+    # 複数候補時は曖昧判定
+    if ingredients.count > 1
+      record_ambiguous_match(normalized_name, ingredients.to_a)
+    end
+    
+    { ingredient: ingredients.first, score: 0.8 }
+  end
 
-    # 前方一致（高い信頼度）
-    forward_matches = Ingredient.where('LOWER(name) LIKE ?', "#{name}%")
-    candidates.concat(forward_matches.map { |ing| { ingredient: ing, score: 0.8 } })
+  def find_partial_match(normalized_name)
+    return nil if normalized_name.length < 2 # 短すぎる場合はスキップ
+    
+    ingredients = Ingredient.where('LOWER(REGEXP_REPLACE(name, \'[[:punct:][:space:]]\', \'\', \'g\')) LIKE ?', "%#{normalized_name}%")
+                           .where.not('LOWER(REGEXP_REPLACE(name, \'[[:punct:][:space:]]\', \'\', \'g\')) LIKE ?', "#{normalized_name}%")
+                           .limit(10)
+    
+    return nil if ingredients.empty?
+    
+    score = ingredients.first ? calculate_similarity_score(normalized_name, normalize_ingredient_name(ingredients.first.name)) : 0.6
+    return nil if score < PARTIAL_MATCH_THRESHOLD
+    
+    if ingredients.count > 1
+      record_ambiguous_match(normalized_name, ingredients.to_a)
+    end
+    
+    { ingredient: ingredients.first, score: score }
+  end
 
-    # 後方一致（中程度の信頼度）
-    backward_matches = Ingredient.where('LOWER(name) LIKE ?', "%#{name}")
-    candidates.concat(backward_matches.map { |ing| { ingredient: ing, score: 0.7 } })
+  def calculate_similarity_score(name1, name2)
+    # 簡易的な類似度計算（レーベンシュタイン距離の簡易版）
+    return 1.0 if name1 == name2
+    
+    longer = name1.length > name2.length ? name1 : name2
+    shorter = name1.length > name2.length ? name2 : name1
+    
+    return 0.0 if longer.empty?
+    
+    (longer.length - levenshtein_distance(longer, shorter)).to_f / longer.length
+  end
 
-    # 中間一致（低い信頼度）
-    middle_matches = Ingredient.where('LOWER(name) LIKE ?', "%#{name}%")
-                              .where.not(id: (forward_matches + backward_matches).map(&:id))
-    candidates.concat(middle_matches.map { |ing| { ingredient: ing, score: 0.6 } })
+  def levenshtein_distance(str1, str2)
+    matrix = Array.new(str1.length + 1) { Array.new(str2.length + 1, 0) }
+    
+    (0..str1.length).each { |i| matrix[i][0] = i }
+    (0..str2.length).each { |j| matrix[0][j] = j }
+    
+    (1..str1.length).each do |i|
+      (1..str2.length).each do |j|
+        cost = str1[i - 1] == str2[j - 1] ? 0 : 1
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        ].min
+      end
+    end
+    
+    matrix[str1.length][str2.length]
+  end
 
-    # 最高スコアの候補を返す
-    candidates.max_by { |candidate| candidate[:score] }
+  def determine_match_score(original_name, normalized_name, ingredient)
+    ingredient_normalized = normalize_ingredient_name(ingredient.name)
+    
+    return 1.0 if ingredient_normalized == normalized_name
+    return 0.8 if ingredient_normalized.start_with?(normalized_name)
+    
+    calculate_similarity_score(normalized_name, ingredient_normalized)
+  end
+
+  def create_unverified_ingredient(original_name, normalized_name)
+    return nil unless AUTO_CREATE_ENABLED
+    
+    # 一意制約違反時のリトライ
+    3.times do
+      begin
+        ingredient = Ingredient.create!(
+          name: original_name,
+          category: 'others',
+          unit: '個',
+          verified: false,
+          created_from: 'auto_recognition'
+        )
+        
+        Rails.logger.info "Auto-created unverified ingredient: #{original_name}"
+        return ingredient
+        
+      rescue ActiveRecord::RecordNotUnique
+        # 同時実行で作成された可能性があるため、再取得を試行
+        ingredient = Ingredient.find_by(name: original_name)
+        return ingredient if ingredient
+        
+        sleep(0.1) # 短いリトライ間隔
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.warn "Failed to auto-create ingredient '#{original_name}': #{e.message}"
+        break
+      end
+    end
+    
+    nil
   end
 
   def create_result(ingredient, confidence)
@@ -107,13 +273,23 @@ class IngredientMatcher
     }
   end
 
-  def record_unmatched_ingredient(name)
+  def record_unmatched_ingredient(original_name, normalized_name)
     @unmatched_ingredients << {
-      name: name,
-      timestamp: Time.current,
-      normalized_name: normalize_name(name)
+      original_name: original_name,
+      normalized_name: normalized_name,
+      timestamp: Time.current
     }
     
-    Rails.logger.info "Unmatched ingredient recorded: #{name}"
+    Rails.logger.info "Unmatched ingredient recorded: '#{original_name}' (normalized: '#{normalized_name}')"
+  end
+
+  def record_ambiguous_match(normalized_name, candidates)
+    @ambiguous_matches << {
+      normalized_name: normalized_name,
+      candidates: candidates.map(&:name),
+      timestamp: Time.current
+    }
+    
+    Rails.logger.debug "Ambiguous match detected for '#{normalized_name}': #{candidates.map(&:name).join(', ')}"
   end
 end

@@ -255,7 +255,7 @@ class ImageRecognitionJob < ApplicationJob
     begin
       Rails.logger.info "Starting inventory conversion: fridge_image_id=#{fridge_image.id}, user_id=#{fridge_image.user.id}"
       
-      converter = IngredientConverter.new(user: fridge_image.user, fridge_image: fridge_image)
+      converter = IngredientConverterService.new(fridge_image)
       result = converter.convert_and_save
 
       Rails.logger.info "Inventory conversion completed: success=#{result[:success]}, " \
@@ -264,7 +264,7 @@ class ImageRecognitionJob < ApplicationJob
                        "updates=#{result[:metrics][:duplicate_updates]}"
 
       result
-    rescue IngredientConverter::ConversionError => e
+    rescue IngredientConverterService::ConversionError => e
       Rails.logger.error "Ingredient conversion failed: #{e.message}"
       { success: false, message: e.message, metrics: {} }
     rescue => e
