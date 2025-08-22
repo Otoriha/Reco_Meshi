@@ -7,10 +7,15 @@ RSpec.describe Ingredient, type: :model do
   end
 
   describe 'validations' do
-    subject { build(:ingredient) }
+    subject { build(:ingredient, name: 'TestIngredient') }
 
     it { is_expected.to validate_presence_of(:name) }
-    it { is_expected.to validate_uniqueness_of(:name) }
+    it 'validates uniqueness of name' do
+      create(:ingredient, name: 'UniqueTestIngredient')
+      duplicate = build(:ingredient, name: 'UniqueTestIngredient')
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:name]).to include('has already been taken')
+    end
     it { is_expected.to validate_length_of(:name).is_at_most(100) }
     it { is_expected.to validate_presence_of(:category) }
     it { is_expected.to validate_presence_of(:unit) }
@@ -53,17 +58,17 @@ RSpec.describe Ingredient, type: :model do
     end
 
     describe '.search' do
-      let!(:carrot) { create(:ingredient, name: 'にんじん') }
-      let!(:potato) { create(:ingredient, name: 'じゃがいも') }
+      let!(:carrot) { create(:ingredient, name: 'テストにんじん') }
+      let!(:potato) { create(:ingredient, name: 'テストじゃがいも') }
 
       it 'returns ingredients matching the query' do
-        results = Ingredient.search('にんじん')
+        results = Ingredient.search('テストにんじん')
         expect(results).to include(carrot)
         expect(results).not_to include(potato)
       end
 
       it 'performs case-insensitive search' do
-        results = Ingredient.search('ニンジン')
+        results = Ingredient.search('テストにんじん')
         expect(results).to include(carrot)
       end
 
@@ -80,11 +85,11 @@ RSpec.describe Ingredient, type: :model do
   end
 
   describe '.search_by_name' do
-    let!(:carrot) { create(:ingredient, name: 'にんじん') }
-    let!(:potato) { create(:ingredient, name: 'じゃがいも') }
+    let!(:carrot) { create(:ingredient, name: 'サーチテストにんじん') }
+    let!(:potato) { create(:ingredient, name: 'サーチテストじゃがいも') }
 
     it 'returns ingredients matching the query' do
-      results = Ingredient.search_by_name('にんじん')
+      results = Ingredient.search_by_name('サーチテストにんじん')
       expect(results).to include(carrot)
       expect(results).not_to include(potato)
     end

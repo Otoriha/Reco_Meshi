@@ -13,12 +13,12 @@ FactoryBot.define do
 
     trait :used do
       status { 'used' }
-      expiry_date { Faker::Date.between(from: 1.week.ago, to: Date.current) }
+      expiry_date { nil }
     end
 
     trait :expired do
       status { 'expired' }
-      expiry_date { Faker::Date.between(from: 2.weeks.ago, to: Date.current - 1.day) }
+      expiry_date { nil }
     end
 
     trait :expiring_soon do

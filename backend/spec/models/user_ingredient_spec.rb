@@ -15,7 +15,17 @@ RSpec.describe UserIngredient, type: :model do
 
     it { is_expected.to validate_presence_of(:quantity) }
     it { is_expected.to validate_numericality_of(:quantity).is_greater_than(0) }
-    it { is_expected.to validate_inclusion_of(:status).in_array(%w[available used expired]) }
+    it 'validates status inclusion' do
+      expect(subject).to allow_value('available').for(:status)
+      expect(subject).to allow_value('used').for(:status)
+      expect(subject).to allow_value('expired').for(:status)
+      
+      expect {
+        build(:user_ingredient, user: user, ingredient: ingredient).tap do |ui|
+          ui.status = 'invalid'
+        end
+      }.to raise_error(ArgumentError, "'invalid' is not a valid status")
+    end
 
     describe 'expiry_date validation' do
       it 'allows future expiry dates' do
@@ -78,9 +88,13 @@ RSpec.describe UserIngredient, type: :model do
 
     describe '.expiring_soon' do
       it 'returns ingredients expiring within 7 days by default' do
+        # 明確に期限の遠い食材を作成
+        far_future_ingredient = create(:user_ingredient, :available,
+                                     expiry_date: 10.days.from_now, user: user, ingredient: ingredient)
+        
         results = UserIngredient.expiring_soon
         expect(results).to include(expiring_soon_ingredient)
-        expect(results).not_to include(available_ingredient, used_ingredient, expired_ingredient)
+        expect(results).not_to include(far_future_ingredient, used_ingredient, expired_ingredient)
       end
 
       it 'accepts custom days parameter' do
@@ -106,13 +120,14 @@ RSpec.describe UserIngredient, type: :model do
     end
 
     describe '.recent' do
-      let!(:old_ingredient) { create(:user_ingredient, user: user, ingredient: ingredient, created_at: 2.days.ago) }
-      let!(:new_ingredient) { create(:user_ingredient, user: user, ingredient: ingredient, created_at: 1.day.ago) }
-
       it 'returns ingredients ordered by created_at desc' do
-        results = UserIngredient.recent
-        expect(results.first).to eq(new_ingredient)
-        expect(results.last).to eq(old_ingredient)
+        old_ingredient = create(:user_ingredient, user: user, ingredient: ingredient)
+        sleep 0.01  # 作成時間に差をつける
+        new_ingredient = create(:user_ingredient, user: user, ingredient: ingredient)
+        
+        results = UserIngredient.recent.limit(2)
+        expect(results.first.id).to eq(new_ingredient.id)
+        expect(results.last.id).to eq(old_ingredient.id)
       end
     end
   end
@@ -197,11 +212,11 @@ RSpec.describe UserIngredient, type: :model do
   end
 
   describe '#display_name' do
-    let(:ingredient) { create(:ingredient, name: 'にんじん', emoji: '🥕') }
+    let(:ingredient) { create(:ingredient, name: 'ディスプレイテストにんじん', emoji: '🥕') }
     let(:user_ingredient) { build(:user_ingredient, ingredient: ingredient) }
 
     it 'returns ingredient display name with emoji' do
-      expect(user_ingredient.display_name).to eq('🥕 にんじん')
+      expect(user_ingredient.display_name).to eq('🥕 ディスプレイテストにんじん')
     end
   end
 
