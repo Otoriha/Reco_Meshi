@@ -11,8 +11,12 @@ Rails.application.configure do
         # Base64デコードしてJSONに変換
         credentials_json = Base64.decode64(credentials_base64)
         
+        # tmpディレクトリの確認と作成
+        tmp_dir = Rails.root.join('tmp')
+        FileUtils.mkdir_p(tmp_dir) unless Dir.exist?(tmp_dir)
+        
         # 一時ファイルに書き出し
-        credentials_file = Rails.root.join('tmp', 'google_cloud_credentials.json')
+        credentials_file = tmp_dir.join('google_cloud_credentials.json')
         File.write(credentials_file, credentials_json)
         
         # 環境変数に設定

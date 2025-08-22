@@ -1,5 +1,6 @@
 class LineAccount < ApplicationRecord
   belongs_to :user, optional: true
+  has_many :fridge_images, dependent: :destroy
 
   validates :line_user_id, presence: true, uniqueness: true
   validates :line_display_name, presence: true

@@ -10,9 +10,29 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_20_031102) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_22_090152) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "fridge_images", force: :cascade do |t|
+    t.bigint "user_id", comment: "撮影したユーザー"
+    t.bigint "line_account_id", comment: "LineAccountとの紐付け（Web版の場合はnull）"
+    t.jsonb "recognized_ingredients", default: "[]", null: false, comment: "AI認識結果（JSON）"
+    t.jsonb "image_metadata", default: "{}", comment: "画像メタデータ（JSON）"
+    t.string "status", default: "pending", null: false, comment: "pending/processing/completed/failed"
+    t.text "error_message", comment: "エラー時のメッセージ"
+    t.string "line_message_id", comment: "LINE画像メッセージID"
+    t.datetime "captured_at", precision: nil, comment: "撮影日時"
+    t.datetime "recognized_at", precision: nil, comment: "認識実行日時"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["line_account_id"], name: "index_fridge_images_on_line_account_id"
+    t.index ["line_message_id"], name: "index_fridge_images_on_line_message_id", where: "(line_message_id IS NOT NULL)"
+    t.index ["recognized_at"], name: "index_fridge_images_on_recognized_at"
+    t.index ["status"], name: "index_fridge_images_on_status"
+    t.index ["user_id", "created_at"], name: "index_fridge_images_on_user_and_created"
+    t.index ["user_id"], name: "index_fridge_images_on_user_id"
+  end
 
   create_table "jwt_denylists", force: :cascade do |t|
     t.string "jti", null: false
@@ -54,5 +74,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_20_031102) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "fridge_images", "line_accounts"
+  add_foreign_key "fridge_images", "users"
   add_foreign_key "line_accounts", "users", on_delete: :nullify
 end
