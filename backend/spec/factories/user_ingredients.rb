@@ -18,7 +18,7 @@ FactoryBot.define do
 
     trait :expired do
       status { 'expired' }
-      expiry_date { nil }
+      expiry_date { Faker::Date.between(from: 2.weeks.ago, to: Date.current - 1.day) }
     end
 
     trait :expiring_soon do

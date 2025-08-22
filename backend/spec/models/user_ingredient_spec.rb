@@ -65,7 +65,9 @@ RSpec.describe UserIngredient, type: :model do
   end
 
   describe 'scopes' do
-    let!(:available_ingredient) { create(:user_ingredient, :available, user: user, ingredient: ingredient) }
+    let!(:available_ingredient) do
+      create(:user_ingredient, :available, expiry_date: 10.days.from_now, user: user, ingredient: ingredient)
+    end
     let!(:used_ingredient) { create(:user_ingredient, :used, user: user, ingredient: ingredient) }
     let!(:expired_ingredient) { create(:user_ingredient, :expired, user: user, ingredient: ingredient) }
     let!(:expiring_soon_ingredient) { create(:user_ingredient, :expiring_soon, user: user, ingredient: ingredient) }
@@ -95,6 +97,14 @@ RSpec.describe UserIngredient, type: :model do
         results = UserIngredient.expiring_soon
         expect(results).to include(expiring_soon_ingredient)
         expect(results).not_to include(far_future_ingredient, used_ingredient, expired_ingredient)
+      end
+
+      it 'excludes ingredients with nil expiry_date' do
+        no_expiry_ingredient = create(:user_ingredient, :available,
+                                    expiry_date: nil, user: user, ingredient: ingredient)
+        
+        results = UserIngredient.expiring_soon
+        expect(results).not_to include(no_expiry_ingredient)
       end
 
       it 'accepts custom days parameter' do

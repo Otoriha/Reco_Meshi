@@ -15,7 +15,7 @@ class UserIngredient < ApplicationRecord
   validates :quantity, presence: true, numericality: { greater_than: 0 }
   validates :status, inclusion: { in: statuses.keys }
   validates :expiry_date, presence: false
-  validate :expiry_date_not_in_past, if: :expiry_date?
+  validate :expiry_date_not_in_past, if: -> { expiry_date.present? && available? }
 
   # Scopes
   scope :available, -> { where(status: 'available') }

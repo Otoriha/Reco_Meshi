@@ -7,7 +7,7 @@ RSpec.describe Ingredient, type: :model do
   end
 
   describe 'validations' do
-    subject { build(:ingredient, name: 'TestIngredient') }
+    subject { create(:ingredient, name: 'TestIngredient') }
 
     it { is_expected.to validate_presence_of(:name) }
     it 'validates uniqueness of name' do
@@ -67,9 +67,9 @@ RSpec.describe Ingredient, type: :model do
         expect(results).not_to include(potato)
       end
 
-      it 'performs case-insensitive search' do
-        results = Ingredient.search('テストにんじん')
-        expect(results).to include(carrot)
+      it 'performs partial matching' do
+        results = Ingredient.search('テスト')
+        expect(results).to include(carrot, potato)
       end
 
       it 'returns all ingredients when query is blank' do
