@@ -14,6 +14,7 @@ class User < ApplicationRecord
 
   # Associations
   has_one :line_account, dependent: :destroy
+  has_many :fridge_images, dependent: :destroy
 
   # Validations
   validates :name, presence: true, length: { maximum: 50 }

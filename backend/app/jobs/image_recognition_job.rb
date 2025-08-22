@@ -14,11 +14,18 @@ class ImageRecognitionJob < ApplicationJob
     
     line_bot_service = LineBotService.new
     vision_service = GoogleCloudVisionService.new
+    fridge_image = nil
     
     begin
+      # FridgeImageレコードを作成
+      fridge_image = create_fridge_image(line_user_id, message_id)
+      
       # LINEから画像コンテンツを取得
       image_content = fetch_image_content(line_bot_service, message_id)
-      return send_error_message(line_bot_service, line_user_id, '画像の取得に失敗しました') unless image_content
+      unless image_content
+        fridge_image.fail_with_error!('画像の取得に失敗しました')
+        return send_error_message(line_bot_service, line_user_id, '画像の取得に失敗しました')
+      end
       
       # Vision APIで画像解析
       result = vision_service.analyze_image(image_content, features: %i[label object text])
@@ -26,17 +33,25 @@ class ImageRecognitionJob < ApplicationJob
       # エラーチェック
       if result.ingredients.any? { |ingredient| ingredient[:error] }
         error_ingredient = result.ingredients.find { |ingredient| ingredient[:error] }
-        return send_error_message(line_bot_service, line_user_id, error_ingredient[:error])
+        error_message = error_ingredient[:error]
+        fridge_image.fail_with_error!(error_message)
+        return send_error_message(line_bot_service, line_user_id, error_message)
       end
+      
+      # 認識結果をDBに保存
+      save_recognition_result(fridge_image, result)
       
       # 結果をLINEで送信
       send_recognition_result(line_bot_service, line_user_id, result)
       
-      Rails.logger.info "Image recognition completed successfully: user=#{line_user_id}, ingredients=#{result.ingredients.size}"
+      Rails.logger.info "Image recognition completed successfully: user=#{line_user_id}, ingredients=#{result.ingredients.size}, fridge_image_id=#{fridge_image.id}"
       
     rescue => e
       Rails.logger.error "ImageRecognitionJob failed: #{e.class}: #{e.message}"
       Rails.logger.error "Backtrace: #{e.backtrace&.first(5)&.join(', ')}"
+      
+      # FridgeImageのステータスを失敗に更新
+      fridge_image&.fail_with_error!("#{e.class}: #{e.message}")
       
       # 最終失敗時のエラーメッセージ
       send_error_message(line_bot_service, line_user_id, '画像解析中にエラーが発生しました。しばらく経ってから再度お試しください。')
@@ -45,6 +60,51 @@ class ImageRecognitionJob < ApplicationJob
   end
 
   private
+
+  def create_fridge_image(line_user_id, message_id)
+    line_account = LineAccount.find_by(line_user_id: line_user_id)
+    
+    fridge_image = FridgeImage.create!(
+      user: line_account&.user,
+      line_account: line_account,
+      line_message_id: message_id,
+      status: 'processing',
+      captured_at: Time.current
+    )
+    
+    Rails.logger.info "FridgeImage created: id=#{fridge_image.id}, user_id=#{fridge_image.user_id}, line_account_id=#{fridge_image.line_account_id}"
+    fridge_image
+  end
+
+  def save_recognition_result(fridge_image, vision_result)
+    ingredients_data = vision_result.ingredients.map do |ingredient|
+      {
+        name: ingredient[:name],
+        confidence: ingredient[:confidence],
+        detected_at: Time.current.iso8601
+      }
+    end
+    
+    metadata = {
+      texts: vision_result.texts,
+      processing_duration: Time.current - fridge_image.created_at,
+      api_version: 'v1',
+      features_used: %w[label object text]
+    }
+    
+    # ラベルやオブジェクトの情報も含める場合
+    if vision_result.respond_to?(:labels) && vision_result.labels.present?
+      metadata[:labels] = vision_result.labels
+    end
+    
+    if vision_result.respond_to?(:objects) && vision_result.objects.present?
+      metadata[:objects] = vision_result.objects
+    end
+    
+    fridge_image.complete_with_result!(ingredients_data, metadata)
+    
+    Rails.logger.info "Recognition result saved: fridge_image_id=#{fridge_image.id}, ingredients_count=#{ingredients_data.size}"
+  end
 
   def fetch_image_content(line_bot_service, message_id)
     begin
