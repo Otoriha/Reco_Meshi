@@ -90,15 +90,15 @@ class ImageRecognitionJob < ApplicationJob
       processing_duration: Time.current - fridge_image.created_at,
       api_version: 'v1',
       features_used: %w[label object text]
-    }
+    }.deep_stringify_keys
     
     # ラベルやオブジェクトの情報も含める場合
     if vision_result.respond_to?(:labels) && vision_result.labels.present?
-      metadata[:labels] = vision_result.labels
+      metadata["labels"] = vision_result.labels
     end
     
     if vision_result.respond_to?(:objects) && vision_result.objects.present?
-      metadata[:objects] = vision_result.objects
+      metadata["objects"] = vision_result.objects
     end
     
     fridge_image.complete_with_result!(ingredients_data, metadata)

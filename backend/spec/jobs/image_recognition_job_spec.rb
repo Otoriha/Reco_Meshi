@@ -6,6 +6,8 @@ RSpec.describe ImageRecognitionJob, type: :job do
   let(:mock_line_service) { instance_double(LineBotService) }
   let(:mock_vision_service) { instance_double(GoogleCloudVisionService) }
   let(:test_image_data) { 'fake_image_data' }
+  let(:line_account) { create(:line_account, :linked, line_user_id: line_user_id) }
+  let(:user) { line_account.user }
   
   before do
     allow(LineBotService).to receive(:new).and_return(mock_line_service)
@@ -260,6 +262,138 @@ RSpec.describe ImageRecognitionJob, type: :job do
       patterns = job.send(:extract_date_patterns, text)
       
       expect(patterns.size).to eq(3)
+    end
+  end
+
+  describe 'FridgeImage integration' do
+    let(:vision_result) do
+      GoogleCloudVisionResult.new(
+        labels: [{ name: 'tomato', score: 0.9 }],
+        objects: [{ name: 'vegetable', score: 0.8 }],
+        texts: { full_text: '2024/12/31', blocks: [] },
+        ingredients: [
+          { name: 'トマト', confidence: 0.85 },
+          { name: '玉ねぎ', confidence: 0.75 }
+        ]
+      )
+    end
+
+    before do
+      line_account # create line_account before test
+      allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
+      allow(mock_vision_service).to receive(:analyze_image).and_return(vision_result)
+      allow(mock_line_service).to receive(:push_message)
+      allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
+    end
+
+    context 'when recognition is successful' do
+      it 'creates FridgeImage record with processing status' do
+        expect {
+          described_class.new.perform(line_user_id, message_id)
+        }.to change(FridgeImage, :count).by(1)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.status).to eq('completed')
+        expect(fridge_image.line_account).to eq(line_account)
+        expect(fridge_image.user).to eq(user)
+        expect(fridge_image.line_message_id).to eq(message_id)
+        expect(fridge_image.captured_at).to be_present
+        expect(fridge_image.recognized_at).to be_present
+      end
+
+      it 'saves recognition results to FridgeImage' do
+        described_class.new.perform(line_user_id, message_id)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.recognized_ingredients).to be_present
+        expect(fridge_image.recognized_ingredients.size).to eq(2)
+        expect(fridge_image.recognized_ingredients[0]['name']).to eq('トマト')
+        expect(fridge_image.recognized_ingredients[0]['confidence']).to eq(0.85)
+        expect(fridge_image.recognized_ingredients[1]['name']).to eq('玉ねぎ')
+        expect(fridge_image.recognized_ingredients[1]['confidence']).to eq(0.75)
+      end
+
+      it 'saves metadata to FridgeImage' do
+        described_class.new.perform(line_user_id, message_id)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.image_metadata).to be_present
+        expect(fridge_image.image_metadata['texts']).to eq(vision_result.texts.deep_stringify_keys)
+        expect(fridge_image.image_metadata['api_version']).to eq('v1')
+        expect(fridge_image.image_metadata['features_used']).to eq(%w[label object text])
+        expect(fridge_image.image_metadata['processing_duration']).to be_a(Float)
+      end
+    end
+
+    context 'when image fetch fails' do
+      before do
+        allow(mock_line_service).to receive(:get_message_content).and_return(nil)
+      end
+
+      it 'creates FridgeImage record with failed status' do
+        expect {
+          described_class.new.perform(line_user_id, message_id)
+        }.to change(FridgeImage, :count).by(1)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.status).to eq('failed')
+        expect(fridge_image.error_message).to eq('画像の取得に失敗しました')
+        expect(fridge_image.recognized_ingredients).to eq([])
+      end
+    end
+
+    context 'when vision analysis has error' do
+      let(:error_vision_result) do
+        GoogleCloudVisionResult.new(
+          labels: [],
+          objects: [],
+          texts: { full_text: '', blocks: [] },
+          ingredients: [{ name: 'エラー', confidence: 0.0, error: 'Vision API エラー' }]
+        )
+      end
+
+      before do
+        allow(mock_vision_service).to receive(:analyze_image).and_return(error_vision_result)
+      end
+
+      it 'creates FridgeImage record with failed status and error message' do
+        described_class.new.perform(line_user_id, message_id)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.status).to eq('failed')
+        expect(fridge_image.error_message).to eq('Vision API エラー')
+      end
+    end
+
+    context 'when line_account does not exist' do
+      let(:unknown_user_id) { 'unknown_user_999' }
+
+      it 'creates FridgeImage without user association' do
+        expect {
+          described_class.new.perform(unknown_user_id, message_id)
+        }.to change(FridgeImage, :count).by(1)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.user).to be_nil
+        expect(fridge_image.line_account).to be_nil
+        expect(fridge_image.status).to eq('completed')
+      end
+    end
+
+    context 'when an unexpected error occurs' do
+      before do
+        allow(mock_vision_service).to receive(:analyze_image).and_raise(StandardError.new('Unexpected error'))
+      end
+
+      it 'updates FridgeImage status to failed with error message' do
+        expect {
+          described_class.new.perform(line_user_id, message_id)
+        }.to change(FridgeImage, :count).by(1).and raise_error(StandardError)
+
+        fridge_image = FridgeImage.last
+        expect(fridge_image.status).to eq('failed')
+        expect(fridge_image.error_message).to include('StandardError: Unexpected error')
+      end
     end
   end
 end

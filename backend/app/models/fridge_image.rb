@@ -13,9 +13,6 @@ class FridgeImage < ApplicationRecord
 
   # バリデーション
   validates :status, presence: true
-  validates :recognized_ingredients, presence: true
-  validates :image_metadata, presence: true
-  validate :user_or_line_account_present
 
   # スコープ
   scope :recent, -> { order(created_at: :desc) }
@@ -61,6 +58,8 @@ class FridgeImage < ApplicationRecord
   def fail_with_error!(error_message)
     update!(
       status: 'failed',
+      # 確実に配列型で保持するため明示的に空配列を保存
+      recognized_ingredients: [],
       error_message: error_message,
       recognized_at: Time.current
     )
@@ -76,10 +75,4 @@ class FridgeImage < ApplicationRecord
   end
 
   private
-
-  def user_or_line_account_present
-    if user_id.blank? && line_account_id.blank?
-      errors.add(:base, 'User or LineAccount must be present')
-    end
-  end
 end
