@@ -1,5 +1,5 @@
 class IngredientConverterService
-  class ConversionError < StandardError; end
+  # ConversionError例外クラスは未使用のため削除
 
   # 設定値（ENV から取得可能）
   MIN_CONFIDENCE = ENV.fetch('INGREDIENT_MIN_CONFIDENCE', '0.5').to_f
@@ -204,23 +204,32 @@ class IngredientConverterService
   def fetch_existing_ingredients(ingredients)
     return {} if ingredients.empty?
     
-    # 重複統合キーでの既存在庫取得: user_id, ingredient_id, status=available
-    existing_map = {}
+    # N+1回避：一括でingredientを含めて既存在庫を取得
+    all_existing = @user.user_ingredients
+                        .includes(:ingredient)
+                        .where(ingredient_id: ingredients.map(&:id), status: 'available')
+                        .to_a
     
-    ingredients.each do |ingredient|
-      existing_ingredients = @user.user_ingredients
-                                  .joins(:ingredient)
-                                  .where(ingredient: ingredient, status: 'available')
-                                  .to_a
-      
-      existing_map[ingredient] = group_by_unit_and_expiry(existing_ingredients)
+    # 食材ごとにグループ化してさらにunit/expiry_dateでグループ化
+    existing_map = {}
+    all_existing.group_by(&:ingredient).each do |ingredient, user_ingredients|
+      existing_map[ingredient] = group_by_unit_and_expiry(user_ingredients)
     end
     
     existing_map
   end
 
   def group_by_unit_and_expiry(user_ingredients)
-    user_ingredients.group_by { |ui| [ui.ingredient.unit, ui.expiry_date] }
+    # 期限なしを優先するため、まずnil期限でグループ化
+    grouped = user_ingredients.group_by { |ui| [ui.ingredient.unit, ui.expiry_date] }
+    
+    # デバッグ用ログ
+    grouped.each do |key, uis|
+      unit, expiry = key
+      Rails.logger.debug "Grouped existing: unit=#{unit}, expiry=#{expiry}, count=#{uis.size}"
+    end
+    
+    grouped
   end
 
   def process_ingredients_batch(ingredient_mapping, existing_ingredients_map)
@@ -232,31 +241,59 @@ class IngredientConverterService
       
       begin
         quantity_unit = determine_quantity_and_unit(ingredient, candidate)
-        expiry_date = estimate_expiry_date(ingredient)
-        
-        # 既存在庫との照合（unit + expiry_date での重複チェック）
         existing_groups = existing_ingredients_map[ingredient] || {}
-        matching_key = [quantity_unit[:unit], expiry_date]
-        existing_ingredients = existing_groups[matching_key] || []
         
-        if existing_ingredients.any?
-          # 数量加算（同一unit、同一expiry_dateの場合のみ）
-          target_ingredient = existing_ingredients.first
+        # 期限なし在庫との統合ロジック：優先順位
+        # 1. 同一unitかつnil期限の既存在庫を優先的にマッチ
+        # 2. マッチしたら加算し、既存のexpiry_dateをカテゴリ既定で更新
+        # 3. nil期限の既存在庫がない場合は新規作成
+        
+        nil_expiry_key = [quantity_unit[:unit], nil]
+        nil_expiry_ingredients = existing_groups[nil_expiry_key] || []
+        
+        if nil_expiry_ingredients.any?
+          # nil期限の既存在庫に加算し、既定期限で更新
+          target_ingredient = nil_expiry_ingredients.first
           new_quantity = target_ingredient.quantity + quantity_unit[:quantity]
+          estimated_expiry = estimate_expiry_date(ingredient)
           
           update_operations << {
             user_ingredient: target_ingredient,
-            new_quantity: new_quantity
+            new_quantity: new_quantity,
+            new_expiry_date: estimated_expiry # 既定期限で更新
           }
           
           @conversion_metrics[:duplicate_updates] += 1
-        else
-          # 新規作成
-          new_user_ingredients << build_user_ingredient_attributes(
-            ingredient, quantity_unit, expiry_date, candidate
-          )
+          Rails.logger.debug "Updated nil expiry ingredient: #{ingredient.name} -> #{new_quantity}#{quantity_unit[:unit]}, expiry: #{estimated_expiry}"
           
-          @conversion_metrics[:new_ingredients] += 1
+        else
+          # 期限ありの既存在庫をチェック
+          estimated_expiry = estimate_expiry_date(ingredient)
+          expiry_key = [quantity_unit[:unit], estimated_expiry]
+          existing_ingredients = existing_groups[expiry_key] || []
+          
+          if existing_ingredients.any?
+            # 同一unit・同一期限の既存在庫に加算
+            target_ingredient = existing_ingredients.first
+            new_quantity = target_ingredient.quantity + quantity_unit[:quantity]
+            
+            update_operations << {
+              user_ingredient: target_ingredient,
+              new_quantity: new_quantity
+            }
+            
+            @conversion_metrics[:duplicate_updates] += 1
+            Rails.logger.debug "Updated existing ingredient: #{ingredient.name} -> #{new_quantity}#{quantity_unit[:unit]}, expiry: #{estimated_expiry}"
+            
+          else
+            # 新規作成
+            new_user_ingredients << build_user_ingredient_attributes(
+              ingredient, quantity_unit, estimated_expiry, candidate
+            )
+            
+            @conversion_metrics[:new_ingredients] += 1
+            Rails.logger.debug "Created new ingredient: #{ingredient.name} -> #{quantity_unit[:quantity]}#{quantity_unit[:unit]}, expiry: #{estimated_expiry}"
+          end
         end
         
         @conversion_metrics[:successful_conversions] += 1
@@ -272,21 +309,30 @@ class IngredientConverterService
   end
 
   def execute_bulk_operations(new_user_ingredients, update_operations)
-    # 新規作成（upsert_all使用）
+    # 新規作成（insert_all使用：一意制約の問題を回避）
     if new_user_ingredients.any?
-      UserIngredient.upsert_all(
-        new_user_ingredients,
-        unique_by: [:user_id, :ingredient_id, :expiry_date, :status]
-      )
+      UserIngredient.insert_all(new_user_ingredients)
+      Rails.logger.info "Bulk inserted #{new_user_ingredients.size} new user ingredients"
     end
     
-    # 数量更新（バッチ更新）
+    # 数量・期限更新（個別更新）
     update_operations.each do |op|
-      op[:user_ingredient].update!(
+      update_attrs = {
         quantity: op[:new_quantity],
         fridge_image: @fridge_image,
         updated_at: Time.current
-      )
+      }
+      
+      # 期限更新がある場合は追加
+      if op[:new_expiry_date]
+        update_attrs[:expiry_date] = op[:new_expiry_date]
+      end
+      
+      op[:user_ingredient].update!(update_attrs)
+    end
+    
+    if update_operations.any?
+      Rails.logger.info "Updated #{update_operations.size} existing user ingredients"
     end
   end
 

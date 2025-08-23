@@ -44,6 +44,9 @@ class ImageRecognitionJob < ApplicationJob
       # 在庫変換処理
       conversion_result = convert_to_inventory(fridge_image)
       
+      # 変換結果をimage_metadataに反映
+      update_fridge_image_with_conversion_result(fridge_image, conversion_result)
+      
       # 結果をLINEで送信（変換結果も含む）
       send_recognition_result(line_bot_service, line_user_id, result, conversion_result)
       
@@ -160,7 +163,8 @@ class ImageRecognitionJob < ApplicationJob
       end.join("\n")
       
       # LIFF URLの設定（環境変数から取得）
-      liff_url = ENV['REACT_APP_LIFF_URL'] || 'https://liff.line.me/your-liff-id'
+      liff_id = ENV['REACT_APP_LIFF_ID'] || ENV['LIFF_ID'] || 'your-liff-id'
+      liff_url = "https://liff.line.me/#{liff_id}"
       
       # 基本メッセージ
       message_text = "🥬 食材を認識しました！\n\n" \
@@ -264,12 +268,38 @@ class ImageRecognitionJob < ApplicationJob
                        "updates=#{result[:metrics][:duplicate_updates]}"
 
       result
-    rescue IngredientConverterService::ConversionError => e
-      Rails.logger.error "Ingredient conversion failed: #{e.message}"
-      { success: false, message: e.message, metrics: {} }
     rescue => e
       Rails.logger.error "Unexpected error in inventory conversion: #{e.class}: #{e.message}"
       { success: false, message: 'Inventory conversion failed', metrics: {} }
+    end
+  end
+
+  def update_fridge_image_with_conversion_result(fridge_image, conversion_result)
+    return unless fridge_image
+
+    begin
+      current_metadata = fridge_image.image_metadata || {}
+      
+      # 変換結果を追記
+      conversion_metadata = {
+        success: conversion_result[:success],
+        message: conversion_result[:message],
+        metrics: conversion_result[:metrics],
+        processed_at: Time.current.iso8601
+      }
+      
+      # 未マッチ食材の情報も含める（デバッグ用）
+      if conversion_result[:unmatched_ingredients]&.any?
+        conversion_metadata[:unmatched_ingredients] = conversion_result[:unmatched_ingredients]
+      end
+      
+      current_metadata['conversion'] = conversion_metadata
+      
+      fridge_image.update!(image_metadata: current_metadata)
+      Rails.logger.info "Updated fridge_image metadata with conversion result: #{fridge_image.id}"
+      
+    rescue => e
+      Rails.logger.error "Failed to update fridge_image metadata: #{e.class}: #{e.message}"
     end
   end
 end

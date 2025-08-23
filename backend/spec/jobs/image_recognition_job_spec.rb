@@ -449,22 +449,6 @@ RSpec.describe ImageRecognitionJob, type: :job do
       end
     end
 
-    context 'when conversion fails with ConversionError' do
-      before do
-        allow_any_instance_of(IngredientConverterService).to receive(:convert_and_save)
-          .and_raise(IngredientConverterService::ConversionError.new('Test conversion error'))
-      end
-
-      it 'handles ConversionError gracefully' do
-        expect(Rails.logger).to receive(:error).with(/Ingredient conversion failed/)
-
-        result = job.send(:convert_to_inventory, fridge_image)
-
-        expect(result[:success]).to be false
-        expect(result[:message]).to eq('Test conversion error')
-        expect(result[:metrics]).to eq({})
-      end
-    end
 
     context 'when unexpected error occurs' do
       before do
