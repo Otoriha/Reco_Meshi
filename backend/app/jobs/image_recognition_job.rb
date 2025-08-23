@@ -41,8 +41,14 @@ class ImageRecognitionJob < ApplicationJob
       # 認識結果をDBに保存
       save_recognition_result(fridge_image, result)
       
-      # 結果をLINEで送信
-      send_recognition_result(line_bot_service, line_user_id, result)
+      # 在庫変換処理
+      conversion_result = convert_to_inventory(fridge_image)
+      
+      # 変換結果をimage_metadataに反映
+      update_fridge_image_with_conversion_result(fridge_image, conversion_result)
+      
+      # 結果をLINEで送信（変換結果も含む）
+      send_recognition_result(line_bot_service, line_user_id, result, conversion_result)
       
       Rails.logger.info "Image recognition completed successfully: user=#{line_user_id}, ingredients=#{result.ingredients.size}, fridge_image_id=#{fridge_image.id}"
       
@@ -142,7 +148,7 @@ class ImageRecognitionJob < ApplicationJob
     end
   end
 
-  def send_recognition_result(line_bot_service, line_user_id, result)
+  def send_recognition_result(line_bot_service, line_user_id, result, conversion_result = nil)
     if result.ingredients.empty?
       # 食材が認識できなかった場合
       message = line_bot_service.create_text_message(
@@ -157,11 +163,26 @@ class ImageRecognitionJob < ApplicationJob
       end.join("\n")
       
       # LIFF URLの設定（環境変数から取得）
-      liff_url = ENV['REACT_APP_LIFF_URL'] || 'https://liff.line.me/your-liff-id'
+      liff_id = ENV['REACT_APP_LIFF_ID'] || ENV['LIFF_ID'] || 'your-liff-id'
+      liff_url = "https://liff.line.me/#{liff_id}"
       
+      # 基本メッセージ
       message_text = "🥬 食材を認識しました！\n\n" \
-                     "【認識した食材】\n#{ingredients_text}\n\n" \
-                     "📱 在庫リストの確認・編集はこちら\n#{liff_url}"
+                     "【認識した食材】\n#{ingredients_text}"
+      
+      # 在庫変換結果の追加
+      if conversion_result && conversion_result[:success]
+        metrics = conversion_result[:metrics]
+        if metrics[:successful_conversions] > 0
+          message_text += "\n\n✅ 在庫に追加しました：\n"
+          message_text += "・新規追加：#{metrics[:new_ingredients]}件\n" if metrics[:new_ingredients] > 0
+          message_text += "・数量更新：#{metrics[:duplicate_updates]}件\n" if metrics[:duplicate_updates] > 0
+        end
+      elsif conversion_result && !conversion_result[:success]
+        message_text += "\n\n⚠️ 在庫への自動追加に一部問題がありました"
+      end
+      
+      message_text += "\n\n📱 在庫リストの確認・編集はこちら\n#{liff_url}"
       
       message = line_bot_service.create_text_message(message_text)
     end
@@ -229,6 +250,56 @@ class ImageRecognitionJob < ApplicationJob
         next if i < attempts - 1
         Rails.logger.error "All push message retries failed"
       end
+    end
+  end
+
+  def convert_to_inventory(fridge_image)
+    return { success: false, message: 'User not available' } unless fridge_image.user
+
+    begin
+      Rails.logger.info "Starting inventory conversion: fridge_image_id=#{fridge_image.id}, user_id=#{fridge_image.user.id}"
+      
+      converter = IngredientConverterService.new(fridge_image)
+      result = converter.convert_and_save
+
+      Rails.logger.info "Inventory conversion completed: success=#{result[:success]}, " \
+                       "conversions=#{result[:metrics][:successful_conversions]}, " \
+                       "new=#{result[:metrics][:new_ingredients]}, " \
+                       "updates=#{result[:metrics][:duplicate_updates]}"
+
+      result
+    rescue => e
+      Rails.logger.error "Unexpected error in inventory conversion: #{e.class}: #{e.message}"
+      { success: false, message: 'Inventory conversion failed', metrics: {} }
+    end
+  end
+
+  def update_fridge_image_with_conversion_result(fridge_image, conversion_result)
+    return unless fridge_image
+
+    begin
+      current_metadata = fridge_image.image_metadata || {}
+      
+      # 変換結果を追記
+      conversion_metadata = {
+        success: conversion_result[:success],
+        message: conversion_result[:message],
+        metrics: conversion_result[:metrics],
+        processed_at: Time.current.iso8601
+      }
+      
+      # 未マッチ食材の情報も含める（デバッグ用）
+      if conversion_result[:unmatched_ingredients]&.any?
+        conversion_metadata[:unmatched_ingredients] = conversion_result[:unmatched_ingredients]
+      end
+      
+      current_metadata['conversion'] = conversion_metadata
+      
+      fridge_image.update!(image_metadata: current_metadata)
+      Rails.logger.info "Updated fridge_image metadata with conversion result: #{fridge_image.id}"
+      
+    rescue => e
+      Rails.logger.error "Failed to update fridge_image metadata: #{e.class}: #{e.message}"
     end
   end
 end

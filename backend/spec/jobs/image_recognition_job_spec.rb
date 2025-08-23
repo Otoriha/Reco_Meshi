@@ -61,7 +61,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
       
       it 'includes LIFF URL in the message' do
         allow(ENV).to receive(:[]).and_call_original
-        allow(ENV).to receive(:[]).with('REACT_APP_LIFF_URL').and_return('https://liff.line.me/test-liff')
+        allow(ENV).to receive(:[]).with('REACT_APP_LIFF_ID').and_return('test-liff')
         
         job = described_class.new
         
@@ -393,6 +393,188 @@ RSpec.describe ImageRecognitionJob, type: :job do
         fridge_image = FridgeImage.last
         expect(fridge_image.status).to eq('failed')
         expect(fridge_image.error_message).to include('StandardError: Unexpected error')
+      end
+    end
+  end
+
+  describe '#convert_to_inventory' do
+    let(:job) { described_class.new }
+    let(:tomato) { create(:ingredient, name: 'トマト', category: 'vegetables', unit: '個') }
+    let(:chicken) { create(:ingredient, name: '鶏肉', category: 'meat', unit: 'g') }
+    let(:fridge_image) { create(:fridge_image, user: user, status: 'completed') }
+
+    before do
+      tomato
+      chicken
+      fridge_image.update!(
+        recognized_ingredients: [
+          { 'name' => 'トマト', 'confidence' => 0.8 },
+          { 'name' => '鶏肉', 'confidence' => 0.9 }
+        ]
+      )
+    end
+
+    context 'when user is available' do
+      it 'successfully converts ingredients to inventory' do
+        result = job.send(:convert_to_inventory, fridge_image)
+
+        expect(result[:success]).to be true
+        expect(result[:metrics][:successful_conversions]).to eq(2)
+        expect(result[:metrics][:new_ingredients]).to eq(2)
+
+        # UserIngredientが作成されていることを確認
+        user_ingredients = user.user_ingredients.available
+        expect(user_ingredients.count).to eq(2)
+        
+        ingredient_names = user_ingredients.joins(:ingredient).pluck('ingredients.name')
+        expect(ingredient_names).to contain_exactly('トマト', '鶏肉')
+      end
+
+      it 'logs conversion metrics' do
+        expect(Rails.logger).to receive(:info).with(/Starting inventory conversion/)
+        expect(Rails.logger).to receive(:info).with(/Bulk inserted/)
+        expect(Rails.logger).to receive(:info).with(/ingredient_conversion_completed/)
+        expect(Rails.logger).to receive(:info).with(/Inventory conversion completed/)
+
+        job.send(:convert_to_inventory, fridge_image)
+      end
+    end
+
+    context 'when user is not available' do
+      let(:fridge_image_without_user) { create(:fridge_image, user: nil, status: 'completed') }
+
+      it 'returns failure result' do
+        result = job.send(:convert_to_inventory, fridge_image_without_user)
+
+        expect(result[:success]).to be false
+        expect(result[:message]).to eq('User not available')
+      end
+    end
+
+
+    context 'when unexpected error occurs' do
+      before do
+        allow_any_instance_of(IngredientConverterService).to receive(:convert_and_save)
+          .and_raise(StandardError.new('Unexpected error'))
+      end
+
+      it 'handles unexpected error gracefully' do
+        expect(Rails.logger).to receive(:error).with(/Unexpected error in inventory conversion/)
+
+        result = job.send(:convert_to_inventory, fridge_image)
+
+        expect(result[:success]).to be false
+        expect(result[:message]).to eq('Inventory conversion failed')
+        expect(result[:metrics]).to eq({})
+      end
+    end
+  end
+
+  describe 'inventory conversion integration' do
+    let(:vision_result) do
+      GoogleCloudVisionResult.new(
+        labels: [{ name: 'tomato', score: 0.9 }],
+        objects: [{ name: 'vegetable', score: 0.8 }],
+        texts: { full_text: '', blocks: [] },
+        ingredients: [
+          { name: 'トマト', confidence: 0.85 },
+          { name: '鶏肉', confidence: 0.75 }
+        ]
+      )
+    end
+
+    let(:tomato) { create(:ingredient, name: 'トマト', category: 'vegetables', unit: '個') }
+    let(:chicken) { create(:ingredient, name: '鶏肉', category: 'meat', unit: 'g') }
+
+    before do
+      tomato
+      chicken
+      line_account
+      allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
+      allow(mock_vision_service).to receive(:analyze_image).and_return(vision_result)
+      allow(mock_line_service).to receive(:push_message)
+      allow(mock_line_service).to receive(:create_text_message).and_return({ type: 'text', text: 'test message' })
+    end
+
+    it 'performs complete workflow including inventory conversion' do
+      expect {
+        described_class.new.perform(line_user_id, message_id)
+      }.to change(UserIngredient, :count).by(2)
+
+      # FridgeImageが作成されている
+      fridge_image = FridgeImage.last
+      expect(fridge_image.status).to eq('completed')
+
+      # UserIngredientが作成されている
+      user_ingredients = user.user_ingredients.available
+      expect(user_ingredients.count).to eq(2)
+      
+      ingredient_names = user_ingredients.joins(:ingredient).pluck('ingredients.name')
+      expect(ingredient_names).to contain_exactly('トマト', '鶏肉')
+
+      # 各UserIngredientが正しい値を持っている
+      tomato_ingredient = user_ingredients.joins(:ingredient).find_by(ingredients: { name: 'トマト' })
+      expect(tomato_ingredient.quantity).to eq(3) # トマトの特殊設定値
+      expect(tomato_ingredient.fridge_image).to eq(fridge_image)
+      expect(tomato_ingredient.expiry_date).to eq(Date.current + 7.days)
+
+      chicken_ingredient = user_ingredients.joins(:ingredient).find_by(ingredients: { name: '鶏肉' })
+      expect(chicken_ingredient.quantity).to eq(200) # meat default
+      expect(chicken_ingredient.fridge_image).to eq(fridge_image)
+      expect(chicken_ingredient.expiry_date).to eq(Date.current + 3.days)
+    end
+
+    it 'includes conversion results in LINE message' do
+      expect(mock_line_service).to receive(:create_text_message) do |text|
+        expect(text).to include('🥬 食材を認識しました！')
+        expect(text).to include('✅ 在庫に追加しました：')
+        expect(text).to include('新規追加：2件')
+        { type: 'text', text: text }
+      end
+
+      described_class.new.perform(line_user_id, message_id)
+    end
+
+    context 'when some ingredients are updated (duplicates)' do
+      before do
+        # 既存の在庫を作成
+        create(:user_ingredient, user: user, ingredient: tomato, quantity: 2, status: 'available')
+      end
+
+      it 'shows both new and update counts in message' do
+        expect(mock_line_service).to receive(:create_text_message) do |text|
+          expect(text).to include('✅ 在庫に追加しました：')
+          expect(text).to include('新規追加：1件')
+          expect(text).to include('数量更新：1件')
+          { type: 'text', text: text }
+        end
+
+        described_class.new.perform(line_user_id, message_id)
+      end
+
+      it 'updates existing ingredient quantity' do
+        described_class.new.perform(line_user_id, message_id)
+
+        tomato_ingredient = user.user_ingredients.joins(:ingredient)
+                                .find_by(ingredients: { name: 'トマト' })
+        expect(tomato_ingredient.quantity).to eq(5) # 2 + 3
+      end
+    end
+
+    context 'when inventory conversion fails' do
+      before do
+        allow_any_instance_of(IngredientConverterService).to receive(:convert_and_save)
+          .and_return({ success: false, message: 'Conversion failed', metrics: {} })
+      end
+
+      it 'includes warning in LINE message' do
+        expect(mock_line_service).to receive(:create_text_message) do |text|
+          expect(text).to include('🥬 食材を認識しました！')
+          expect(text).to include('⚠️ 在庫への自動追加に一部問題がありました')
+          { type: 'text', text: text }
+        end
+
+        described_class.new.perform(line_user_id, message_id)
       end
     end
   end
