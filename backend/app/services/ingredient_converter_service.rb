@@ -181,13 +181,12 @@ class IngredientConverterService
   def build_ingredient_mapping(candidates)
     return {} if candidates.empty?
     
-    ingredient_names = candidates.map { |c| c[:original_name] }
-    match_results = @matcher.find_ingredients_batch(ingredient_names)
+    names = candidates.map { |c| c[:original_name] }
+    name_to_result = @matcher.find_ingredients_batch(names) # 返値: Hash
     
     mapping = {}
-    candidates.each_with_index do |candidate, index|
-      match_result = match_results[index]
-      
+    candidates.each do |candidate|
+      match_result = name_to_result[candidate[:original_name]]
       if match_result
         mapping[match_result[:ingredient]] = {
           candidate: candidate,

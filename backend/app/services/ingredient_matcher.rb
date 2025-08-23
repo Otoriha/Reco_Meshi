@@ -72,22 +72,24 @@ class IngredientMatcher
   end
 
   def find_ingredients_batch(names)
-    return [] if names.empty?
+    return {} if names.empty?
     
     candidates = names.map { |name| { original_name: name } }
     ingredient_map = build_ingredient_mapping(candidates)
     
-    results = []
+    # ハッシュ形式で返却：{ original_name => result | nil }
+    name_to_result = {}
     names.each do |name|
       if ingredient_map[name]
         ingredient_result = ingredient_map[name]
-        results << create_result(ingredient_result[:ingredient], ingredient_result[:score])
+        name_to_result[name] = create_result(ingredient_result[:ingredient], ingredient_result[:score])
       else
         record_unmatched_ingredient(name, normalize_ingredient_name(name))
+        name_to_result[name] = nil
       end
     end
     
-    results
+    name_to_result
   end
 
   def unmatched_ingredients
