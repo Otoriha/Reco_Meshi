@@ -61,7 +61,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
       
       it 'includes LIFF URL in the message' do
         allow(ENV).to receive(:[]).and_call_original
-        allow(ENV).to receive(:[]).with('REACT_APP_LIFF_URL').and_return('https://liff.line.me/test-liff')
+        allow(ENV).to receive(:[]).with('REACT_APP_LIFF_ID').and_return('test-liff')
         
         job = described_class.new
         
@@ -432,6 +432,8 @@ RSpec.describe ImageRecognitionJob, type: :job do
 
       it 'logs conversion metrics' do
         expect(Rails.logger).to receive(:info).with(/Starting inventory conversion/)
+        expect(Rails.logger).to receive(:info).with(/Bulk inserted/)
+        expect(Rails.logger).to receive(:info).with(/ingredient_conversion_completed/)
         expect(Rails.logger).to receive(:info).with(/Inventory conversion completed/)
 
         job.send(:convert_to_inventory, fridge_image)
@@ -512,7 +514,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
 
       # 各UserIngredientが正しい値を持っている
       tomato_ingredient = user_ingredients.joins(:ingredient).find_by(ingredients: { name: 'トマト' })
-      expect(tomato_ingredient.quantity).to eq(1) # vegetables default
+      expect(tomato_ingredient.quantity).to eq(3) # トマトの特殊設定値
       expect(tomato_ingredient.fridge_image).to eq(fridge_image)
       expect(tomato_ingredient.expiry_date).to eq(Date.current + 7.days)
 
@@ -555,7 +557,7 @@ RSpec.describe ImageRecognitionJob, type: :job do
 
         tomato_ingredient = user.user_ingredients.joins(:ingredient)
                                 .find_by(ingredients: { name: 'トマト' })
-        expect(tomato_ingredient.quantity).to eq(3) # 2 + 1
+        expect(tomato_ingredient.quantity).to eq(5) # 2 + 3
       end
     end
 

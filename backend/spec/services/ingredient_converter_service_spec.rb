@@ -41,7 +41,7 @@ RSpec.describe IngredientConverterService, type: :service do
         # 各食材が正しく作成されているか確認
         tomato_ingredient = user_ingredients.joins(:ingredient).find_by(ingredients: { name: 'トマト' })
         expect(tomato_ingredient).to be_present
-        expect(tomato_ingredient.quantity).to eq(1) # デフォルト値
+        expect(tomato_ingredient.quantity).to eq(3) # トマトの特殊設定値
         expect(tomato_ingredient.status).to eq('available')
         expect(tomato_ingredient.fridge_image).to eq(fridge_image)
       end
@@ -81,7 +81,7 @@ RSpec.describe IngredientConverterService, type: :service do
         # トマトの数量が更新されているか確認
         updated_tomato = user.user_ingredients.joins(:ingredient)
                              .find_by(ingredients: { name: 'トマト' })
-        expect(updated_tomato.quantity).to eq(3) # 2 + 1
+        expect(updated_tomato.quantity).to eq(5) # 2 + 3
       end
     end
 
@@ -173,7 +173,7 @@ RSpec.describe IngredientConverterService, type: :service do
 
     context 'エラーハンドリング' do
       it '認識データがない場合はfalseを返す' do
-        fridge_image.update!(recognized_ingredients: nil)
+        fridge_image.update!(recognized_ingredients: [])
         
         result = converter.convert_and_save
         expect(result[:success]).to be false
@@ -186,15 +186,15 @@ RSpec.describe IngredientConverterService, type: :service do
         
         result = converter.convert_and_save
         
-        # 他の食材は正常に処理される
+        # トマトがマッチしなくなるため、未マッチとしてカウント
         expect(result[:success]).to be true
         expect(result[:metrics][:successful_conversions]).to eq(2) # 鶏肉、牛乳
-        expect(result[:metrics][:errors]).not_to be_empty
+        expect(result[:metrics][:unmatched_ingredients]).to eq(2) # トマト、不明な食材
       end
 
       it 'データベースエラーでトランザクションがロールバックされる' do
-        # バリデーションエラーを発生させるため、quantityを無効な値に設定
-        allow_any_instance_of(UserIngredient).to receive(:save!).and_raise(ActiveRecord::RecordInvalid.new(UserIngredient.new))
+        # insert_allでエラーを発生させる
+        allow(UserIngredient).to receive(:insert_all).and_raise(ActiveRecord::RecordInvalid.new(UserIngredient.new))
         
         result = converter.convert_and_save
         expect(result[:success]).to be false
@@ -219,13 +219,15 @@ RSpec.describe IngredientConverterService, type: :service do
   end
 
   describe 'プライベートメソッド' do
-    describe '#estimate_quantity' do
+    describe '#determine_quantity_and_unit' do
       it 'カテゴリ別のデフォルト量を返す' do
-        quantity = converter.send(:estimate_quantity, tomato, {})
-        expect(quantity).to eq(1) # vegetables
+        result = converter.send(:determine_quantity_and_unit, tomato, {})
+        expect(result[:quantity]).to eq(3.0) # トマトの特殊設定値
+        expect(result[:unit]).to eq('個')
         
-        quantity = converter.send(:estimate_quantity, chicken, {})
-        expect(quantity).to eq(200) # meat
+        result = converter.send(:determine_quantity_and_unit, chicken, {})
+        expect(result[:quantity]).to eq(200.0) # meat
+        expect(result[:unit]).to eq('g')
       end
     end
 
