@@ -7,12 +7,16 @@ class Api::V1::UserIngredientsController < ApplicationController
   def index
     records = current_user.user_ingredients.includes(:ingredient)
 
+    # Status filtering
     records = records.where(status: params[:status]) if params[:status].present?
+
+    # Category filtering 
     records = records.by_category(params[:category]) if params[:category].present?
 
+    # Sorting
     case params[:sort_by]
     when 'expiry_date'
-      records = records.order(Arel.sql('CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END ASC')).order(expiry_date: :asc)
+      records = records.order(Arel.sql('expiry_date ASC NULLS LAST'))
     when 'quantity'
       records = records.order(quantity: :desc)
     else
@@ -21,12 +25,17 @@ class Api::V1::UserIngredientsController < ApplicationController
 
     if params[:group_by].to_s == 'category'
       grouped = records.group_by { |ui| ui.ingredient.category }
-      data = grouped.transform_values do |items|
-        UserIngredientSerializer.new(items).serializable_hash[:data].map { |d| d[:attributes] }
+      data = {}
+      grouped.each do |category, items|
+        data[category] = items.map do |item|
+          UserIngredientSerializer.new(item).serializable_hash[:data][:attributes]
+        end
       end
       render json: { status: { code: 200, message: '在庫を取得しました。' }, data: data }, status: :ok
     else
-      data = UserIngredientSerializer.new(records).serializable_hash[:data].map { |d| d[:attributes] }
+      data = records.map do |record|
+        UserIngredientSerializer.new(record).serializable_hash[:data][:attributes]
+      end
       render json: { status: { code: 200, message: '在庫を取得しました。' }, data: data }, status: :ok
     end
   end

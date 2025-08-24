@@ -36,7 +36,7 @@ Rails.application.routes.draw do
       post 'line/webhook', to: 'line#webhook'
 
       # Ingredients master and user inventory
-      resources :ingredients, only: [:index]  # 読み取り専用（MVPでは管理者機能なし）
+      resources :ingredients, only: [:index, :create, :update, :destroy]
       resources :user_ingredients
     end
   end

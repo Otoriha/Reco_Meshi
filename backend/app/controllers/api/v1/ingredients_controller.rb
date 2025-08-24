@@ -1,5 +1,5 @@
 class Api::V1::IngredientsController < ApplicationController
-  # 食材マスタは読み取り専用（MVPでは管理者機能なし）
+  before_action :set_ingredient, only: [:update, :destroy]
 
   # GET /api/v1/ingredients
   # Params: category, search, page, per_page
@@ -23,10 +23,40 @@ class Api::V1::IngredientsController < ApplicationController
     }, status: :ok
   end
 
-  # 注意: 食材マスタの追加・編集・削除はMVPでは提供しません
-  # 新しい食材は以下の方法で追加されます：
-  # 1. 開発者がseeds.rbに追加してデプロイ
-  # 2. 画像認識で新食材が検出された際の自動追加（将来実装）
-  # 3. 管理者機能の実装後に管理画面から追加（将来実装）
+  # POST /api/v1/ingredients
+  def create
+    ingredient = Ingredient.create!(ingredient_params)
+
+    render json: {
+      status: { code: 201, message: '食材を作成しました。' },
+      data: IngredientSerializer.new(ingredient).serializable_hash[:data][:attributes]
+    }, status: :created
+  end
+
+  # PUT /api/v1/ingredients/:id
+  def update
+    @ingredient.update!(ingredient_params)
+
+    render json: {
+      status: { code: 200, message: '食材を更新しました。' },
+      data: IngredientSerializer.new(@ingredient).serializable_hash[:data][:attributes]
+    }, status: :ok
+  end
+
+  # DELETE /api/v1/ingredients/:id
+  def destroy
+    @ingredient.destroy
+    head :no_content
+  end
+
+  private
+
+  def set_ingredient
+    @ingredient = Ingredient.find(params[:id])
+  end
+
+  def ingredient_params
+    params.require(:ingredient).permit(:name, :category, :unit, :emoji)
+  end
 end
 

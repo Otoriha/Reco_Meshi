@@ -33,7 +33,7 @@ RSpec.describe 'Api::V1::UserIngredients', type: :request do
 
     it 'supports grouping by category' do
       headers = auth_header_for(user)
-      get '/api/v1/user_ingredients', params: { group_by: 'category' }, headers: headers, as: :json
+      get '/api/v1/user_ingredients', params: { group_by: 'category' }, headers: headers
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       expect(body['data']).to be_a(Hash)
@@ -127,15 +127,17 @@ RSpec.describe 'Api::V1::UserIngredients', type: :request do
   end
 
   describe 'filters and sorting' do
-    let!(:veg) { create(:ingredient, :vegetable) }
-    let!(:meat) { create(:ingredient, :meat) }
-    let!(:ui1) { create(:user_ingredient, user: user, ingredient: veg, status: 'available', expiry_date: Date.current + 2.days, quantity: 1.0) }
-    let!(:ui2) { create(:user_ingredient, user: user, ingredient: veg, status: 'expired', expiry_date: Date.current - 1.day, quantity: 3.0) }
-    let!(:ui3) { create(:user_ingredient, user: user, ingredient: meat, status: 'available', expiry_date: nil, quantity: 2.0) }
+    before do
+      @veg = create(:ingredient, :vegetable)
+      @meat = create(:ingredient, :meat)
+      create(:user_ingredient, user: user, ingredient: @veg, status: 'available', expiry_date: Date.current + 2.days, quantity: 1.0)
+      create(:user_ingredient, user: user, ingredient: @veg, status: 'expired', expiry_date: Date.current - 1.day, quantity: 3.0)
+      create(:user_ingredient, user: user, ingredient: @meat, status: 'available', expiry_date: nil, quantity: 2.0)
+    end
 
     it 'filters by status' do
       headers = auth_header_for(user)
-      get '/api/v1/user_ingredients', params: { status: 'available' }, headers: headers, as: :json
+      get '/api/v1/user_ingredients', params: { status: 'available' }, headers: headers
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       expect(body['data'].all? { |d| d['status'] == 'available' }).to be true
@@ -143,7 +145,7 @@ RSpec.describe 'Api::V1::UserIngredients', type: :request do
 
     it 'filters by category' do
       headers = auth_header_for(user)
-      get '/api/v1/user_ingredients', params: { category: 'meat' }, headers: headers, as: :json
+      get '/api/v1/user_ingredients', params: { category: 'meat' }, headers: headers
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       expect(body['data'].all? { |d| d['ingredient']['category'] == 'meat' }).to be true
@@ -151,7 +153,7 @@ RSpec.describe 'Api::V1::UserIngredients', type: :request do
 
     it 'sorts by expiry_date with nils last' do
       headers = auth_header_for(user)
-      get '/api/v1/user_ingredients', params: { sort_by: 'expiry_date' }, headers: headers, as: :json
+      get '/api/v1/user_ingredients', params: { sort_by: 'expiry_date' }, headers: headers
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       dates = body['data'].map { |d| d['expiry_date'] }

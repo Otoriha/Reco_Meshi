@@ -7,14 +7,14 @@ FactoryBot.define do
 
     trait :vegetable do
       category { 'vegetables' }
-      sequence(:name) { |n| "テスト野菜_#{n}" }
+      sequence(:name) { |n| "テスト野菜_#{Time.current.to_f}_#{n}" }
       unit { %w[個 本].sample }
       emoji { %w[🥕 🥔 🧅 🍅 🥬].sample }
     end
 
     trait :meat do
       category { 'meat' }
-      sequence(:name) { |n| "テスト肉_#{n}" }
+      sequence(:name) { |n| "テスト肉_#{Time.current.to_f}_#{n}" }
       unit { 'g' }
       emoji { %w[🍗 🥩 🥓].sample }
     end
