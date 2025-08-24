@@ -34,6 +34,10 @@ Rails.application.routes.draw do
 
       # LINE Bot Webhook
       post 'line/webhook', to: 'line#webhook'
+
+      # Ingredients master and user inventory
+      resources :ingredients, only: [:index, :create, :update, :destroy]
+      resources :user_ingredients
     end
   end
 

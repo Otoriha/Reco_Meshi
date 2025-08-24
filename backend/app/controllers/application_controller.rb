@@ -3,6 +3,9 @@ class ApplicationController < ActionController::API
   # Deviseコントローラー用の設定
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :authenticate_user!
+  
+  rescue_from ActiveRecord::RecordNotFound, with: :not_found
+  rescue_from ActiveRecord::RecordInvalid, with: :unprocessable_entity
 
   protected
 
@@ -16,5 +19,15 @@ class ApplicationController < ActionController::API
     return if !current_user.respond_to?(:confirmed?) || current_user.confirmed?
 
     render json: { error: 'You have to confirm your email address' }, status: :forbidden
+  end
+
+  private
+
+  def not_found
+    render json: { error: 'リソースが見つかりません' }, status: :not_found
+  end
+
+  def unprocessable_entity(exception)
+    render json: { error: exception.record.errors.full_messages }, status: :unprocessable_entity
   end
 end
