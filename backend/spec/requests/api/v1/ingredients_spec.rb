@@ -31,6 +31,11 @@ RSpec.describe 'Api::V1::Ingredients', type: :request do
   describe 'POST /api/v1/ingredients' do
     let(:valid_params) { { ingredient: { name: 'にんじん', category: 'vegetables', unit: '本', emoji: '🥕' } } }
 
+    it 'returns 401 without authentication' do
+      post '/api/v1/ingredients', params: valid_params, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
     it 'creates an ingredient with valid params' do
       headers = auth_header_for(user)
       post '/api/v1/ingredients', params: valid_params, headers: headers, as: :json
@@ -49,12 +54,23 @@ RSpec.describe 'Api::V1::Ingredients', type: :request do
   describe 'PUT /api/v1/ingredients/:id' do
     let!(:ingredient) { create(:ingredient) }
 
+    it 'returns 401 without authentication' do
+      put "/api/v1/ingredients/#{ingredient.id}", params: { ingredient: { name: '新しい名前' } }, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
     it 'updates an ingredient' do
       headers = auth_header_for(user)
       put "/api/v1/ingredients/#{ingredient.id}", params: { ingredient: { name: '新しい名前' } }, headers: headers, as: :json
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
       expect(body['data']['name']).to eq('新しい名前')
+    end
+
+    it 'returns 422 for validation errors' do
+      headers = auth_header_for(user)
+      put "/api/v1/ingredients/#{ingredient.id}", params: { ingredient: { name: '' } }, headers: headers, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it 'returns 404 for non-existing ingredient' do
@@ -67,6 +83,11 @@ RSpec.describe 'Api::V1::Ingredients', type: :request do
   describe 'DELETE /api/v1/ingredients/:id' do
     let!(:ingredient) { create(:ingredient) }
 
+    it 'returns 401 without authentication' do
+      delete "/api/v1/ingredients/#{ingredient.id}", as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
     it 'deletes an ingredient' do
       headers = auth_header_for(user)
       delete "/api/v1/ingredients/#{ingredient.id}", headers: headers, as: :json
@@ -74,4 +95,3 @@ RSpec.describe 'Api::V1::Ingredients', type: :request do
     end
   end
 end
-

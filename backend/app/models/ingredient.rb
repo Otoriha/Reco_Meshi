@@ -1,6 +1,6 @@
 class Ingredient < ApplicationRecord
   # Enums
-  enum category: {
+  enum :category, {
     vegetables: 'vegetables',
     meat: 'meat',
     fish: 'fish',
