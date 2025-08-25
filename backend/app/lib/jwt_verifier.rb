@@ -13,7 +13,7 @@ class JwtVerifier
   JWKS_CACHE_KEY = 'line_jwks'.freeze
   JWKS_CACHE_TTL = 24.hours.freeze
   ISSUER = 'https://access.line.me'.freeze
-  ALGORITHM = 'RS256'.freeze
+  ALGORITHMS = ['RS256', 'ES256'].freeze
   CLOCK_SKEW = 5.minutes.freeze
 
   def self.verify_id_token(id_token:, aud:, nonce: nil)
@@ -92,7 +92,7 @@ class JwtVerifier
 
   def decode_and_verify_token(token, public_key, aud, nonce)
     options = {
-      algorithm: ALGORITHM,
+      algorithms: ALGORITHMS,
       iss: ISSUER,
       verify_iss: true,
       aud: aud,
