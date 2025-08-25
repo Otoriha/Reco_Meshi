@@ -97,8 +97,8 @@ class JwtVerifier
       verify_iss: true,
       aud: aud,
       verify_aud: true,
-      verify_exp: true,
-      verify_iat: true,
+      verify_exp: false, # LINEのIDトークンはexpがない場合がある
+      verify_iat: false, # iatも無効化
       exp_leeway: CLOCK_SKEW.to_i,
       iat_leeway: CLOCK_SKEW.to_i
     }
