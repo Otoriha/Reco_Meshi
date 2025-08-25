@@ -46,7 +46,10 @@ apiClient.interceptors.response.use(
         }
         let data: LineAuthResponse
         try {
-          const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { id_token: idToken })
+          const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
+            idToken: idToken,
+            nonce: ''
+          })
           data = res.data
         } catch (e) {
           console.error('LINE認証API呼び出し失敗:', e)

@@ -58,7 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const idToken = liff.getIDToken()
       if (!idToken) return false
-      const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { id_token: idToken })
+      // TODO: nonceの実装（現在は空文字で送信）
+      const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
+        idToken: idToken,
+        nonce: ''
+      })
       if (data?.token) {
         setAccessToken(data.token)
         // 優先度: サーバーが返すユーザー > LIFFプロフィール
@@ -92,8 +96,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const initialize = useCallback(async () => {
     try {
-      if (!liffId) throw new Error('VITE_LIFF_ID が設定されていません')
-      if (!apiUrl) throw new Error('VITE_API_URL が設定されていません')
+      if (!liffId) {
+        console.error('VITE_LIFF_ID が設定されていません')
+        setIsInitialized(true)
+        return
+      }
+      if (!apiUrl) {
+        console.error('VITE_API_URL が設定されていません')
+        setIsInitialized(true)
+        return
+      }
 
       await liff.init({ liffId })
       setIsInClient(liff.isInClient())

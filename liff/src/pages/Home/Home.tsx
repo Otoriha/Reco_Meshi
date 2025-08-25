@@ -13,7 +13,16 @@ const Home: React.FC = () => {
           {!isInitialized && <p className="text-gray-600">初期化中...</p>}
           {isInitialized && (
             <>
-              {isAuthenticated ? (
+              {!import.meta.env.VITE_LIFF_ID || !import.meta.env.VITE_API_URL ? (
+                <div className="space-y-4">
+                  <p className="text-red-600 font-semibold">設定エラー</p>
+                  <p className="text-gray-700">環境変数が正しく設定されていません。</p>
+                  <div className="text-sm text-gray-500">
+                    <p>VITE_LIFF_ID: {import.meta.env.VITE_LIFF_ID ? '設定済み' : '未設定'}</p>
+                    <p>VITE_API_URL: {import.meta.env.VITE_API_URL ? '設定済み' : '未設定'}</p>
+                  </div>
+                </div>
+              ) : isAuthenticated ? (
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     {user?.pictureUrl && (
