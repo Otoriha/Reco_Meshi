@@ -18,8 +18,9 @@ const Home: React.FC = () => {
                   <p className="text-red-600 font-semibold">設定エラー</p>
                   <p className="text-gray-700">環境変数が正しく設定されていません。</p>
                   <div className="text-sm text-gray-500">
-                    <p>VITE_LIFF_ID: {import.meta.env.VITE_LIFF_ID ? '設定済み' : '未設定'}</p>
-                    <p>VITE_API_URL: {import.meta.env.VITE_API_URL ? '設定済み' : '未設定'}</p>
+                    <p>VITE_LIFF_ID: {import.meta.env.VITE_LIFF_ID || '未設定'}</p>
+                    <p>VITE_API_URL: {import.meta.env.VITE_API_URL || '未設定'}</p>
+                    <p>Current URL: {window.location.href}</p>
                   </div>
                 </div>
               ) : isAuthenticated ? (
