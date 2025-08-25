@@ -16,7 +16,7 @@ class LineAuthService
     # Verify ID token
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV['LIFF_ID'] || ENV['LINE_CHANNEL_ID'], # LIFF_IDを優先、フォールバックでCHANNEL_ID
+      aud: ENV['LINE_CHANNEL_ID'], # IDトークンのaudはチャネルID
       nonce: nonce
     )
 
@@ -38,7 +38,7 @@ class LineAuthService
     # Verify ID token
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV['LIFF_ID'] || ENV['LINE_CHANNEL_ID'], # LIFF_IDを優先、フォールバックでCHANNEL_ID
+      aud: ENV['LINE_CHANNEL_ID'], # IDトークンのaudはチャネルID
       nonce: nonce
     )
 
