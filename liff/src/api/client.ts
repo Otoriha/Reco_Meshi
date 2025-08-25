@@ -19,7 +19,7 @@ export const setAccessToken = (token: string | null) => {
 export const apiClient = axios.create({ baseURL })
 
 apiClient.interceptors.request.use(async (config) => {
-  if (!config.headers) config.headers = {}
+  if (!config.headers) config.headers = {} as any
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`
   }
