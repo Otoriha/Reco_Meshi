@@ -2,21 +2,21 @@ import axios from 'axios'
 import liff from '@line/liff'
 
 const baseURL = import.meta.env.VITE_API_URL as string | undefined
+// 未設定時はフォールバックURLを使用（白画面回避）
+const apiBaseURL = baseURL || `${window.location.origin}/api/v1`
+
 if (!baseURL) {
-  // 実行時にUndefinedだと以降の通信が全て失敗するため、明示的にエラー化
-  // ただしビルド時型はstring | undefinedのまま
-  // eslint-disable-next-line no-throw-literal
-  throw new Error('VITE_API_URL が設定されていません')
+  console.error('VITE_API_URL が設定されていません。フォールバックURL を使用:', apiBaseURL)
 }
 
-export const axiosPlain = axios.create({ baseURL })
+export const axiosPlain = axios.create({ baseURL: apiBaseURL })
 
 let accessToken: string | null = null
 export const setAccessToken = (token: string | null) => {
   accessToken = token
 }
 
-export const apiClient = axios.create({ baseURL })
+export const apiClient = axios.create({ baseURL: apiBaseURL })
 
 apiClient.interceptors.request.use(async (config) => {
   if (!config.headers) config.headers = {} as any
@@ -42,7 +42,10 @@ apiClient.interceptors.response.use(
         if (!idToken) throw new Error('IDトークンなし')
         interface LineAuthResponse {
           token: string
-          user?: { userId: string; displayName: string; pictureUrl?: string }
+          user?: { 
+            userId?: string; displayName?: string; pictureUrl?: string
+            id?: string | number; name?: string; picture?: string
+          }
         }
         let data: LineAuthResponse
         try {

@@ -30,12 +30,18 @@ const PrivateRoute: React.FC = () => {
   }
 
   useLayoutEffect(() => {
+    console.log('PrivateRoute状態チェック:', { isAuthenticated, isInitialized, isInClient })
     if (!isAuthenticated && isInitialized && isInClient) {
+      console.log('PrivateRoute: 未認証のためlogin()実行')
       login()
     }
   }, [isAuthenticated, isInitialized, isInClient, login])
 
-  if (!isAuthenticated) return <Navigate to="/" replace />
+  console.log('PrivateRoute最終判定:', { isAuthenticated })
+  if (!isAuthenticated) {
+    console.log('PrivateRoute: Navigate to "/" 実行')
+    return <Navigate to="/" replace />
+  }
 
   return <Outlet />
 }

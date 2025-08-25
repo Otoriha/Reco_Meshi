@@ -24,9 +24,17 @@ const SESSION_USER_KEY = 'liff_user'
 interface LineAuthResponse {
   token: string
   user?: {
-    userId: string
-    displayName: string
+    // フロントエンド期待形式
+    userId?: string
+    displayName?: string
     pictureUrl?: string
+    // バックエンド実際形式
+    id?: string | number
+    name?: string
+    picture?: string
+    email?: string
+    provider?: string
+    confirmed?: boolean
   }
 }
 
@@ -71,8 +79,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // IDトークンが期限切れの場合は再ログイン
       if (decodedToken?.exp && decodedToken.exp < currentTime) {
-        console.log('IDトークンが期限切れです。再ログインします。')
-        liff.login({ redirectUri: window.location.href })
+        console.log('IDトークンが期限切れです。ログアウト後、再ログインします。')
+        // 認証状態をクリア
+        setAccessToken(null)
+        setIsAuthenticated(false)
+        setUser(null)
+        persistUser(null)
+        // LIFFからログアウトしてから再ログイン
+        try {
+          liff.logout()
+        } catch (_) {}
+        // 少し待ってから再ログイン
+        setTimeout(() => {
+          liff.login({ redirectUri: window.location.href })
+        }, 100)
         return false
       }
       
@@ -95,16 +115,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data?.token) {
         console.log('JWT取得成功、認証状態を更新')
         setAccessToken(data.token)
+        console.log('setAccessToken完了')
         // 優先度: サーバーが返すユーザー > LIFFプロフィール
-        if (data.user?.userId && data.user?.displayName) {
+        // バックエンドは {id, name} 形式で返すため、{userId, displayName} にマッピング
+        const serverUserId = data.user?.userId ?? data.user?.id
+        const serverDisplayName = data.user?.displayName ?? data.user?.name
+        
+        if (serverUserId && serverDisplayName) {
           const u: LiffUser = {
-            userId: data.user.userId,
-            displayName: data.user.displayName,
-            pictureUrl: data.user.pictureUrl,
+            userId: String(serverUserId),
+            displayName: serverDisplayName,
+            pictureUrl: data.user?.pictureUrl ?? data.user?.picture,
           }
           console.log('ユーザー情報設定（サーバー）:', u)
           setUser(u)
           persistUser(u)
+          console.log('ユーザー設定完了')
         } else {
           // フォールバック: LIFFプロフィールから取得
           const profile = await liff.getProfile()
@@ -116,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('ユーザー情報設定（LIFF）:', u)
           setUser(u)
           persistUser(u)
+          console.log('ユーザー設定完了（LIFF）')
         }
         console.log('JWT交換成功、認証完了')
         return true
@@ -156,9 +183,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return
       }
 
+      // ログイン済みでも、IDトークンが期限切れの可能性があるのでチェック
+      try {
+        const decodedToken = liff.getDecodedIDToken()
+        const currentTime = Math.floor(Date.now() / 1000)
+        
+        if (decodedToken?.exp && decodedToken.exp < currentTime) {
+          console.log('初期化時: IDトークンが期限切れのため認証なしで継続')
+          setIsAuthenticated(false)
+          setIsInitialized(true)
+          return
+        }
+      } catch (e) {
+        console.log('初期化時: IDトークン解析失敗、認証なしで継続')
+        setIsAuthenticated(false)
+        setIsInitialized(true)
+        return
+      }
+
       // ログイン済みならバックエンドJWTを取得
       const ok = await exchangeJwt()
+      console.log('exchangeJwt結果:', ok, 'setIsAuthenticated実行予定')
       setIsAuthenticated(ok)
+      console.log('setIsAuthenticated完了:', ok)
     } catch (e) {
       console.error('LIFF初期化エラー', e)
     } finally {
@@ -178,7 +225,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     // IDトークンの有効期限をチェックしてJWT交換
     const ok = await exchangeJwt()
+    console.log('login: exchangeJwt結果:', ok, 'setIsAuthenticated実行予定')
     setIsAuthenticated(ok)
+    console.log('login: setIsAuthenticated完了:', ok)
   }, [exchangeJwt])
 
   const logout = useCallback(() => {
