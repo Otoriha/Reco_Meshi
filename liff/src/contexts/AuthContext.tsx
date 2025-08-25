@@ -60,6 +60,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('IDトークン取得:', idToken ? 'あり' : 'なし')
       if (!idToken) return false
       
+      // IDトークンの詳細を確認（デバッグ用）
+      try {
+        const decodedToken = liff.getDecodedIDToken()
+        console.log('IDトークン詳細:', {
+          aud: decodedToken?.aud,
+          iss: decodedToken?.iss,
+          exp: decodedToken?.exp,
+          nonce: decodedToken?.nonce
+        })
+      } catch (e) {
+        console.log('IDトークンデコードエラー:', e)
+      }
+      
       // nonceを生成
       console.log('nonce生成中...')
       const nonceResponse = await axiosPlain.post<{ nonce: string }>('/auth/generate_nonce')
