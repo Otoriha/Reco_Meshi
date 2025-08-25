@@ -17,6 +17,16 @@ class LineAuthService
     
     # Verify ID token
     Rails.logger.info "JWT検証開始 - aud: #{ENV['LINE_CHANNEL_ID']}, nonce: #{nonce}"
+    Rails.logger.info "現在時刻: #{Time.current.to_i}"
+    
+    # トークンの詳細を確認
+    begin
+      header, payload = JWT.decode(id_token, nil, false)
+      Rails.logger.info "トークン詳細 - exp: #{payload['exp']}, iat: #{payload['iat']}, 現在時刻との差: #{payload['exp'] - Time.current.to_i}秒"
+    rescue => e
+      Rails.logger.warn "トークン詳細取得エラー: #{e.message}"
+    end
+    
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
       aud: ENV['LINE_CHANNEL_ID'], # IDトークンのaudはチャネルID
