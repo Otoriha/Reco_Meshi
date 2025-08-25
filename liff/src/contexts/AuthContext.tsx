@@ -1,0 +1,158 @@
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react'
+import liff from '@line/liff'
+import { axiosPlain, setAccessToken } from '../api/client'
+
+export type LiffUser = {
+  userId: string
+  displayName: string
+  pictureUrl?: string
+}
+
+type AuthContextType = {
+  isInitialized: boolean
+  isAuthenticated: boolean
+  isInClient: boolean
+  user: LiffUser | null
+  login: () => Promise<void>
+  logout: () => void
+}
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const SESSION_USER_KEY = 'liff_user'
+
+interface LineAuthResponse {
+  token: string
+  user?: {
+    userId: string
+    displayName: string
+    pictureUrl?: string
+  }
+}
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isInClient, setIsInClient] = useState(false)
+  const [user, setUser] = useState<LiffUser | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_USER_KEY)
+      return raw ? (JSON.parse(raw) as LiffUser) : null
+    } catch {
+      return null
+    }
+  })
+
+  const liffId = import.meta.env.VITE_LIFF_ID as string | undefined
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined
+
+  const persistUser = (u: LiffUser | null) => {
+    if (!u) {
+      sessionStorage.removeItem(SESSION_USER_KEY)
+    } else {
+      sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(u))
+    }
+  }
+
+  const exchangeJwt = useCallback(async (): Promise<boolean> => {
+    try {
+      const idToken = liff.getIDToken()
+      if (!idToken) return false
+      const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { id_token: idToken })
+      if (data?.token) {
+        setAccessToken(data.token)
+        // 優先度: サーバーが返すユーザー > LIFFプロフィール
+        if (data.user?.userId && data.user?.displayName) {
+          const u: LiffUser = {
+            userId: data.user.userId,
+            displayName: data.user.displayName,
+            pictureUrl: data.user.pictureUrl,
+          }
+          setUser(u)
+          persistUser(u)
+        } else {
+          // フォールバック: LIFFプロフィールから取得
+          const profile = await liff.getProfile()
+          const u: LiffUser = {
+            userId: profile.userId,
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl,
+          }
+          setUser(u)
+          persistUser(u)
+        }
+        return true
+      }
+      return false
+    } catch (e) {
+      console.error('JWT交換に失敗しました', e)
+      return false
+    }
+  }, [])
+
+  const initialize = useCallback(async () => {
+    try {
+      if (!liffId) throw new Error('VITE_LIFF_ID が設定されていません')
+      if (!apiUrl) throw new Error('VITE_API_URL が設定されていません')
+
+      await liff.init({ liffId })
+      setIsInClient(liff.isInClient())
+
+      if (!liff.isInClient()) {
+        // ブラウザ直アクセス時はここで終了（案内はPrivateRoute側で対応）
+        setIsAuthenticated(false)
+        setIsInitialized(true)
+        return
+      }
+
+      if (!liff.isLoggedIn()) {
+        setIsAuthenticated(false)
+        setIsInitialized(true)
+        return
+      }
+
+      // ログイン済みならバックエンドJWTを取得
+      const ok = await exchangeJwt()
+      setIsAuthenticated(ok)
+    } catch (e) {
+      console.error('LIFF初期化エラー', e)
+    } finally {
+      setIsInitialized(true)
+    }
+  }, [apiUrl, exchangeJwt, liffId])
+
+  useEffect(() => {
+    initialize()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const login = useCallback(async () => {
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href })
+      return
+    }
+    const ok = await exchangeJwt()
+    setIsAuthenticated(ok)
+  }, [exchangeJwt])
+
+  const logout = useCallback(() => {
+    try {
+      liff.logout()
+    } catch (_) {}
+    setAccessToken(null)
+    setIsAuthenticated(false)
+    setUser(null)
+    persistUser(null)
+  }, [])
+
+  const value = useMemo<AuthContextType>(() => ({
+    isInitialized,
+    isAuthenticated,
+    isInClient,
+    user,
+    login,
+    logout,
+  }), [isInitialized, isAuthenticated, isInClient, user, login, logout])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
