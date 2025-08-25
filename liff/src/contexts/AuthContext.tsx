@@ -100,16 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('IDトークン取得:', idToken ? 'あり' : 'なし')
       if (!idToken) return false
       
-      // nonceを生成
-      console.log('nonce生成中...')
-      const nonceResponse = await axiosPlain.post<{ nonce: string }>('/auth/generate_nonce')
-      const nonce = nonceResponse.data.nonce
-      console.log('nonce生成完了:', nonce)
-      
       console.log('JWT交換開始...')
+      // LIFFのIDトークンはnonceを含まないため、nonce生成をスキップ
       const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
-        idToken: idToken,
-        nonce: nonce
+        idToken: idToken
       })
       console.log('JWT交換レスポンス:', data)
       if (data?.token) {

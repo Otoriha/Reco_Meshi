@@ -49,13 +49,9 @@ apiClient.interceptors.response.use(
         }
         let data: LineAuthResponse
         try {
-          // nonceを生成
-          const nonceResponse = await axiosPlain.post<{ nonce: string }>('/auth/generate_nonce')
-          const nonce = nonceResponse.data.nonce
-          
+          // LIFFのIDトークンはnonceを含まないため、nonce生成をスキップ
           const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
-            idToken: idToken,
-            nonce: nonce
+            idToken: idToken
           })
           data = res.data
         } catch (e) {

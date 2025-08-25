@@ -105,9 +105,14 @@ class JwtVerifier
 
     payload, _ = JWT.decode(token, public_key, true, options)
     
-    # Verify nonce if provided
-    if nonce && payload['nonce'] != nonce
-      raise NonceMismatchError, 'Nonce mismatch'
+    # Verify nonce only if both nonce is provided and token contains nonce
+    if nonce.present? && payload['nonce'].present?
+      if payload['nonce'] != nonce
+        raise NonceMismatchError, 'Nonce mismatch'
+      end
+    elsif nonce.present? && payload['nonce'].blank?
+      # フロントエンドがnonceを送信したがIDトークンにnonceがない場合
+      Rails.logger.warn "nonce検証スキップ: IDトークンにnonceが含まれていません"
     end
 
     payload

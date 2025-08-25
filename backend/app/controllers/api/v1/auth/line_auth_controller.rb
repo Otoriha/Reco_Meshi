@@ -5,7 +5,7 @@ class Api::V1::Auth::LineAuthController < ApplicationController
   def line_login
     result = LineAuthService.authenticate_with_id_token(
       id_token: params[:idToken],
-      nonce: params[:nonce]
+      nonce: params[:nonce] || '' # nonceパラメータが未送信の場合は空文字列
     )
 
     user = result[:user]
