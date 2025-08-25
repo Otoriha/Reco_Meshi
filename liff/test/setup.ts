@@ -64,6 +64,9 @@ const createFullMockAxiosInstance = () => ({
   request: vi.fn().mockResolvedValue({ data: 'mock response' }),
   get: vi.fn().mockResolvedValue({ data: 'mock response' }),
   post: vi.fn((url: string) => {
+    if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
+      return Promise.resolve({ data: { nonce: 'mock-nonce' } })
+    }
     if (typeof url === 'string' && url.includes('/auth/line_login')) {
       return Promise.resolve({
         data: {

@@ -40,24 +40,13 @@ apiClient.interceptors.response.use(
       try {
         const idToken = liff.getIDToken()
         if (!idToken) throw new Error('IDトークンなし')
-        interface LineAuthResponse {
-          token: string
-          user?: { 
-            userId?: string; displayName?: string; pictureUrl?: string
-            id?: string | number; name?: string; picture?: string
-          }
-        }
-        let data: LineAuthResponse
-        try {
-          // LIFFのIDトークンはnonceを含まないため、nonce生成をスキップ
-          const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
-            idToken: idToken
-          })
-          data = res.data
-        } catch (e) {
-          console.error('LINE認証API呼び出し失敗:', e)
-          throw e
-        }
+        // サーバーでnonceを生成
+        const nonceRes = await axiosPlain.post<{ nonce: string }>('/auth/generate_nonce')
+        const nonce = nonceRes.data?.nonce
+        if (!nonce) throw new Error('nonce未取得')
+        interface LineAuthResponse { token: string }
+        const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { idToken, nonce })
+        const data = res.data
         if (!data?.token) throw new Error('JWT未取得')
         setAccessToken(data.token)
         ;(original as any).__isRetry = true
