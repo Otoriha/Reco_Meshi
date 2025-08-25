@@ -58,10 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const idToken = liff.getIDToken()
       if (!idToken) return false
-      // TODO: nonceの実装（現在は空文字で送信）
+      
+      // nonceを生成
+      const nonceResponse = await axiosPlain.post<{ nonce: string }>('/auth/generate_nonce')
+      const nonce = nonceResponse.data.nonce
+      
       const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { 
         idToken: idToken,
-        nonce: ''
+        nonce: nonce
       })
       if (data?.token) {
         setAccessToken(data.token)
