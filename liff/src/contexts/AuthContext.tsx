@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import liff from '@line/liff'
-import { apiClient, axiosPlain, setAccessToken } from '../api/client'
+import { axiosPlain, setAccessToken } from '../api/client'
 
 export type LiffUser = {
   userId: string
@@ -20,6 +20,15 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const SESSION_USER_KEY = 'liff_user'
+
+interface LineAuthResponse {
+  token: string
+  user?: {
+    userId: string
+    displayName: string
+    pictureUrl?: string
+  }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false)
@@ -49,9 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const idToken = liff.getIDToken()
       if (!idToken) return false
-      const { data } = await axiosPlain.post('/auth/line_login', { id_token: idToken })
+      const { data } = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { id_token: idToken })
       if (data?.token) {
-        setAccessToken(data.token as string)
+        setAccessToken(data.token)
         // 優先度: サーバーが返すユーザー > LIFFプロフィール
         if (data.user?.userId && data.user?.displayName) {
           const u: LiffUser = {
@@ -147,4 +156,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-

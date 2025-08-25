@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
@@ -29,14 +29,15 @@ const PrivateRoute: React.FC = () => {
     )
   }
 
-  if (!isAuthenticated) {
-    // ここで明示ログインを促す（LIFF内）
-    setTimeout(() => login(), 0)
-    return <Navigate to="/" replace />
-  }
+  useEffect(() => {
+    if (!isAuthenticated && isInitialized && isInClient) {
+      login()
+    }
+  }, [isAuthenticated, isInitialized, isInClient, login])
+
+  if (!isAuthenticated) return <Navigate to="/" replace />
 
   return <Outlet />
 }
 
 export default PrivateRoute
-

@@ -40,12 +40,22 @@ apiClient.interceptors.response.use(
       try {
         const idToken = liff.getIDToken()
         if (!idToken) throw new Error('IDトークンなし')
-        const { data } = await axiosPlain.post('/auth/line_login', { id_token: idToken })
-        if (data?.token) {
-          setAccessToken(data.token as string)
-          ;(original as any).__isRetry = true
-          return apiClient(original)
+        interface LineAuthResponse {
+          token: string
+          user?: { userId: string; displayName: string; pictureUrl?: string }
         }
+        let data: LineAuthResponse
+        try {
+          const res = await axiosPlain.post<LineAuthResponse>('/auth/line_login', { id_token: idToken })
+          data = res.data
+        } catch (e) {
+          console.error('LINE認証API呼び出し失敗:', e)
+          throw e
+        }
+        if (!data?.token) throw new Error('JWT未取得')
+        setAccessToken(data.token)
+        ;(original as any).__isRetry = true
+        return apiClient(original)
       } catch (e) {
         // 再取得失敗時はログイン誘導
         try {
