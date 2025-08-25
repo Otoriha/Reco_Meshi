@@ -91,7 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         idToken: idToken,
         nonce: nonce
       })
+      console.log('JWT交換レスポンス:', data)
       if (data?.token) {
+        console.log('JWT取得成功、認証状態を更新')
         setAccessToken(data.token)
         // 優先度: サーバーが返すユーザー > LIFFプロフィール
         if (data.user?.userId && data.user?.displayName) {
@@ -100,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             displayName: data.user.displayName,
             pictureUrl: data.user.pictureUrl,
           }
+          console.log('ユーザー情報設定（サーバー）:', u)
           setUser(u)
           persistUser(u)
         } else {
@@ -110,9 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             displayName: profile.displayName,
             pictureUrl: profile.pictureUrl,
           }
+          console.log('ユーザー情報設定（LIFF）:', u)
           setUser(u)
           persistUser(u)
         }
+        console.log('JWT交換成功、認証完了')
         return true
       }
       return false
