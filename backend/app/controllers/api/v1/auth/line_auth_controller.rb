@@ -20,6 +20,8 @@ class Api::V1::Auth::LineAuthController < ApplicationController
       lineAccount: line_account_response(line_account)
     }, status: :ok
   rescue LineAuthService::AuthenticationError => e
+    Rails.logger.error "LINE認証エラー: #{e.message}"
+    Rails.logger.error "バックトレース: #{e.backtrace&.first(3)}"
     render_auth_error(e.message)
   end
 

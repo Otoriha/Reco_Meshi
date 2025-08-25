@@ -16,11 +16,13 @@ class LineAuthService
     end
     
     # Verify ID token
+    Rails.logger.info "JWT検証開始 - aud: #{ENV['LINE_CHANNEL_ID']}, nonce: #{nonce}"
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
       aud: ENV['LINE_CHANNEL_ID'], # IDトークンのaudはチャネルID
       nonce: nonce.present? ? nonce : nil # Skip nonce validation if empty
     )
+    Rails.logger.info "JWT検証成功"
 
     # Find or create LineAccount
     line_account = find_or_create_line_account(line_user_info)
