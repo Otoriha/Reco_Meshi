@@ -164,6 +164,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       liff.login({ redirectUri: window.location.href })
       return
     }
+    // IDトークンを強制的に再取得
+    try {
+      await liff.login({ redirectUri: window.location.href })
+    } catch (e) {
+      console.log('ログイン再実行:', e)
+    }
     const ok = await exchangeJwt()
     setIsAuthenticated(ok)
   }, [exchangeJwt])
