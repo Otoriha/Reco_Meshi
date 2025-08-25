@@ -56,22 +56,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const exchangeJwt = useCallback(async (): Promise<boolean> => {
     try {
+      // IDトークンの有効期限をチェック
+      const decodedToken = liff.getDecodedIDToken()
+      const currentTime = Math.floor(Date.now() / 1000)
+      
+      console.log('IDトークン詳細:', {
+        aud: decodedToken?.aud,
+        iss: decodedToken?.iss,
+        exp: decodedToken?.exp,
+        nonce: decodedToken?.nonce,
+        currentTime: currentTime,
+        expired: decodedToken?.exp ? decodedToken.exp < currentTime : 'exp不明'
+      })
+      
+      // IDトークンが期限切れの場合は再ログイン
+      if (decodedToken?.exp && decodedToken.exp < currentTime) {
+        console.log('IDトークンが期限切れです。再ログインします。')
+        liff.login({ redirectUri: window.location.href })
+        return false
+      }
+      
       const idToken = liff.getIDToken()
       console.log('IDトークン取得:', idToken ? 'あり' : 'なし')
       if (!idToken) return false
-      
-      // IDトークンの詳細を確認（デバッグ用）
-      try {
-        const decodedToken = liff.getDecodedIDToken()
-        console.log('IDトークン詳細:', {
-          aud: decodedToken?.aud,
-          iss: decodedToken?.iss,
-          exp: decodedToken?.exp,
-          nonce: decodedToken?.nonce
-        })
-      } catch (e) {
-        console.log('IDトークンデコードエラー:', e)
-      }
       
       // nonceを生成
       console.log('nonce生成中...')
@@ -164,12 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       liff.login({ redirectUri: window.location.href })
       return
     }
-    // IDトークンを強制的に再取得
-    try {
-      await liff.login({ redirectUri: window.location.href })
-    } catch (e) {
-      console.log('ログイン再実行:', e)
-    }
+    // IDトークンの有効期限をチェックしてJWT交換
     const ok = await exchangeJwt()
     setIsAuthenticated(ok)
   }, [exchangeJwt])
