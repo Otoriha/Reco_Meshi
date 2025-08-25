@@ -55,7 +55,7 @@ apiClient.interceptors.response.use(
         if (!data?.token) throw new Error('JWT未取得')
         setAccessToken(data.token)
         ;(original as any).__isRetry = true
-        return apiClient(original)
+        return apiClient.request(original)
       } catch (e) {
         // 再取得失敗時はログイン誘導
         try {

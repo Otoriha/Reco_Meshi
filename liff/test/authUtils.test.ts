@@ -107,10 +107,10 @@ describe('Auth Utils', () => {
 
   describe('buildLiffDeepLink', () => {
     test('正しいLIFFディープリンクを生成', () => {
-      const liffId = '1234567890-abcdefgh'
-      const expected = 'line://app/1234567890-abcdefgh'
+      const testLiffId = 'test-liff-id-123'
+      const expected = 'line://app/test-liff-id-123'
       
-      expect(buildLiffDeepLink(liffId)).toBe(expected)
+      expect(buildLiffDeepLink(testLiffId)).toBe(expected)
     })
 
     test('空文字列のLIFF IDでもリンクを生成', () => {
@@ -121,10 +121,10 @@ describe('Auth Utils', () => {
     })
 
     test('特殊文字を含むLIFF IDでもリンクを生成', () => {
-      const liffId = '1234-5678_abcd.efgh'
-      const expected = 'line://app/1234-5678_abcd.efgh'
+      const testLiffId = 'test-1234_abcd.efgh'
+      const expected = 'line://app/test-1234_abcd.efgh'
       
-      expect(buildLiffDeepLink(liffId)).toBe(expected)
+      expect(buildLiffDeepLink(testLiffId)).toBe(expected)
     })
   })
 
@@ -141,10 +141,10 @@ describe('Auth Utils', () => {
       
       // ディープリンク生成（実際の使用場面を想定）
       if (isIdTokenExpiringSoon()) {
-        const liffId = '2007895268-QyEmzdxA'
-        const deepLink = buildLiffDeepLink(liffId)
+        const testLiffId = 'test-integration-id'
+        const deepLink = buildLiffDeepLink(testLiffId)
         
-        expect(deepLink).toBe('line://app/2007895268-QyEmzdxA')
+        expect(deepLink).toBe('line://app/test-integration-id')
       }
     })
 

@@ -1,11 +1,10 @@
 import React from 'react'
 import { renderHook, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
+import axios from 'axios'
 import { useAuth } from '../src/hooks/useAuth'
 import { AuthProvider } from '../src/contexts/AuthContext'
 import { mockLiff } from './setup'
-import axios from 'axios'
-
-vi.mock('axios')
 const mockedAxios = vi.mocked(axios)
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -13,11 +12,28 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 )
 
 describe('useAuth', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     
     mockLiff.isInClient.mockReturnValue(true)
     mockLiff.isLoggedIn.mockReturnValue(true)
+    
+    // axiosPlain.post を成功に設定（他テストのspyが影響しないよう保護）
+    const { axiosPlain } = await import('../src/api/client')
+    if ('mockRestore' in axiosPlain.post) {
+      // @ts-ignore
+      axiosPlain.post.mockRestore()
+    }
+    vi.spyOn(axiosPlain, 'post').mockResolvedValue({
+      data: {
+        token: 'mock-jwt-token',
+        user: {
+          userId: 'mock-user-id',
+          displayName: 'Mock User',
+          pictureUrl: 'https://example.com/avatar.jpg',
+        },
+      },
+    } as any)
     
     mockedAxios.create.mockReturnValue({
       post: vi.fn().mockResolvedValue({
@@ -90,8 +106,12 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(true)
     })
     
-    // ログアウト実行
-    result.current.logout()
+    // ログアウト実行（状態更新をactで包む）
+    await import('react').then(async ({ act }) => {
+      await act(async () => {
+        result.current.logout()
+      })
+    })
     
     expect(mockLiff.logout).toHaveBeenCalled()
     expect(result.current.isAuthenticated).toBe(false)
@@ -125,11 +145,10 @@ describe('useAuth', () => {
   })
 
   test('JWT交換失敗時の状態', async () => {
-    const mockAxiosInstance = {
-      post: vi.fn().mockRejectedValue(new Error('JWT exchange failed'))
-    }
-    mockedAxios.create.mockReturnValue(mockAxiosInstance as any)
-    
+    // axiosPlain.post を直接モックして失敗させる
+    const { axiosPlain } = await import('../src/api/client')
+    vi.spyOn(axiosPlain, 'post').mockRejectedValue(new Error('JWT exchange failed'))
+
     const { result } = renderHook(() => useAuth(), { wrapper })
     
     await waitFor(() => {
@@ -161,14 +180,18 @@ describe('useAuth', () => {
   })
 
   test('認証状態の変更がリアクティブに反映される', async () => {
-    const { result, rerender } = renderHook(() => useAuth(), { wrapper })
+    const { result } = renderHook(() => useAuth(), { wrapper })
     
     await waitFor(() => {
       expect(result.current.isAuthenticated).toBe(true)
     })
     
     // ログアウトを実行
-    result.current.logout()
+    await import('react').then(async ({ act }) => {
+      await act(async () => {
+        result.current.logout()
+      })
+    })
     
     expect(result.current.isAuthenticated).toBe(false)
     expect(result.current.user).toBe(null)

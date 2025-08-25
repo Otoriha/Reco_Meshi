@@ -1,11 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
+import { vi } from 'vitest'
+import axios from 'axios'
 import { AuthProvider, AuthContext, LiffUser } from '../src/contexts/AuthContext'
 import { mockLiff } from './setup'
-import axios from 'axios'
-
-// axiosをモック
-vi.mock('axios')
 const mockedAxios = vi.mocked(axios)
 
 // テスト用のコンポーネント
@@ -42,6 +40,9 @@ describe('AuthContext', () => {
     const mockSessionStorage = vi.mocked(window.sessionStorage)
     mockSessionStorage.clear()
     mockSessionStorage.getItem.mockReturnValue(null)
+    // LIFFのデフォルト状態を復元
+    mockLiff.isInClient.mockReturnValue(true)
+    mockLiff.isLoggedIn.mockReturnValue(true)
     
     // axiosのデフォルトモック設定
     mockedAxios.create.mockReturnValue({
@@ -104,17 +105,16 @@ describe('AuthContext', () => {
   })
 
   test('JWT交換失敗時は認証されない', async () => {
-    const mockAxiosInstance = {
-      post: vi.fn().mockRejectedValue(new Error('JWT exchange failed'))
-    }
-    mockedAxios.create.mockReturnValue(mockAxiosInstance as any)
-    
+    // 既存のaxiosインスタンスに対して直接postを失敗させる
+    const { axiosPlain } = await import('../src/api/client')
+    vi.spyOn(axiosPlain, 'post').mockRejectedValue(new Error('JWT exchange failed'))
+
     renderWithProvider(<TestComponent />)
-    
+
     await waitFor(() => {
       expect(screen.getByTestId('initialized')).toHaveTextContent('true')
     })
-    
+
     expect(screen.getByTestId('authenticated')).toHaveTextContent('false')
   })
 
@@ -135,6 +135,15 @@ describe('AuthContext', () => {
   })
 
   test('ログアウト処理が正常に動作する', async () => {
+    // 初期認証を確実に成功させる
+    const { axiosPlain } = await import('../src/api/client')
+    vi.spyOn(axiosPlain, 'post').mockResolvedValue({
+      data: {
+        token: 'mock-jwt-token',
+        user: { userId: 'mock-user-id', displayName: 'Mock User' },
+      },
+    } as any)
+
     renderWithProvider(<TestComponent />)
     
     // 初期化完了まで待機

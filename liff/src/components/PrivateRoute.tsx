@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useLayoutEffect } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
@@ -29,7 +29,7 @@ const PrivateRoute: React.FC = () => {
     )
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isAuthenticated && isInitialized && isInClient) {
       login()
     }
