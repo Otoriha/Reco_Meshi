@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -13,12 +12,5 @@ export default defineConfig({
   server: {
     port: 3002,
     host: true,
-  },
-  // Vitest settings (type augmented via the triple-slash reference above)
-  // If your editor flags this, it's safe to ignore during build.
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./test/setup.ts'],
-    globals: true,
   },
 })
