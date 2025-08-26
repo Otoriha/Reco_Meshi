@@ -146,4 +146,30 @@ Object.defineProperty(window, 'location', {
   writable: true,
 })
 
+// window.confirmのモック
+Object.defineProperty(window, 'confirm', {
+  value: vi.fn().mockReturnValue(false),
+  writable: true,
+})
+
 export { mockLiff, mockAxiosInstance }
+
+// navigator.clipboard のモック（user-event等が期待）
+if (!('clipboard' in navigator)) {
+  // @ts-expect-error - ここでclipboardを挿入
+  navigator.clipboard = {
+    writeText: vi.fn().mockResolvedValue(undefined),
+    readText: vi.fn().mockResolvedValue(''),
+  }
+} else {
+  // 既存がある場合もテスト安定のためモック化
+  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({
+    writeText: vi.fn().mockResolvedValue(undefined),
+    readText: vi.fn().mockResolvedValue(''),
+  } as any)
+}
+
+// 一部ライブラリが古いAPIを呼ぶケースのフォールバック
+if (!(document as any).execCommand) {
+  ;(document as any).execCommand = vi.fn().mockReturnValue(true)
+}
