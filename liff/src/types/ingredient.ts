@@ -49,3 +49,10 @@ export interface UserIngredientGroupedResponse {
   data: Record<string, UserIngredient[]>
 }
 
+// 更新用データ型
+export interface UserIngredientUpdateData {
+  quantity?: number
+  expiry_date?: string | null
+  status?: 'available' | 'used' | 'expired'
+}
+
