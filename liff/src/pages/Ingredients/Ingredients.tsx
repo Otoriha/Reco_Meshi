@@ -102,11 +102,11 @@ const Ingredients: React.FC = () => {
             </div>
           )}
 
-          {!loading && !error && totalCount === 0 && (
+          {!loading && totalCount === 0 && (
             <p className="text-gray-600">食材がありません。</p>
           )}
 
-          {!loading && !error && totalCount > 0 && (
+          {!loading && totalCount > 0 && (
             <div className="space-y-8">
               {Object.keys(groups).sort().map((category) => (
                 <div key={category}>
