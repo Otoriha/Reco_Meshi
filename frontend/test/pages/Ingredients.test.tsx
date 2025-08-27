@@ -4,8 +4,8 @@ import Ingredients from '../../src/pages/Ingredients/Ingredients'
 import { BrowserRouter } from 'react-router-dom'
 
 vi.mock('../../src/api/userIngredients', () => ({
-  getUserIngredients: vi.fn((groupBy?: 'category') => {
-    if (groupBy === 'category') {
+  getUserIngredients: vi.fn((params: any = {}) => {
+    if (params.group_by === 'category') {
       return Promise.resolve({
         status: { code: 200, message: 'OK' },
         data: {
@@ -54,7 +54,8 @@ describe('Ingredients Page', () => {
     // After load
     await waitFor(() => {
       expect(screen.getByText('食材リスト')).toBeInTheDocument()
-      expect(screen.getByText('野菜')).toBeInTheDocument()
+      // Check for category heading (not the select option)
+      expect(screen.getByRole('heading', { name: '野菜' })).toBeInTheDocument()
       expect(screen.getByText(/にんじん/)).toBeInTheDocument()
     })
   })
