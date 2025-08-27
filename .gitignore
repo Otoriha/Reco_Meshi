@@ -8,6 +8,7 @@
 # Dependencies
 node_modules/
 /backend/vendor/bundle
+/vendor/bundle
 
 # Build outputs
 /backend/tmp/
@@ -39,4 +40,3 @@ CLAUDE.md
 .tool-versions
 
 CODEX.md
-
