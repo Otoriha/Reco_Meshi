@@ -5,6 +5,10 @@ import Signup from './pages/Auth/Signup'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Ingredients from './pages/Ingredients/Ingredients'
+import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
+import Settings from './pages/Settings/Settings'
 
 type AuthMode = 'login' | 'signup';
 
@@ -31,20 +35,27 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header onAuthModeChange={handleAuthModeChange} />
-      
-      <main>
-        {isLoggedIn ? (
-          <Dashboard />
-        ) : authMode === 'login' ? (
-          <Login onSwitchToSignup={handleSwitchToSignup} />
-        ) : (
-          <Signup 
-            onSwitchToLogin={handleSwitchToLogin}
-            onSignupSuccess={handleSignupSuccess}
-          />
-        )}
-      </main>
+      <BrowserRouter>
+        <Header onAuthModeChange={handleAuthModeChange} />
+        <main>
+          {isLoggedIn ? (
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/ingredients" element={<Ingredients />} />
+              <Route path="/recipe-history" element={<RecipeHistory />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          ) : authMode === 'login' ? (
+            <Login onSwitchToSignup={handleSwitchToSignup} />
+          ) : (
+            <Signup 
+              onSwitchToLogin={handleSwitchToLogin}
+              onSignupSuccess={handleSignupSuccess}
+            />
+          )}
+        </main>
+      </BrowserRouter>
     </div>
   )
 }
