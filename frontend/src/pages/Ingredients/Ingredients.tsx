@@ -31,10 +31,11 @@ const Ingredients: React.FC = () => {
     setPageError(null)
     try {
       await add(data)
-    } catch (e: any) {
-      const msg = e?.response?.data?.status?.message || e?.message || '追加に失敗しました。'
-      setPageError(msg)
-      throw e
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { status?: { message?: string } } }; message?: string };
+      const msg = error?.response?.data?.status?.message || error?.message || '追加に失敗しました。';
+      setPageError(msg);
+      throw e;
     }
   }
 
@@ -43,7 +44,7 @@ const Ingredients: React.FC = () => {
     if (!confirm('この食材を削除しますか？')) return
     try {
       await remove(item.id)
-    } catch (e) {
+    } catch {
       setPageError('削除に失敗しました。')
     }
   }
@@ -54,10 +55,11 @@ const Ingredients: React.FC = () => {
     try {
       await update(editing.id, data)
       setEditing(null)
-    } catch (e: any) {
-      const msg = e?.response?.data?.status?.message || e?.message || '更新に失敗しました。'
-      setPageError(msg)
-      throw e
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { status?: { message?: string } } }; message?: string };
+      const msg = error?.response?.data?.status?.message || error?.message || '更新に失敗しました。';
+      setPageError(msg);
+      throw e;
     }
   }
 
@@ -94,9 +96,9 @@ const Ingredients: React.FC = () => {
           {!loading && (
             <IngredientFilters
               name={filters.name || ''}
-              status={(filters.status as any) || ''}
-              category={(filters.category as any) || ''}
-              sortBy={(filters.sort_by as any) || 'recent'}
+              status={(filters.status as 'available' | 'used' | 'expired' | '') || ''}
+              category={(filters.category as string) || ''}
+              sortBy={(filters.sort_by as 'expiry_date' | 'quantity' | 'recent') || 'recent'}
               onChange={(next) =>
                 setFilters({
                   ...filters,

@@ -47,9 +47,10 @@ const EditIngredientModal: React.FC<Props> = ({ isOpen, item, onClose, onSubmit 
     try {
       await onSubmit({ quantity: q, expiry_date: expiry || null, status })
       onClose()
-    } catch (e: any) {
-      const msg = e?.response?.data?.status?.message || e?.message || '更新に失敗しました。'
-      setError(msg)
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { status?: { message?: string } } }; message?: string };
+      const msg = error?.response?.data?.status?.message || error?.message || '更新に失敗しました。';
+      setError(msg);
     }
   }
 
@@ -83,7 +84,7 @@ const EditIngredientModal: React.FC<Props> = ({ isOpen, item, onClose, onSubmit 
           <select
             className="w-full px-3 py-2 border rounded"
             value={status}
-            onChange={(e) => setStatus(e.target.value as any)}
+            onChange={(e) => setStatus(e.target.value as 'available' | 'used' | 'expired')}
           >
             <option value="available">利用可能</option>
             <option value="used">使用済み</option>

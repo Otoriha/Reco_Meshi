@@ -10,7 +10,7 @@ type GetIngredientsParams = {
 
 // 食材マスタ一覧（ページング/検索）
 export async function getIngredients(params: GetIngredientsParams = {}): Promise<IngredientListResponse> {
-  const res = await apiClient.get('/ingredients', { params })
-  return res.data
+  const res = await apiClient.get<IngredientListResponse>('/ingredients', { params });
+  return res.data;
 }
 

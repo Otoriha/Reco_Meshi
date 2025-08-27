@@ -5,15 +5,19 @@ import {
   getUserIngredients,
   updateUserIngredient,
 } from '../api/userIngredients'
-import type { UserIngredient, UserIngredientGroupedResponse } from '../types/ingredient'
+import type { UserIngredient } from '../types/ingredient'
+import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/categories'
 
 type GroupBy = 'none' | 'category'
+type Category = keyof typeof CATEGORY_LABELS;
+type IngredientStatus = keyof typeof STATUS_LABELS;
+type SortBy = 'recent' | 'expiry_date' | 'quantity';
 
 interface Filters {
   name?: string
-  status?: 'available' | 'used' | 'expired' | ''
-  category?: string | ''
-  sort_by?: 'expiry_date' | 'quantity' | 'recent'
+  status?: IngredientStatus | ''
+  category?: Category | ''
+  sort_by?: SortBy
 }
 
 export function useUserIngredients(initialGroupBy: GroupBy = 'category') {
@@ -28,16 +32,23 @@ export function useUserIngredients(initialGroupBy: GroupBy = 'category') {
     setLoading(true)
     setError(null)
     try {
-      if (groupBy === 'category') {
-        const res = (await getUserIngredients('category')) as UserIngredientGroupedResponse
-        setGroups(res.data)
+      const params = {
+        ...(groupBy === 'category' && { group_by: 'category' as const }),
+        status: filters.status || undefined,
+        category: filters.category || undefined,
+        sort_by: filters.sort_by && filters.sort_by !== 'recent' ? filters.sort_by : undefined,
+      };
+
+      const res = await getUserIngredients(params);
+      
+      if (groupBy === 'category' && 'data' in res && typeof res.data === 'object' && !Array.isArray(res.data)) {
+        setGroups(res.data as Record<string, UserIngredient[]>);
         // フラット化
-        const flattened = Object.values(res.data).flat()
-        setItems(flattened)
-      } else {
-        const res = await getUserIngredients()
-        setItems(res.data)
-        setGroups({})
+        const flattened = Object.values(res.data as Record<string, UserIngredient[]>).flat();
+        setItems(flattened);
+      } else if ('data' in res && Array.isArray(res.data)) {
+        setItems(res.data);
+        setGroups({});
       }
     } catch (e) {
       console.error(e)
@@ -45,7 +56,7 @@ export function useUserIngredients(initialGroupBy: GroupBy = 'category') {
     } finally {
       setLoading(false)
     }
-  }, [groupBy])
+  }, [groupBy, filters.status, filters.category, filters.sort_by])
 
   useEffect(() => {
     fetch()
@@ -53,44 +64,22 @@ export function useUserIngredients(initialGroupBy: GroupBy = 'category') {
 
   const filteredItems = useMemo(() => {
     let list = [...items]
-    // 名前検索（クライアント側）
+    // 名前検索のみクライアント側（サーバー側でフィルタ・ソート済み）
     if (filters.name && filters.name.trim() !== '') {
       const q = filters.name.trim().toLowerCase()
       list = list.filter((i) =>
         (i.ingredient?.name ?? i.display_name).toLowerCase().includes(q)
       )
     }
-    // カテゴリフィルタ（クライアント側）
-    if (filters.category) {
-      list = list.filter((i) => (i.ingredient?.category ?? 'others') === filters.category)
-    }
-    // ステータスフィルタ
-    if (filters.status) {
-      list = list.filter((i) => i.status === filters.status)
-    }
-    // ソート
-    const sortBy = filters.sort_by ?? 'recent'
-    if (sortBy === 'expiry_date') {
-      list.sort((a, b) => {
-        const da = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity
-        const db = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity
-        return da - db
-      })
-    } else if (sortBy === 'quantity') {
-      list.sort((a, b) => (b.quantity ?? 0) - (a.quantity ?? 0))
-    } else {
-      // recent: updated_at desc
-      list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    }
     return list
-  }, [items, filters])
+  }, [items, filters.name])
 
   const filteredGroups = useMemo(() => {
     if (groupBy !== 'category') return {}
-    // filtersをgroupsに適用
     const result: Record<string, UserIngredient[]> = {}
     Object.keys(groups).forEach((key) => {
-      result[key] = filteredItems.filter((i) => (i.ingredient?.category ?? 'others') === key)
+      const arr = filteredItems.filter((i) => (i.ingredient?.category ?? 'others') === key)
+      if (arr.length) result[key] = arr
     })
     return result
   }, [groupBy, groups, filteredItems])

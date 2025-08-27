@@ -44,9 +44,10 @@ const AddIngredientModal: React.FC<Props> = ({ isOpen, onClose, onSubmit }) => {
       setQuantity('')
       setExpiry('')
       onClose()
-    } catch (e: any) {
-      const msg = e?.response?.data?.status?.message || e?.message || '追加に失敗しました。'
-      setError(msg)
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { status?: { message?: string } } }; message?: string };
+      const msg = error?.response?.data?.status?.message || error?.message || '追加に失敗しました。';
+      setError(msg);
     }
   }
 

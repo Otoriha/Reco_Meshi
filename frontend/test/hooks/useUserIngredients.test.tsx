@@ -39,7 +39,7 @@ vi.mock('../../src/api/userIngredients', () => ({
         expiring_soon: false,
       },
     ],
-  })) }),
+  })),
 }))
 
 const TestComp: React.FC = () => {

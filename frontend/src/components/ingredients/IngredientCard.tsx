@@ -16,7 +16,7 @@ const IngredientCard: React.FC<Props> = ({ item, onEdit, onDelete }) => {
     ? 'bg-yellow-50 border-yellow-200'
     : 'bg-gray-50 border-gray-200'
   const name = item.ingredient?.name || item.display_name
-  const emoji = (item.ingredient as any)?.emoji || ''
+  const emoji = item.ingredient?.emoji || ''
 
   return (
     <div className={`border ${bg} rounded p-4 flex items-center justify-between`}> 
