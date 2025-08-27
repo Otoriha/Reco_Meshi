@@ -6,10 +6,10 @@ import type {
   UserIngredientCreateData,
   UserIngredientUpdateData,
 } from '../types/ingredient'
-import { CATEGORY_LABELS, STATUS_LABELS } from '../constants/categories'
+import { CATEGORY_LABELS } from '../constants/categories'
 
 type Category = keyof typeof CATEGORY_LABELS;
-type IngredientStatus = keyof typeof STATUS_LABELS;
+type IngredientStatus = 'available' | 'used' | 'expired';
 type SortBy = 'recent' | 'expiry_date' | 'quantity';
 
 type GetUserIngredientsParams = {

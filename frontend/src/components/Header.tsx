@@ -44,6 +44,8 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
               <>
                 <Link to="/" className="text-gray-700 hover:text-gray-900">ダッシュボード</Link>
                 <Link to="/ingredients" className="text-gray-700 hover:text-gray-900">食材リスト</Link>
+                <Link to="/recipe-history" className="text-gray-700 hover:text-gray-900">レシピ履歴</Link>
+                <Link to="/settings" className="text-gray-700 hover:text-gray-900">設定</Link>
               </>
             )}
             {isLoggedIn && user && (
