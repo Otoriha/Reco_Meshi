@@ -19,8 +19,7 @@ module Llm
         f.request :retry, max: max_retries, interval: 0.5, interval_randomness: 0.5, backoff_factor: 2,
                           retry_statuses: [429, 500, 502, 503, 504],
                           methods: %i[post get],
-                          retry_if: ->(env, _exception) { env.response&.status.to_i >= 500 || env.response&.status == 429 },
-                          retry_after_header: 'Retry-After'
+                          retry_if: ->(env, _exception) { env.response&.status.to_i >= 500 || env.response&.status == 429 }
         f.response :json, content_type: /\bjson$/
         f.options.timeout = timeout_s
         f.adapter Faraday.default_adapter

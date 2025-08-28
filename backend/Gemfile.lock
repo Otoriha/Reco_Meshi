@@ -120,6 +120,7 @@ GEM
       zeitwerk (~> 2.6)
     erb (5.0.2)
     erubi (1.13.1)
+    event_stream_parser (1.0.0)
     factory_bot (6.5.4)
       activesupport (>= 6.1.0)
     factory_bot_rails (6.5.0)
@@ -131,6 +132,8 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
+    faraday-multipart (1.1.1)
+      multipart-post (~> 2.0)
     faraday-net_http (3.4.1)
       net-http (>= 0.5.0)
     faraday-retry (2.3.2)
@@ -361,6 +364,10 @@ GEM
       rubocop (>= 1.72)
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
+    ruby-openai (6.5.0)
+      event_stream_parser (>= 0.3.0, < 2.0.0)
+      faraday (>= 1)
+      faraday-multipart (>= 1)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
     shoulda-matchers (5.3.0)
@@ -417,6 +424,8 @@ DEPENDENCIES
   dotenv-rails
   factory_bot_rails
   faker
+  faraday (~> 2.0)
+  faraday-retry (~> 2.0)
   google-cloud-vision (~> 2.0)
   jsonapi-serializer
   line-bot-api (~> 2.1)
@@ -428,6 +437,7 @@ DEPENDENCIES
   redis (>= 4.0.1)
   rspec-rails (~> 6.0)
   rubocop-rails-omakase
+  ruby-openai (~> 6.0)
   shoulda-matchers (~> 5.0)
   sidekiq
   timecop
