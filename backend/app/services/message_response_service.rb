@@ -37,12 +37,74 @@ class MessageResponseService
   end
 
   def create_recipe_suggestion_message
-    # 将来的にはユーザーの食材データベースから取得してAIでレシピ生成
-    mock_ingredients = [ "玉ねぎ", "人参", "じゃがいも", "豚肉" ]
+    # 現在はモック食材。後続Issueでユーザー在庫と連携
+    ingredients = [ "玉ねぎ", "人参", "じゃがいも", "豚肉" ]
 
+    begin
+      llm_service = Llm::Factory.build
+      messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
+      result = llm_service.generate(messages: messages, response_format: :json)
+      text = format_recipe_text(result.text)
+      @line_bot_service.create_text_message(text)
+    rescue => e
+      Rails.logger.error "LLM API Error: #{e.message}"
+
+      # プロバイダフォールバックが設定されていれば試行
+      begin
+        fallback = Rails.application.config.x.llm
+        fallback_provider = fallback.is_a?(Hash) ? fallback[:fallback_provider] : fallback&.fallback_provider
+        if fallback_provider && fallback_provider != (fallback.is_a?(Hash) ? fallback[:provider] : fallback&.provider)
+          alt = Llm::Factory.build(provider: fallback_provider)
+          messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
+          result = alt.generate(messages: messages, response_format: :json)
+          text = format_recipe_text(result.text)
+          return @line_bot_service.create_text_message(text)
+        end
+      rescue => e2
+        Rails.logger.error "LLM Fallback Error: #{e2.message}"
+      end
+
+      # 最終フォールバック：従来のモック文面
+      create_fallback_recipe_message(ingredients)
+    end
+  end
+
+  def format_recipe_text(json_text)
+    data = JSON.parse(json_text) rescue nil
+    return json_text unless data.is_a?(Hash)
+
+    lines = []
+    lines << "🍳 今ある食材でのレシピ提案"
+    lines << ""
+    lines << "📖 おすすめレシピ:"
+    lines << "「#{data['title']}」" if data['title']
+    lines << "・調理時間: #{data['time']}" if data['time']
+    lines << "・難易度: #{data['difficulty']}" if data['difficulty']
+    if data['ingredients'].is_a?(Array)
+      lines << ""
+      lines << "材料:"
+      data['ingredients'].each do |ing|
+        name = ing['name'] || ing[:name]
+        amount = ing['amount'] || ing[:amount]
+        lines << "・#{[name, amount].compact.join(' ')}"
+      end
+    end
+    if data['steps'].is_a?(Array)
+      lines << ""
+      lines << "作り方:"
+      data['steps'].each_with_index do |step, idx|
+        lines << "#{idx + 1}. #{step}"
+      end
+    end
+    lines << ""
+    lines << "詳しい作り方はLIFFアプリでご確認ください！"
+    lines.join("\n")
+  end
+
+  def create_fallback_recipe_message(ingredients)
     @line_bot_service.create_text_message(
       "🍳 今ある食材でのレシピ提案\n\n" \
-      "現在の食材: #{mock_ingredients.join(', ')}\n\n" \
+      "現在の食材: #{ingredients.join(', ')}\n\n" \
       "📖 おすすめレシピ:\n" \
       "「豚肉と野菜の炒め物」\n" \
       "・調理時間: 約15分\n" \

@@ -1,0 +1,71 @@
+require 'openai'
+
+module Llm
+  class OpenaiService < BaseService
+    def initialize(client: nil)
+      api_key = ENV['OPENAI_API_KEY']
+      raise 'OpenAI API key is not configured' if api_key.nil? || api_key.empty?
+
+      timeout_s = (config_value(:timeout_ms).to_i / 1000.0)
+      @client = client || OpenAI::Client.new(access_token: api_key, request_timeout: timeout_s)
+    end
+
+    def generate(messages:, response_format: :text, temperature: nil, max_tokens: nil)
+      model = ENV.fetch('OPENAI_MODEL', 'gpt-4o-mini')
+      temperature ||= config_value(:temperature).to_f
+      max_tokens ||= config_value(:max_tokens).to_i
+      rfmt = response_format == :json ? { type: 'json_object' } : nil
+
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      response = with_retries(max_retries: config_value(:max_retries).to_i, base_delay: 0.5) do
+        @client.chat(
+          parameters: {
+            model: model,
+            messages: to_openai_messages(messages),
+            temperature: temperature,
+            max_tokens: max_tokens,
+            response_format: rfmt
+          }.compact
+        )
+      end
+      duration = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000.0).round
+
+      content = response.dig('choices', 0, 'message', 'content').to_s
+      usage = response['usage']
+
+      ActiveSupport::Notifications.instrument('llm.request', {
+        provider: 'openai',
+        model: model,
+        duration: duration,
+        tokens: usage
+      })
+
+      result = Llm::Result.new(text: content, provider: 'openai', model: model, usage: usage)
+      if response_format == :json
+        begin
+          result.raw_json = JSON.parse(content)
+        rescue JSON::ParserError
+          # leave raw_json nil, allow caller to fallback
+        end
+      end
+      result
+    end
+
+    private
+
+    def to_openai_messages(msgs)
+      sys = msgs[:system].to_s
+      usr = msgs[:user].to_s
+      arr = []
+      arr << { role: 'system', content: sys } unless sys.empty?
+      arr << { role: 'user', content: usr } unless usr.empty?
+      arr
+    end
+
+    def config_value(key)
+      cfg = Rails.application.config.x.llm
+      cfg.is_a?(Hash) ? cfg[key] : cfg.public_send(key)
+    end
+  end
+end
+
