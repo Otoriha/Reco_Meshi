@@ -1,5 +1,6 @@
 require 'faraday'
 require 'faraday/retry'
+require 'faraday/middleware'
 require 'json'
 
 module Llm
@@ -100,4 +101,3 @@ module Llm
     end
   end
 end
-

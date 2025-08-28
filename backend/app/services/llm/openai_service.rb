@@ -1,4 +1,5 @@
 require 'openai'
+require 'json'
 
 module Llm
   class OpenaiService < BaseService
@@ -14,36 +15,24 @@ module Llm
       model = ENV.fetch('OPENAI_MODEL', 'gpt-4o-mini')
       temperature ||= config_value(:temperature).to_f
       max_tokens ||= config_value(:max_tokens).to_i
-      
-      # GPT-5 models use different parameter names and have restrictions
-      if model.include?('gpt-5')
-        # Use max_completion_tokens for GPT-5 models
-        token_param = :max_completion_tokens
-        # GPT-5 models don't support custom temperature, use default
-        use_temperature = false
-      else
-        # Standard models use max_tokens and support temperature
-        token_param = :max_tokens  
-        use_temperature = true
-      end
-
       rfmt = response_format == :json ? { type: 'json_object' } : nil
+
+      params = {
+        model: model,
+        messages: to_openai_messages(messages),
+        temperature: temperature,
+        max_tokens: max_tokens,
+        response_format: rfmt
+      }.compact
+
+      if model.start_with?('gpt-5')
+        params[:reasoning_effort] = config_value(:reasoning_effort)
+        params[:verbosity] = config_value(:verbosity)
+        Rails.logger.warn('[LLM] Using GPT-5 model; applying reasoning_effort/verbosity') if defined?(Rails)
+      end
 
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = with_retries(max_retries: config_value(:max_retries).to_i, base_delay: 0.5) do
-        # Build parameters based on model capabilities
-        params = {
-          model: model,
-          messages: to_openai_messages(messages),
-          token_param => max_tokens,
-          response_format: rfmt
-        }.compact
-        
-        # Add temperature only for models that support it
-        if use_temperature
-          params[:temperature] = temperature
-        end
-        
         @client.chat(parameters: params)
       end
       duration = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000.0).round
@@ -86,4 +75,3 @@ module Llm
     end
   end
 end
-

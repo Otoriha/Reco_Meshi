@@ -123,6 +123,13 @@ RSpec.describe MessageResponseService do
 
           service.generate_response(:recipe)
         end
+
+        it 'instruments llm.error for primary failure' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai', error_class: 'StandardError')
+          )
+          service.generate_response(:recipe)
+        end
       end
 
       context 'when fallback provider is configured and primary fails' do
@@ -153,6 +160,13 @@ RSpec.describe MessageResponseService do
 
           service.generate_response(:recipe)
         end
+
+        it 'instruments llm.fallback when using fallback provider' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.fallback', { from: 'openai', to: 'gemini' }
+          )
+          service.generate_response(:recipe)
+        end
       end
 
       context 'when both primary and fallback providers fail' do
@@ -178,6 +192,16 @@ RSpec.describe MessageResponseService do
           expect(Rails.logger).to receive(:error).with('LLM API Error: Primary API Error')
           expect(Rails.logger).to receive(:error).with('LLM Fallback Error: Fallback API Error')
 
+          service.generate_response(:recipe)
+        end
+
+        it 'instruments llm.error for fallback failure' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai')
+          )
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'gemini')
+          )
           service.generate_response(:recipe)
         end
       end

@@ -9,10 +9,12 @@ RSpec.describe Llm::OpenaiService do
   before do
     Rails.application.config.x.llm = {
       provider: 'openai',
-      timeout_ms: 15000,
+      timeout_ms: 10000,
       max_retries: 3,
       temperature: 0.7,
-      max_tokens: 1000
+      max_tokens: 1000,
+      reasoning_effort: 'low',
+      verbosity: 'low'
     }
     
     allow(ENV).to receive(:[]).with('OPENAI_API_KEY').and_return('test-api-key')
@@ -189,3 +191,28 @@ RSpec.describe Llm::OpenaiService do
     end
   end
 end
+    context 'when using a GPT-5 model' do
+      before do
+        allow(ENV).to receive(:fetch).with('OPENAI_MODEL', 'gpt-4o-mini').and_return('gpt-5-nano-2025-08-07')
+      end
+
+      it 'includes reasoning_effort and verbosity parameters' do
+        expect(mock_client).to receive(:chat).with(
+          parameters: hash_including(
+            model: 'gpt-5-nano-2025-08-07',
+            max_tokens: 1000,
+            temperature: 0.7,
+            reasoning_effort: 'low',
+            verbosity: 'low'
+          )
+        ).and_return(mock_response)
+
+        service.generate(messages: messages)
+      end
+
+      it 'logs a warning about GPT-5 params' do
+        allow(mock_client).to receive(:chat).and_return(mock_response)
+        expect(Rails.logger).to receive(:warn).with('[LLM] Using GPT-5 model; applying reasoning_effort/verbosity')
+        service.generate(messages: messages)
+      end
+    end

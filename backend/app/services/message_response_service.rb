@@ -41,6 +41,7 @@ class MessageResponseService
     ingredients = [ "玉ねぎ", "人参", "じゃがいも", "豚肉" ]
 
     begin
+      primary_provider = (Rails.application.config.x.llm.is_a?(Hash) ? Rails.application.config.x.llm[:provider] : Rails.application.config.x.llm&.provider)
       llm_service = Llm::Factory.build
       messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
       result = llm_service.generate(messages: messages, response_format: :json)
@@ -48,12 +49,18 @@ class MessageResponseService
       @line_bot_service.create_text_message(text)
     rescue => e
       Rails.logger.error "LLM API Error: #{e.message}"
+      ActiveSupport::Notifications.instrument('llm.error', {
+        provider: primary_provider,
+        error_class: e.class.name,
+        error_message: e.message
+      })
 
       # プロバイダフォールバックが設定されていれば試行
       begin
         fallback = Rails.application.config.x.llm
         fallback_provider = fallback.is_a?(Hash) ? fallback[:fallback_provider] : fallback&.fallback_provider
         if fallback_provider && fallback_provider != (fallback.is_a?(Hash) ? fallback[:provider] : fallback&.provider)
+          ActiveSupport::Notifications.instrument('llm.fallback', { from: primary_provider, to: fallback_provider })
           alt = Llm::Factory.build(provider: fallback_provider)
           messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
           result = alt.generate(messages: messages, response_format: :json)
@@ -62,6 +69,11 @@ class MessageResponseService
         end
       rescue => e2
         Rails.logger.error "LLM Fallback Error: #{e2.message}"
+        ActiveSupport::Notifications.instrument('llm.error', {
+          provider: fallback_provider,
+          error_class: e2.class.name,
+          error_message: e2.message
+        })
       end
 
       # 最終フォールバック：従来のモック文面
