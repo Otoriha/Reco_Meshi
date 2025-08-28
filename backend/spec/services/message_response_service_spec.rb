@@ -29,28 +29,197 @@ RSpec.describe MessageResponseService do
     end
 
     context 'when command is :recipe' do
-      it 'creates a recipe suggestion message' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('今ある食材でのレシピ提案')
+      let(:mock_llm_service) { instance_double(Llm::OpenaiService) }
+      let(:mock_llm_result) do
+        Llm::Result.new(
+          text: '{"title":"肉じゃが","time":"約25分","difficulty":"★★☆","ingredients":[{"name":"じゃがいも","amount":"3個"},{"name":"玉ねぎ","amount":"1個"},{"name":"人参","amount":"1本"},{"name":"豚肉","amount":"200g"}],"steps":["じゃがいもと人参を一口大に切る","玉ねぎをくし切りにする","豚肉を炒める","野菜を加えて炒める","調味料を加えて煮込む"]}',
+          provider: 'openai',
+          model: 'gpt-4o-mini'
         )
-        
-        service.generate_response(:recipe)
       end
 
-      it 'includes mock ingredients and recipe' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('豚肉と野菜の炒め物')
-        )
+      before do
+        Rails.application.config.x.llm = {
+          provider: 'openai',
+          timeout_ms: 15000,
+          max_retries: 3,
+          temperature: 0.7,
+          max_tokens: 1000,
+          fallback_provider: 'gemini'
+        }
         
-        service.generate_response(:recipe)
+        allow(Llm::Factory).to receive(:build).and_return(mock_llm_service)
+        allow(PromptTemplateService).to receive(:recipe_generation).and_return({
+          system: 'You are a chef',
+          user: 'Create a recipe with: 玉ねぎ, 人参, じゃがいも, 豚肉'
+        })
       end
 
-      it 'mentions sample data disclaimer' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('現在はサンプルデータを表示しています')
-        )
-        
-        service.generate_response(:recipe)
+      context 'when LLM service succeeds' do
+        before do
+          allow(mock_llm_service).to receive(:generate).and_return(mock_llm_result)
+        end
+
+        it 'creates a recipe suggestion message using LLM' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('🍳 今ある食材でのレシピ提案')
+          )
+          
+          service.generate_response(:recipe)
+        end
+
+        it 'calls LLM service with correct parameters' do
+          expect(mock_llm_service).to receive(:generate).with(
+            messages: {
+              system: 'You are a chef',
+              user: 'Create a recipe with: 玉ねぎ, 人参, じゃがいも, 豚肉'
+            },
+            response_format: :json
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'formats LLM response correctly' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('「肉じゃが」').and(
+              a_string_including('約25分')
+            )
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'includes ingredients and steps from LLM response' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('材料:').and(
+              a_string_including('・じゃがいも 3個')
+            ).and(
+              a_string_including('作り方:').and(
+                a_string_including('1. じゃがいもと人参を一口大に切る')
+              )
+            )
+          )
+
+          service.generate_response(:recipe)
+        end
+      end
+
+      context 'when LLM service fails' do
+        before do
+          # Disable fallback in this context to validate primary error behavior only
+          Rails.application.config.x.llm = {
+            provider: 'openai',
+            timeout_ms: 15000,
+            max_retries: 3,
+            temperature: 0.7,
+            max_tokens: 1000,
+            fallback_provider: nil
+          }
+          allow(mock_llm_service).to receive(:generate).and_raise(StandardError.new('API Error'))
+        end
+
+        it 'falls back to mock recipe message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('豚肉と野菜の炒め物')
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'logs the error' do
+          expect(Rails.logger).to receive(:error).with('LLM API Error: API Error')
+
+          service.generate_response(:recipe)
+        end
+
+        it 'instruments llm.error for primary failure' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai', error_class: 'StandardError')
+          )
+          service.generate_response(:recipe)
+        end
+      end
+
+      context 'when fallback provider is configured and primary fails' do
+        let(:mock_fallback_service) { instance_double(Llm::GeminiService) }
+
+        before do
+          allow(ActiveSupport::Notifications).to receive(:instrument).and_call_original
+          allow(mock_llm_service).to receive(:generate).and_raise(StandardError.new('Primary API Error'))
+          allow(Llm::Factory).to receive(:build).with(provider: 'gemini').and_return(mock_fallback_service)
+          allow(mock_fallback_service).to receive(:generate).and_return(mock_llm_result)
+        end
+
+        it 'tries fallback provider' do
+          expect(mock_fallback_service).to receive(:generate).with(
+            messages: {
+              system: 'You are a chef',
+              user: 'Create a recipe with: 玉ねぎ, 人参, じゃがいも, 豚肉'
+            },
+            response_format: :json
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'returns successful response from fallback' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('「肉じゃが」')
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'instruments llm.error for primary and llm.fallback for switching' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai')
+          )
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.fallback', { from: 'openai', to: 'gemini' }
+          )
+          service.generate_response(:recipe)
+        end
+      end
+
+      context 'when both primary and fallback providers fail' do
+        let(:mock_fallback_service) { instance_double(Llm::GeminiService) }
+
+        before do
+          allow(mock_llm_service).to receive(:generate).and_raise(StandardError.new('Primary API Error'))
+          allow(Llm::Factory).to receive(:build).with(provider: 'gemini').and_return(mock_fallback_service)
+          allow(mock_fallback_service).to receive(:generate).and_raise(StandardError.new('Fallback API Error'))
+        end
+
+        it 'falls back to mock recipe message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('豚肉と野菜の炒め物').and(
+              a_string_including('現在はサンプルデータを表示しています')
+            )
+          )
+
+          service.generate_response(:recipe)
+        end
+
+        it 'logs both errors' do
+          expect(Rails.logger).to receive(:error).with('LLM API Error: Primary API Error')
+          expect(Rails.logger).to receive(:error).with('LLM Fallback Error: Fallback API Error')
+
+          service.generate_response(:recipe)
+        end
+
+        it 'instruments primary error, fallback attempt, then fallback error' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai')
+          )
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.fallback', { from: 'openai', to: 'gemini' }
+          )
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'gemini')
+          )
+          service.generate_response(:recipe)
+        end
       end
     end
 
@@ -186,6 +355,10 @@ RSpec.describe MessageResponseService do
   end
 
   describe 'message content validation' do
+    before do
+      # Ensure no real LLM calls occur in these generic content tests
+      allow(Llm::Factory).to receive(:build).and_raise(StandardError.new('Disabled in content validation'))
+    end
     it 'greeting message contains welcome text' do
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('ようこそ')
