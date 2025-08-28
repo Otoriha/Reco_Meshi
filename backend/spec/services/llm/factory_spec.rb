@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Llm::Factory do
   before do
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:fetch).and_call_original
     Rails.application.config.x.llm = {
       provider: 'openai',
       timeout_ms: 15000,

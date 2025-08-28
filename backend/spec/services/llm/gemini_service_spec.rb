@@ -7,6 +7,8 @@ RSpec.describe Llm::GeminiService do
   let(:messages) { { system: 'You are a chef', user: 'Create a recipe' } }
 
   before do
+    allow(ENV).to receive(:[]).and_call_original
+    allow(ENV).to receive(:fetch).and_call_original
     Rails.application.config.x.llm = {
       provider: 'gemini',
       timeout_ms: 15000,
@@ -83,7 +85,7 @@ RSpec.describe Llm::GeminiService do
           contents: [
             {
               role: 'user',
-              parts: [{ text: 'You are a chef\n\nCreate a recipe' }]
+              parts: [{ text: "You are a chef\n\nCreate a recipe" }]
             }
           ],
           generationConfig: {
@@ -107,7 +109,7 @@ RSpec.describe Llm::GeminiService do
           contents: [
             {
               role: 'user',
-              parts: [{ text: 'You are a chef\n\nCreate a recipe' }]
+              parts: [{ text: "You are a chef\n\nCreate a recipe" }]
             }
           ],
           generationConfig: {

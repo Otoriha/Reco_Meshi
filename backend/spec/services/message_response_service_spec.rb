@@ -107,6 +107,15 @@ RSpec.describe MessageResponseService do
 
       context 'when LLM service fails' do
         before do
+          # Disable fallback in this context to validate primary error behavior only
+          Rails.application.config.x.llm = {
+            provider: 'openai',
+            timeout_ms: 15000,
+            max_retries: 3,
+            temperature: 0.7,
+            max_tokens: 1000,
+            fallback_provider: nil
+          }
           allow(mock_llm_service).to receive(:generate).and_raise(StandardError.new('API Error'))
         end
 
@@ -136,6 +145,7 @@ RSpec.describe MessageResponseService do
         let(:mock_fallback_service) { instance_double(Llm::GeminiService) }
 
         before do
+          allow(ActiveSupport::Notifications).to receive(:instrument).and_call_original
           allow(mock_llm_service).to receive(:generate).and_raise(StandardError.new('Primary API Error'))
           allow(Llm::Factory).to receive(:build).with(provider: 'gemini').and_return(mock_fallback_service)
           allow(mock_fallback_service).to receive(:generate).and_return(mock_llm_result)
@@ -161,7 +171,10 @@ RSpec.describe MessageResponseService do
           service.generate_response(:recipe)
         end
 
-        it 'instruments llm.fallback when using fallback provider' do
+        it 'instruments llm.error for primary and llm.fallback for switching' do
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.error', hash_including(provider: 'openai')
+          )
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.fallback', { from: 'openai', to: 'gemini' }
           )
@@ -195,9 +208,12 @@ RSpec.describe MessageResponseService do
           service.generate_response(:recipe)
         end
 
-        it 'instruments llm.error for fallback failure' do
+        it 'instruments primary error, fallback attempt, then fallback error' do
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.error', hash_including(provider: 'openai')
+          )
+          expect(ActiveSupport::Notifications).to receive(:instrument).with(
+            'llm.fallback', { from: 'openai', to: 'gemini' }
           )
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.error', hash_including(provider: 'gemini')
@@ -339,6 +355,10 @@ RSpec.describe MessageResponseService do
   end
 
   describe 'message content validation' do
+    before do
+      # Ensure no real LLM calls occur in these generic content tests
+      allow(Llm::Factory).to receive(:build).and_raise(StandardError.new('Disabled in content validation'))
+    end
     it 'greeting message contains welcome text' do
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('ようこそ')
