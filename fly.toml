@@ -63,12 +63,4 @@ console_command = '/rails/bin/rails console'
   app = ''
   worker = 'bundle exec sidekiq'
 
-[[services]]
-  processes = ['worker']
-  internal_port = 3000
-
-  [[services.http_checks]]
-    interval = '30s'
-    timeout = '5s'
-    grace_period = '10s'
-    path = '/sidekiq/stats'
+# Worker process does not expose HTTP; remove HTTP service definition for worker

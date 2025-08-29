@@ -40,5 +40,15 @@ module App
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # Add session middleware for Sidekiq Web UI in development
+    if Rails.env.development?
+      config.session_store :cookie_store, key: '_recomeshi_session'
+      config.middleware.use ActionDispatch::Cookies
+      config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
+    end
+
+    # Default Active Job adapter (fallback); env-specific files will override
+    config.active_job.queue_adapter = :inline
   end
 end

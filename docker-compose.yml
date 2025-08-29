@@ -35,11 +35,33 @@ services:
       RAILS_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER:-recomeshi}:${POSTGRES_PASSWORD:-recomeshi_password}@postgres:5432/${POSTGRES_DB:-recomeshi_development}
       REDIS_URL: redis://redis:6379/0
+      SIDEKIQ_REDIS_URL: ${SIDEKIQ_REDIS_URL:-redis://redis:6379/1}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
       LIFF_ID: ${LIFF_ID}
       FRONTEND_URL: ${FRONTEND_URL}
       LIFF_URL: ${LIFF_URL}
+    stdin_open: true
+    tty: true
+
+  sidekiq:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./backend:/app
+      - rails_bundle:/usr/local/bundle
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      RAILS_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-recomeshi}:${POSTGRES_PASSWORD:-recomeshi_password}@postgres:5432/${POSTGRES_DB:-recomeshi_development}
+      REDIS_URL: redis://redis:6379/0
+      SIDEKIQ_REDIS_URL: ${SIDEKIQ_REDIS_URL:-redis://redis:6379/1}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+    command: bash -c "bundle install && bundle exec sidekiq -r ./config/environment.rb -C config/sidekiq.yml"
     stdin_open: true
     tty: true
 

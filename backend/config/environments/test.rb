@@ -53,6 +53,9 @@ Rails.application.configure do
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 
+  # Use :test adapter so jobs don't hit Redis during tests
+  config.active_job.queue_adapter = :test
+
   # Raise exceptions for disallowed deprecations.
   config.active_support.disallowed_deprecation = :raise
 
