@@ -61,7 +61,7 @@ services:
       SIDEKIQ_REDIS_URL: ${SIDEKIQ_REDIS_URL:-redis://redis:6379/1}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
-    command: bundle exec sidekiq -C config/sidekiq.yml -r ./config/environment
+    command: bash -c "bundle install && bundle exec sidekiq -r ./config/environment.rb -C config/sidekiq.yml"
     stdin_open: true
     tty: true
 
