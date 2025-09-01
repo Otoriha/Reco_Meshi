@@ -40,7 +40,7 @@ gem "dotenv-rails"
 gem "redis", ">= 4.0.1"
 
 # Background job processing
-gem "sidekiq"
+gem "sidekiq", "~> 7.2"
 
 # LINE Bot API (V2)
 gem "line-bot-api", "~> 2.1", require: "line/bot"
