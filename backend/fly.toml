@@ -40,6 +40,12 @@ console_command = '/rails/bin/rails console'
   cpus = 1
   processes = ['app']
 
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  processes = ['worker']
+
 [mounts]
   source = "data"
   destination = "/data"
@@ -64,9 +70,9 @@ console_command = '/rails/bin/rails console'
       X-Forwarded-Proto = 'https'
 
 # Sidekiq worker process (optional - comment out if not using background jobs)
-# [processes]
-#   app = ''
-#   worker = 'bundle exec sidekiq'
+[processes]
+  app = ''
+  worker = 'bundle exec sidekiq'
 
 # Sidekiq worker doesn't need HTTP service or health checks
 # Remove or comment out the services section for worker
