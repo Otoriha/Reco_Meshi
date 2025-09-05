@@ -12,11 +12,18 @@ RSpec.describe Recipe, type: :model do
     it { is_expected.to validate_presence_of(:ai_provider) }
     
     it { is_expected.to validate_numericality_of(:cooking_time).is_greater_than(0).is_less_than_or_equal_to(480) }
-    it { is_expected.to validate_numericality_of(:servings).is_greater_than(0).is_less_than_or_equal_to(20).allow_blank }
+    # shoulda-matchers のnumericalityは allow_blank を未サポートのため allow_nil を使用
+    it { is_expected.to validate_numericality_of(:servings).is_greater_than(0).is_less_than_or_equal_to(20).allow_nil }
     
     it { is_expected.to validate_length_of(:title).is_at_most(100) }
     it { is_expected.to validate_inclusion_of(:ai_provider).in_array(%w[openai gemini]) }
-    it { is_expected.to validate_inclusion_of(:difficulty).in_array(%w[easy medium hard]).allow_blank }
+    # enum(文字列)に対する shoulda の allow_blank は未サポートのため allow_nil を使用
+    # enum(文字列)はshouldaのサポートが限定的なため、手動で検証
+    it 'difficulty は easy/medium/hard のみ許可される' do
+      expect(Recipe.difficulties.keys).to match_array(%w[easy medium hard])
+      expect(build(:recipe, user: user, difficulty: 'easy')).to be_valid
+      expect { build(:recipe, user: user, difficulty: 'invalid') }.to raise_error(ArgumentError)
+    end
   end
 
   describe 'Enum' do
@@ -163,5 +170,3 @@ RSpec.describe Recipe, type: :model do
     end
   end
 end
-
-

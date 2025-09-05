@@ -13,7 +13,8 @@ RSpec.describe RecipeIngredient, type: :model do
   describe 'バリデーション' do
     subject { build(:recipe_ingredient, recipe: recipe) }
 
-    it { is_expected.to validate_numericality_of(:amount).is_greater_than(0).allow_blank }
+    # shoulda-matchers のnumericalityは allow_blank を未サポートのため allow_nil を使用
+    it { is_expected.to validate_numericality_of(:amount).is_greater_than(0).allow_nil }
     it { is_expected.to validate_length_of(:unit).is_at_most(20).allow_blank }
 
     describe 'ingredient_idまたはingredient_nameが必要' do
@@ -43,8 +44,9 @@ RSpec.describe RecipeIngredient, type: :model do
   describe 'スコープ' do
     let!(:required_ingredient) { create(:recipe_ingredient, recipe: recipe, is_optional: false) }
     let!(:optional_ingredient) { create(:recipe_ingredient, recipe: recipe, is_optional: true) }
-    let!(:matched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: ingredient) }
-    let!(:unmatched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: nil, ingredient_name: 'unknown') }
+    # required_count の期待値を1に保つため、他のレコードは任意フラグにする
+    let!(:matched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: ingredient, is_optional: true) }
+    let!(:unmatched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: nil, ingredient_name: 'unknown', is_optional: true) }
 
     describe '.required' do
       it '必須食材のみ返す' do
@@ -181,35 +183,34 @@ RSpec.describe RecipeIngredient, type: :model do
   end
 
   describe 'クラスメソッド' do
-    let!(:required_ingredient) { create(:recipe_ingredient, recipe: recipe, is_optional: false) }
-    let!(:optional_ingredient) { create(:recipe_ingredient, recipe: recipe, is_optional: true) }
-    let!(:matched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: ingredient) }
-    let!(:unmatched_ingredient) { create(:recipe_ingredient, recipe: recipe, ingredient: nil, ingredient_name: 'unknown') }
-
     describe '.required_count' do
       it '必須食材数を返す' do
+        create(:recipe_ingredient, recipe: recipe, is_optional: false)
+        create(:recipe_ingredient, recipe: recipe, is_optional: true)
         expect(RecipeIngredient.required_count).to eq 1
       end
     end
 
     describe '.optional_count' do
       it '任意食材数を返す' do
+        create(:recipe_ingredient, recipe: recipe, is_optional: false)
+        create(:recipe_ingredient, recipe: recipe, is_optional: true)
         expect(RecipeIngredient.optional_count).to eq 1
       end
     end
 
     describe '.matched_count' do
       it 'マッチした食材数を返す' do
+        create(:recipe_ingredient, recipe: recipe, ingredient: ingredient)
         expect(RecipeIngredient.matched_count).to be >= 1
       end
     end
 
     describe '.unmatched_count' do
       it 'マッチしなかった食材数を返す' do
+        create(:recipe_ingredient, recipe: recipe, ingredient: nil, ingredient_name: 'unknown')
         expect(RecipeIngredient.unmatched_count).to eq 1
       end
     end
   end
 end
-
-
