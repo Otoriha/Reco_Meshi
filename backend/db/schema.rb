@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_22_090155) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_05_062219) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -66,6 +66,35 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090155) do
     t.index ["user_id"], name: "index_line_accounts_on_user_id"
   end
 
+  create_table "recipe_ingredients", force: :cascade do |t|
+    t.bigint "recipe_id", null: false, comment: "レシピID"
+    t.bigint "ingredient_id", comment: "食材ID（マッチング成功時）"
+    t.string "ingredient_name", comment: "食材名（マッチング失敗時のフォールバック）"
+    t.decimal "amount", precision: 10, scale: 2, comment: "必要量"
+    t.string "unit", limit: 20, comment: "単位（g、個、大さじ等）"
+    t.boolean "is_optional", default: false, null: false, comment: "任意の食材フラグ"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ingredient_id"], name: "index_recipe_ingredients_on_ingredient_id"
+    t.index ["recipe_id"], name: "index_recipe_ingredients_on_recipe_id"
+    t.check_constraint "ingredient_id IS NOT NULL OR ingredient_name IS NOT NULL", name: "chk_ingredient_id_or_name_required"
+  end
+
+  create_table "recipes", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "ユーザーID"
+    t.string "title", null: false, comment: "料理名"
+    t.integer "cooking_time", null: false, comment: "調理時間（分）"
+    t.string "difficulty", comment: "難易度（easy/medium/hard）"
+    t.integer "servings", default: 1, comment: "サービング数"
+    t.jsonb "steps", default: "[]", null: false, comment: "調理手順（JSON）"
+    t.string "ai_provider", null: false, comment: "AIプロバイダー（openai/gemini等）"
+    t.jsonb "ai_response", comment: "生成元のAIレスポンス（JSON）"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "created_at"], name: "index_recipes_on_user_id_created_at"
+    t.index ["user_id"], name: "index_recipes_on_user_id"
+  end
+
   create_table "user_ingredients", force: :cascade do |t|
     t.bigint "user_id", null: false, comment: "ユーザーID"
     t.bigint "ingredient_id", null: false, comment: "食材ID"
@@ -107,6 +136,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_22_090155) do
   add_foreign_key "fridge_images", "line_accounts"
   add_foreign_key "fridge_images", "users"
   add_foreign_key "line_accounts", "users", on_delete: :nullify
+  add_foreign_key "recipe_ingredients", "ingredients"
+  add_foreign_key "recipe_ingredients", "recipes", on_delete: :cascade
+  add_foreign_key "recipes", "users"
   add_foreign_key "user_ingredients", "fridge_images"
   add_foreign_key "user_ingredients", "ingredients"
   add_foreign_key "user_ingredients", "users"
