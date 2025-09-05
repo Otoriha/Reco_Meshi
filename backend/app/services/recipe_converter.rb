@@ -182,10 +182,15 @@ class RecipeConverter
         { 'name' => ingredient_data.strip }
       elsif ingredient_data.is_a?(Hash)
         # ハッシュの場合は各フィールドを正規化
+        normalized_amount_unit = normalize_ingredient_amount_and_unit(
+          ingredient_data['amount'],
+          ingredient_data['unit']
+        )
+        
         {
           'name' => ingredient_data['name']&.to_s&.strip || ingredient_data['ingredient']&.to_s&.strip,
-          'amount' => normalize_ingredient_amount(ingredient_data['amount']),
-          'unit' => ingredient_data['unit']&.to_s&.strip,
+          'amount' => normalized_amount_unit[:amount],
+          'unit' => normalized_amount_unit[:unit],
           'is_optional' => !!ingredient_data['optional'] || !!ingredient_data['is_optional']
         }
       else
@@ -215,6 +220,57 @@ class RecipeConverter
     end
     
     nil
+  end
+
+  def normalize_ingredient_amount_and_unit(amount_input, unit_input)
+    # 既存のunitがある場合はそれを優先
+    if unit_input.present?
+      return {
+        amount: normalize_ingredient_amount(amount_input),
+        unit: unit_input.to_s.strip
+      }
+    end
+
+    # amountが文字列で単位込みの可能性がある場合
+    if amount_input.is_a?(String) && amount_input.present?
+      # 数値部分と非数値部分を分離
+      # パターン例: "2個", "小さじ1", "200g", "1/2カップ", "適量"
+      if amount_input.match(/^([0-9]+(?:\.[0-9]+)?(?:\/[0-9]+(?:\.[0-9]+)?)?)\s*(.*)$/)
+        # 数値 + 単位のパターン
+        numeric_part = $1
+        unit_part = $2.strip
+
+        return {
+          amount: normalize_ingredient_amount(numeric_part),
+          unit: unit_part.present? ? unit_part : nil
+        }
+      elsif amount_input.match(/^([^0-9]*?)([0-9]+(?:\.[0-9]+)?(?:\/[0-9]+(?:\.[0-9]+)?)?)\s*(.*)$/)
+        # 前置単位 + 数値 + 後置単位のパターン（例: "小さじ1杯"）
+        prefix_unit = $1.strip
+        numeric_part = $2
+        suffix_unit = $3.strip
+        
+        # 前置単位と後置単位を結合
+        combined_unit = [prefix_unit, suffix_unit].reject(&:blank?).join
+
+        return {
+          amount: normalize_ingredient_amount(numeric_part),
+          unit: combined_unit.present? ? combined_unit : nil
+        }
+      else
+        # 数値が見つからない場合（例: "適量", "少々"）
+        return {
+          amount: nil,
+          unit: amount_input.strip
+        }
+      end
+    end
+
+    # フォールバック：通常の処理
+    {
+      amount: normalize_ingredient_amount(amount_input),
+      unit: unit_input&.to_s&.strip
+    }
   end
 
   def create_recipe(user, recipe_data, ai_response, ai_provider)

@@ -18,6 +18,7 @@ class Recipe < ApplicationRecord
   validates :ai_provider, presence: true, inclusion: { in: %w[openai gemini] }
   validates :difficulty, inclusion: { in: difficulties.keys }, allow_blank: true
   validates :servings, numericality: { greater_than: 0, less_than_or_equal_to: 20 }, allow_blank: true
+  validate :validate_steps_format
 
   # Scopes
   scope :recent, -> { order(created_at: :desc) }

@@ -52,19 +52,19 @@ class RecipeGenerator
   end
 
   def generate_recipe(ingredient_names, options = {})
+    # 入力検証
+    validate_options(options)
+
     begin
       # LLMサービスを取得
-      llm_service = Llm::Factory.create(@llm_provider)
+      llm_service = Llm::Factory.build(provider: @llm_provider)
       
       # プロンプトを構築
       prompt = build_recipe_prompt(ingredient_names, options)
       
       # LLMでレシピ生成
       response = llm_service.generate(
-        messages: [
-          { role: 'system', content: prompt[:system] },
-          { role: 'user', content: prompt[:user] }
-        ],
+        messages: prompt,
         response_format: :json,
         temperature: 0.7,
         max_tokens: 1500
@@ -74,9 +74,9 @@ class RecipeGenerator
         raise GenerationError, 'LLMからのレスポンスが空です'
       end
 
-      # JSON形式の確認とパース
+      # JSON形式の確認とパース（raw_jsonを優先）
       begin
-        recipe_json = JSON.parse(response.text)
+        recipe_json = response.raw_json || JSON.parse(response.text)
       rescue JSON::ParserError => e
         Rails.logger.error "Invalid JSON from LLM: #{response.text}"
         raise GenerationError, "LLMからの不正なJSONレスポンス: #{e.message}"
@@ -92,9 +92,6 @@ class RecipeGenerator
       Rails.logger.info "Recipe generated successfully: #{recipe.title} (ID: #{recipe.id})"
       recipe
 
-    rescue Llm::BaseService => e
-      Rails.logger.error "LLM service error: #{e.message}"
-      raise GenerationError, "レシピ生成サービスでエラーが発生しました: #{e.message}"
     rescue RecipeConverter::ConversionError => e
       Rails.logger.error "Recipe conversion error: #{e.message}"
       raise GenerationError, "レシピ変換でエラーが発生しました: #{e.message}"
