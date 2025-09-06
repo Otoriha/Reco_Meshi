@@ -88,6 +88,22 @@ RSpec.describe LineBotService, type: :service do
       end
     end
 
+    context 'with image message' do
+      it 'converts to V2 ImageMessage' do
+        message_hash = {
+          type: 'image',
+          originalContentUrl: 'https://example.com/original.jpg',
+          previewImageUrl: 'https://example.com/preview.jpg'
+        }
+        
+        result = service.send(:convert_to_v2_message, message_hash)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::ImageMessage)
+        expect(result.original_content_url).to eq('https://example.com/original.jpg')
+        expect(result.preview_image_url).to eq('https://example.com/preview.jpg')
+      end
+    end
+
     context 'with template message' do
       context 'buttons template' do
         it 'converts to V2 TemplateMessage with ButtonsTemplate' do
@@ -568,6 +584,11 @@ RSpec.describe LineBotService, type: :service do
         url = service.generate_liff_url('/recipes')
         expect(url).to eq('https://custom-liff.line.me/123/recipes')
       end
+
+      it 'normalizes path without leading slash' do
+        url = service.generate_liff_url('recipes')
+        expect(url).to eq('https://custom-liff.line.me/123/recipes')
+      end
     end
 
     context 'without LIFF_URL but with LIFF_ID' do
@@ -585,6 +606,20 @@ RSpec.describe LineBotService, type: :service do
       it 'appends path when provided' do
         url = service.generate_liff_url('/recipes')
         expect(url).to eq('https://liff.line.me/test-liff-id/recipes')
+      end
+    end
+
+    context 'without LIFF_URL or LIFF_ID' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+      end
+
+      it 'raises an error' do
+        expect {
+          service.generate_liff_url
+        }.to raise_error(ArgumentError, 'LIFF_URL or LIFF_ID must be configured')
       end
     end
   end

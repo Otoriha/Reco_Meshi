@@ -21,9 +21,9 @@ end
 
   def parse_events_v2(raw_body, signature)
   Rails.logger.info "Using V2 WebhookParser: signature=#{signature.present? ? 'present' : 'missing'}, body_length=#{raw_body&.length}"
-  Rails.logger.info "Channel secret: #{ENV['LINE_CHANNEL_SECRET'].present? ? 'present' : 'missing'}"
+  Rails.logger.info "Channel secret: #{@channel_secret.present? ? 'present' : 'missing'}"
 
-  parser = Line::Bot::V2::WebhookParser.new(channel_secret: ENV["LINE_CHANNEL_SECRET"])
+  parser = Line::Bot::V2::WebhookParser.new(channel_secret: @channel_secret)
   parser.parse(body: raw_body, signature: signature)
 rescue Line::Bot::V2::WebhookParser::InvalidSignatureError => e
   Rails.logger.error "Signature validation failed: #{e.message}"
@@ -63,6 +63,11 @@ end
     Line::Bot::V2::MessagingApi::StickerMessage.new(
       package_id: message_hash[:packageId],
       sticker_id: message_hash[:stickerId]
+    )
+  when "image"
+    Line::Bot::V2::MessagingApi::ImageMessage.new(
+      original_content_url: message_hash[:originalContentUrl],
+      preview_image_url: message_hash[:previewImageUrl]
     )
   when "template"
     convert_template_to_v2_message(message_hash)
@@ -162,7 +167,19 @@ end
   end
 
   def multicast_message(user_ids, message)
-    @client.multicast(user_ids, message)
+    # V2 MessagingApi用のリクエスト作成
+    messages = if message.is_a?(Array)
+      message.map { |msg| convert_to_v2_message(msg) }
+    else
+      [ convert_to_v2_message(message) ]
+    end
+
+    request = Line::Bot::V2::MessagingApi::MulticastRequest.new(
+      to: user_ids,
+      messages: messages
+    )
+
+    @client.multicast(multicast_request: request)
   end
 
   def get_profile(user_id)
@@ -362,8 +379,23 @@ end
   end
 
   def generate_liff_url(path = nil)
-    base_url = ENV["LIFF_URL"] || "https://liff.line.me/#{ENV['LIFF_ID'] || ENV['VITE_LIFF_ID']}"
-    path ? "#{base_url}#{path}" : base_url
+    # LIFF_URLが設定されていればそれを使用、なければLIFF_IDから構築
+    base_url = if ENV["LIFF_URL"].present?
+                 ENV["LIFF_URL"]
+    else
+                 liff_id = ENV["LIFF_ID"] || ENV["VITE_LIFF_ID"]
+                 raise ArgumentError, "LIFF_URL or LIFF_ID must be configured" if liff_id.blank?
+                 "https://liff.line.me/#{liff_id}"
+    end
+
+    # パスが指定されている場合は結合、なければベースURLのみ
+    if path.present?
+      # パスの先頭スラッシュを正規化
+      normalized_path = path.start_with?("/") ? path : "/#{path}"
+      "#{base_url}#{normalized_path}"
+    else
+      base_url
+    end
   end
 
   private
