@@ -453,6 +453,220 @@ RSpec.describe LineBotService, type: :service do
     end
   end
 
+  describe '#create_flex_message' do
+    it 'creates a flex message hash' do
+      alt_text = 'Flex message'
+      contents = { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } }
+      
+      message = service.create_flex_message(alt_text, contents)
+      
+      expect(message).to eq({
+        type: 'flex',
+        altText: alt_text,
+        contents: contents
+      })
+    end
+  end
+
+  describe '#create_flex_bubble' do
+    let(:recipe_data) do
+      {
+        title: 'テストレシピ',
+        time: '20分',
+        difficulty: '★★☆',
+        ingredients: [
+          { name: '玉ねぎ', amount: '1個' },
+          { name: '人参', amount: '1本' }
+        ],
+        steps_summary: '簡単に炒めるだけ'
+      }
+    end
+
+    before do
+      allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+      allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+    end
+
+    it 'creates a bubble structure with recipe data' do
+      bubble = service.create_flex_bubble(recipe_data)
+
+      expect(bubble[:type]).to eq('bubble')
+      expect(bubble[:body][:type]).to eq('box')
+      expect(bubble[:body][:layout]).to eq('vertical')
+      expect(bubble[:body][:contents]).to be_an(Array)
+      expect(bubble[:footer][:type]).to eq('box')
+      expect(bubble[:footer][:contents]).to be_an(Array)
+    end
+
+    it 'includes recipe title in the bubble' do
+      bubble = service.create_flex_bubble(recipe_data)
+      title_component = bubble[:body][:contents].first
+
+      expect(title_component[:type]).to eq('text')
+      expect(title_component[:text]).to eq('テストレシピ')
+      expect(title_component[:weight]).to eq('bold')
+    end
+
+    it 'handles missing recipe data gracefully' do
+      empty_data = {}
+      bubble = service.create_flex_bubble(empty_data)
+
+      title_component = bubble[:body][:contents].first
+      expect(title_component[:text]).to eq('おすすめレシピ')
+    end
+  end
+
+  describe '#create_flex_carousel' do
+    let(:recipes_data) do
+      [
+        { title: 'レシピ1', time: '15分' },
+        { title: 'レシピ2', time: '20分' },
+        { title: 'レシピ3', time: '25分' },
+        { title: 'レシピ4', time: '30分' } # 4つ目は制限により除外される
+      ]
+    end
+
+    before do
+      allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+      allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+    end
+
+    it 'creates a carousel with maximum 3 bubbles' do
+      carousel = service.create_flex_carousel(recipes_data)
+
+      expect(carousel[:type]).to eq('carousel')
+      expect(carousel[:contents]).to be_an(Array)
+      expect(carousel[:contents].length).to eq(3)
+    end
+
+    it 'each bubble in carousel has correct structure' do
+      carousel = service.create_flex_carousel(recipes_data)
+
+      carousel[:contents].each do |bubble|
+        expect(bubble[:type]).to eq('bubble')
+        expect(bubble[:body]).to be_a(Hash)
+        expect(bubble[:footer]).to be_a(Hash)
+      end
+    end
+  end
+
+  describe '#generate_liff_url' do
+    context 'with LIFF_URL environment variable' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return('https://custom-liff.line.me/123')
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      end
+
+      it 'uses LIFF_URL as base URL' do
+        url = service.generate_liff_url
+        expect(url).to eq('https://custom-liff.line.me/123')
+      end
+
+      it 'appends path when provided' do
+        url = service.generate_liff_url('/recipes')
+        expect(url).to eq('https://custom-liff.line.me/123/recipes')
+      end
+    end
+
+    context 'without LIFF_URL but with LIFF_ID' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+        allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+      end
+
+      it 'constructs URL from LIFF_ID' do
+        url = service.generate_liff_url
+        expect(url).to eq('https://liff.line.me/test-liff-id')
+      end
+
+      it 'appends path when provided' do
+        url = service.generate_liff_url('/recipes')
+        expect(url).to eq('https://liff.line.me/test-liff-id/recipes')
+      end
+    end
+  end
+
+  describe '#underscore_keys' do
+    it 'converts camelCase keys to snake_case' do
+      input = {
+        'camelCaseKey' => 'value1',
+        'anotherKey' => {
+          'nestedCamelCase' => 'value2',
+          'arrayValue' => [
+            { 'itemKey' => 'value3' }
+          ]
+        }
+      }
+
+      result = service.send(:underscore_keys, input)
+
+      expect(result).to eq({
+        camel_case_key: 'value1',
+        another_key: {
+          nested_camel_case: 'value2',
+          array_value: [
+            { item_key: 'value3' }
+          ]
+        }
+      })
+    end
+
+    it 'handles arrays correctly' do
+      input = [
+        { 'firstKey' => 'value1' },
+        { 'secondKey' => 'value2' }
+      ]
+
+      result = service.send(:underscore_keys, input)
+
+      expect(result).to eq([
+        { first_key: 'value1' },
+        { second_key: 'value2' }
+      ])
+    end
+
+    it 'returns non-hash/array values as-is' do
+      expect(service.send(:underscore_keys, 'string')).to eq('string')
+      expect(service.send(:underscore_keys, 123)).to eq(123)
+      expect(service.send(:underscore_keys, nil)).to eq(nil)
+    end
+  end
+
+  describe '#convert_to_v2_message with flex type' do
+    let(:flex_message_hash) do
+      {
+        type: 'flex',
+        altText: 'Flex message',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              { type: 'text', text: 'Hello' }
+            ]
+          }
+        }
+      }
+    end
+
+    before do
+      allow(Line::Bot::V2::MessagingApi::FlexMessage).to receive(:create).and_return(double('FlexMessage'))
+    end
+
+    it 'creates FlexMessage with underscored keys' do
+      service.send(:convert_to_v2_message, flex_message_hash)
+
+      expect(Line::Bot::V2::MessagingApi::FlexMessage).to have_received(:create).with(
+        alt_text: 'Flex message',
+        contents: hash_including(:type, :body)
+      )
+    end
+  end
+
   describe '#push_message' do
     let(:user_id) { 'test_user_123' }
     let(:message) { { type: 'text', text: 'Test message' } }

@@ -207,11 +207,12 @@ class MessageResponseService
   end
 
   def flex_enabled?
-    ActiveModel::Type::Boolean.new.cast(ENV["LINE_FLEX_ENABLED"])
+    # Ensure nil casts to false
+    !!ActiveModel::Type::Boolean.new.cast(ENV["LINE_FLEX_ENABLED"])
   end
 
   def create_flex_recipe_message(json_text)
-    data = JSON.parse(json_text) rescue {}
+    data = JSON.parse(json_text)
 
     title = data["title"].to_s.strip
     time = data["time"].to_s.strip
@@ -279,13 +280,15 @@ class MessageResponseService
         size: "sm",
         margin: "lg"
       }
-      bubble[:body][:contents] << {
-        type: "text",
-        text: ings.join("\n"),
-        size: "sm",
-        wrap: true,
-        color: "#333333"
-      }
+      ings.each do |line|
+        bubble[:body][:contents] << {
+          type: "text",
+          text: line,
+          size: "sm",
+          wrap: true,
+          color: "#333333"
+        }
+      end
     end
 
     # 作り方セクションを追加
