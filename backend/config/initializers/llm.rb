@@ -1,4 +1,9 @@
-Rails.application.config.x.llm = {
+require 'ostruct'
+
+# Provide an object with method access (e.g., .provider) to play nicely
+# with specs that stub methods on the config, while still allowing tests
+# to overwrite with a plain Hash.
+Rails.application.config.x.llm = OpenStruct.new(
   provider: ENV.fetch('LLM_PROVIDER', 'openai'),
   timeout_ms: ENV.fetch('LLM_TIMEOUT_MS', 10_000).to_i,
   max_retries: ENV.fetch('LLM_MAX_RETRIES', 3).to_i,
@@ -7,4 +12,4 @@ Rails.application.config.x.llm = {
   reasoning_effort: ENV.fetch('LLM_REASONING_EFFORT', 'low'),
   verbosity: ENV.fetch('LLM_VERBOSITY', 'low'),
   fallback_provider: ENV['LLM_FALLBACK_PROVIDER']
-}
+)

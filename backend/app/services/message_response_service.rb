@@ -45,11 +45,17 @@ class MessageResponseService
       llm_service = Llm::Factory.build
       messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
       result = llm_service.generate(messages: messages, response_format: :json)
-      text = format_recipe_text(result.text)
-      @line_bot_service.create_text_message(text)
+
+      # 環境変数によるFlex切り替え
+      if flex_enabled?
+        create_flex_recipe_message(result.text)
+      else
+        text = format_recipe_text(result.text)
+        @line_bot_service.create_text_message(text)
+      end
     rescue => e
       Rails.logger.error "LLM API Error: #{e.message}"
-      ActiveSupport::Notifications.instrument('llm.error', {
+      ActiveSupport::Notifications.instrument("llm.error", {
         provider: primary_provider,
         error_class: e.class.name,
         error_message: e.message
@@ -60,16 +66,18 @@ class MessageResponseService
         fallback = Rails.application.config.x.llm
         fallback_provider = fallback.is_a?(Hash) ? fallback[:fallback_provider] : fallback&.fallback_provider
         if fallback_provider && fallback_provider != (fallback.is_a?(Hash) ? fallback[:provider] : fallback&.provider)
-          ActiveSupport::Notifications.instrument('llm.fallback', { from: primary_provider, to: fallback_provider })
+          ActiveSupport::Notifications.instrument("llm.fallback", { from: primary_provider, to: fallback_provider })
           alt = Llm::Factory.build(provider: fallback_provider)
           messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
           result = alt.generate(messages: messages, response_format: :json)
-          text = format_recipe_text(result.text)
-          return @line_bot_service.create_text_message(text)
+
+          # フォールバック時もFlex切り替えを適用
+          return flex_enabled? ? create_flex_recipe_message(result.text) :
+                                (@line_bot_service.create_text_message(format_recipe_text(result.text)))
         end
       rescue => e2
         Rails.logger.error "LLM Fallback Error: #{e2.message}"
-        ActiveSupport::Notifications.instrument('llm.error', {
+        ActiveSupport::Notifications.instrument("llm.error", {
           provider: fallback_provider,
           error_class: e2.class.name,
           error_message: e2.message
@@ -89,22 +97,22 @@ class MessageResponseService
     lines << "🍳 今ある食材でのレシピ提案"
     lines << ""
     lines << "📖 おすすめレシピ:"
-    lines << "「#{data['title']}」" if data['title']
-    lines << "・調理時間: #{data['time']}" if data['time']
-    lines << "・難易度: #{data['difficulty']}" if data['difficulty']
-    if data['ingredients'].is_a?(Array)
+    lines << "「#{data['title']}」" if data["title"]
+    lines << "・調理時間: #{data['time']}" if data["time"]
+    lines << "・難易度: #{data['difficulty']}" if data["difficulty"]
+    if data["ingredients"].is_a?(Array)
       lines << ""
       lines << "材料:"
-      data['ingredients'].each do |ing|
-        name = ing['name'] || ing[:name]
-        amount = ing['amount'] || ing[:amount]
-        lines << "・#{[name, amount].compact.join(' ')}"
+      data["ingredients"].each do |ing|
+        name = ing["name"] || ing[:name]
+        amount = ing["amount"] || ing[:amount]
+        lines << "・#{[ name, amount ].compact.join(' ')}"
       end
     end
-    if data['steps'].is_a?(Array)
+    if data["steps"].is_a?(Array)
       lines << ""
       lines << "作り方:"
-      data['steps'].each_with_index do |step, idx|
+      data["steps"].each_with_index do |step, idx|
         lines << "#{idx + 1}. #{step}"
       end
     end
@@ -196,5 +204,137 @@ class MessageResponseService
       "• 「買い物」- 買い物リスト\n" \
       "• 「ヘルプ」- 使い方説明"
     )
+  end
+
+  def flex_enabled?
+    # Ensure nil casts to false
+    !!ActiveModel::Type::Boolean.new.cast(ENV["LINE_FLEX_ENABLED"])
+  end
+
+  def create_flex_recipe_message(json_text)
+    data = JSON.parse(json_text)
+
+    title = data["title"].to_s.strip
+    time = data["time"].to_s.strip
+    diff = data["difficulty"].to_s.strip
+
+    # 材料を整形（最大5件）
+    ings = Array(data["ingredients"]).take(5).map do |h|
+      name = (h["name"] || h[:name]).to_s.strip
+      amount = (h["amount"] || h[:amount]).to_s.strip
+      "・#{[ name, amount ].reject(&:empty?).join(' ')}"
+    end
+
+    # 手順を要約（最大3ステップ）
+    steps = Array(data["steps"]).take(3).each_with_index.map { |s, i| "#{i + 1}. #{s}" }
+
+    # altTextを400文字以内に制限
+    alt = "[レシピ] #{title.empty? ? 'おすすめレシピ' : title}"
+    alt = alt[0, 400]
+
+    bubble = {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: title.empty? ? "おすすめレシピ" : title,
+            weight: "bold",
+            size: "lg",
+            wrap: true
+          },
+          {
+            type: "box",
+            layout: "baseline",
+            margin: "md",
+            contents: [
+              {
+                type: "text",
+                text: "⏱ #{time.empty? ? '約15分' : time}",
+                flex: 1,
+                size: "sm",
+                color: "#666666"
+              },
+              {
+                type: "text",
+                text: diff.empty? ? "★★☆" : diff,
+                flex: 1,
+                size: "sm",
+                color: "#666666",
+                align: "end"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+    # 材料セクションを追加
+    if ings.any?
+      bubble[:body][:contents] << {
+        type: "text",
+        text: "材料",
+        weight: "bold",
+        size: "sm",
+        margin: "lg"
+      }
+      ings.each do |line|
+        bubble[:body][:contents] << {
+          type: "text",
+          text: line,
+          size: "sm",
+          wrap: true,
+          color: "#333333"
+        }
+      end
+    end
+
+    # 作り方セクションを追加
+    if steps.any?
+      bubble[:body][:contents] << {
+        type: "text",
+        text: "作り方（要約）",
+        weight: "bold",
+        size: "sm",
+        margin: "lg"
+      }
+      bubble[:body][:contents] << {
+        type: "text",
+        text: steps.join("\n"),
+        size: "sm",
+        wrap: true
+      }
+    end
+
+    # フッターにLIFFリンクを追加
+    bubble[:footer] = {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#42A5F5",
+          action: {
+            type: "uri",
+            label: "詳しく見る",
+            uri: @line_bot_service.generate_liff_url("/recipes")
+          }
+        }
+      ]
+    }
+
+    @line_bot_service.create_flex_message(alt, bubble)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Flex message creation failed (JSON parse error): #{e.message}"
+    # JSONパースエラー時はテキストメッセージにフォールバック
+    @line_bot_service.create_text_message("申し訳ございませんが、レシピの生成に失敗しました。もう一度お試しください。")
+  rescue => e
+    Rails.logger.error "Flex message creation failed: #{e.message}"
+    # その他のエラー時もテキストメッセージにフォールバック
+    text = format_recipe_text(json_text)
+    @line_bot_service.create_text_message(text)
   end
 end

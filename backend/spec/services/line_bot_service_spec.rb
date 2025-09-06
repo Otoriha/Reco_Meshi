@@ -88,6 +88,22 @@ RSpec.describe LineBotService, type: :service do
       end
     end
 
+    context 'with image message' do
+      it 'converts to V2 ImageMessage' do
+        message_hash = {
+          type: 'image',
+          originalContentUrl: 'https://example.com/original.jpg',
+          previewImageUrl: 'https://example.com/preview.jpg'
+        }
+        
+        result = service.send(:convert_to_v2_message, message_hash)
+        
+        expect(result).to be_a(Line::Bot::V2::MessagingApi::ImageMessage)
+        expect(result.original_content_url).to eq('https://example.com/original.jpg')
+        expect(result.preview_image_url).to eq('https://example.com/preview.jpg')
+      end
+    end
+
     context 'with template message' do
       context 'buttons template' do
         it 'converts to V2 TemplateMessage with ButtonsTemplate' do
@@ -450,6 +466,239 @@ RSpec.describe LineBotService, type: :service do
         expect(result).to eq(image_content)
         expect(mock_blob_client).to have_received(:get_message_content).with(message_id: message_id)
       end
+    end
+  end
+
+  describe '#create_flex_message' do
+    it 'creates a flex message hash' do
+      alt_text = 'Flex message'
+      contents = { type: 'bubble', body: { type: 'box', layout: 'vertical', contents: [] } }
+      
+      message = service.create_flex_message(alt_text, contents)
+      
+      expect(message).to eq({
+        type: 'flex',
+        altText: alt_text,
+        contents: contents
+      })
+    end
+  end
+
+  describe '#create_flex_bubble' do
+    let(:recipe_data) do
+      {
+        title: 'テストレシピ',
+        time: '20分',
+        difficulty: '★★☆',
+        ingredients: [
+          { name: '玉ねぎ', amount: '1個' },
+          { name: '人参', amount: '1本' }
+        ],
+        steps_summary: '簡単に炒めるだけ'
+      }
+    end
+
+    before do
+      allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+      allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+    end
+
+    it 'creates a bubble structure with recipe data' do
+      bubble = service.create_flex_bubble(recipe_data)
+
+      expect(bubble[:type]).to eq('bubble')
+      expect(bubble[:body][:type]).to eq('box')
+      expect(bubble[:body][:layout]).to eq('vertical')
+      expect(bubble[:body][:contents]).to be_an(Array)
+      expect(bubble[:footer][:type]).to eq('box')
+      expect(bubble[:footer][:contents]).to be_an(Array)
+    end
+
+    it 'includes recipe title in the bubble' do
+      bubble = service.create_flex_bubble(recipe_data)
+      title_component = bubble[:body][:contents].first
+
+      expect(title_component[:type]).to eq('text')
+      expect(title_component[:text]).to eq('テストレシピ')
+      expect(title_component[:weight]).to eq('bold')
+    end
+
+    it 'handles missing recipe data gracefully' do
+      empty_data = {}
+      bubble = service.create_flex_bubble(empty_data)
+
+      title_component = bubble[:body][:contents].first
+      expect(title_component[:text]).to eq('おすすめレシピ')
+    end
+  end
+
+  describe '#create_flex_carousel' do
+    let(:recipes_data) do
+      [
+        { title: 'レシピ1', time: '15分' },
+        { title: 'レシピ2', time: '20分' },
+        { title: 'レシピ3', time: '25分' },
+        { title: 'レシピ4', time: '30分' } # 4つ目は制限により除外される
+      ]
+    end
+
+    before do
+      allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+      allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+    end
+
+    it 'creates a carousel with maximum 3 bubbles' do
+      carousel = service.create_flex_carousel(recipes_data)
+
+      expect(carousel[:type]).to eq('carousel')
+      expect(carousel[:contents]).to be_an(Array)
+      expect(carousel[:contents].length).to eq(3)
+    end
+
+    it 'each bubble in carousel has correct structure' do
+      carousel = service.create_flex_carousel(recipes_data)
+
+      carousel[:contents].each do |bubble|
+        expect(bubble[:type]).to eq('bubble')
+        expect(bubble[:body]).to be_a(Hash)
+        expect(bubble[:footer]).to be_a(Hash)
+      end
+    end
+  end
+
+  describe '#generate_liff_url' do
+    context 'with LIFF_URL environment variable' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return('https://custom-liff.line.me/123')
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+      end
+
+      it 'uses LIFF_URL as base URL' do
+        url = service.generate_liff_url
+        expect(url).to eq('https://custom-liff.line.me/123')
+      end
+
+      it 'appends path when provided' do
+        url = service.generate_liff_url('/recipes')
+        expect(url).to eq('https://custom-liff.line.me/123/recipes')
+      end
+
+      it 'normalizes path without leading slash' do
+        url = service.generate_liff_url('recipes')
+        expect(url).to eq('https://custom-liff.line.me/123/recipes')
+      end
+    end
+
+    context 'without LIFF_URL but with LIFF_ID' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return('test-liff-id')
+        allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+      end
+
+      it 'constructs URL from LIFF_ID' do
+        url = service.generate_liff_url
+        expect(url).to eq('https://liff.line.me/test-liff-id')
+      end
+
+      it 'appends path when provided' do
+        url = service.generate_liff_url('/recipes')
+        expect(url).to eq('https://liff.line.me/test-liff-id/recipes')
+      end
+    end
+
+    context 'without LIFF_URL or LIFF_ID' do
+      before do
+        allow(ENV).to receive(:[]).with('LIFF_URL').and_return(nil)
+        allow(ENV).to receive(:[]).with('LIFF_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('VITE_LIFF_ID').and_return(nil)
+      end
+
+      it 'raises an error' do
+        expect {
+          service.generate_liff_url
+        }.to raise_error(ArgumentError, 'LIFF_URL or LIFF_ID must be configured')
+      end
+    end
+  end
+
+  describe '#underscore_keys' do
+    it 'converts camelCase keys to snake_case' do
+      input = {
+        'camelCaseKey' => 'value1',
+        'anotherKey' => {
+          'nestedCamelCase' => 'value2',
+          'arrayValue' => [
+            { 'itemKey' => 'value3' }
+          ]
+        }
+      }
+
+      result = service.send(:underscore_keys, input)
+
+      expect(result).to eq({
+        camel_case_key: 'value1',
+        another_key: {
+          nested_camel_case: 'value2',
+          array_value: [
+            { item_key: 'value3' }
+          ]
+        }
+      })
+    end
+
+    it 'handles arrays correctly' do
+      input = [
+        { 'firstKey' => 'value1' },
+        { 'secondKey' => 'value2' }
+      ]
+
+      result = service.send(:underscore_keys, input)
+
+      expect(result).to eq([
+        { first_key: 'value1' },
+        { second_key: 'value2' }
+      ])
+    end
+
+    it 'returns non-hash/array values as-is' do
+      expect(service.send(:underscore_keys, 'string')).to eq('string')
+      expect(service.send(:underscore_keys, 123)).to eq(123)
+      expect(service.send(:underscore_keys, nil)).to eq(nil)
+    end
+  end
+
+  describe '#convert_to_v2_message with flex type' do
+    let(:flex_message_hash) do
+      {
+        type: 'flex',
+        altText: 'Flex message',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              { type: 'text', text: 'Hello' }
+            ]
+          }
+        }
+      }
+    end
+
+    before do
+      allow(Line::Bot::V2::MessagingApi::FlexMessage).to receive(:create).and_return(double('FlexMessage'))
+    end
+
+    it 'creates FlexMessage with underscored keys' do
+      service.send(:convert_to_v2_message, flex_message_hash)
+
+      expect(Line::Bot::V2::MessagingApi::FlexMessage).to have_received(:create).with(
+        alt_text: 'Flex message',
+        contents: hash_including(:type, :body)
+      )
     end
   end
 
