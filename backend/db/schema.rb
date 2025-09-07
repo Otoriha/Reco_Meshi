@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_05_062219) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_07_084909) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -64,6 +64,17 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_05_062219) do
     t.datetime "updated_at", null: false
     t.index ["line_user_id"], name: "index_line_accounts_on_line_user_id", unique: true
     t.index ["user_id"], name: "index_line_accounts_on_user_id"
+  end
+
+  create_table "recipe_histories", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "recipe_id", null: false
+    t.datetime "cooked_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.text "memo"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recipe_id"], name: "index_recipe_histories_on_recipe_id"
+    t.index ["user_id"], name: "index_recipe_histories_on_user_id"
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|
@@ -136,6 +147,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_05_062219) do
   add_foreign_key "fridge_images", "line_accounts"
   add_foreign_key "fridge_images", "users"
   add_foreign_key "line_accounts", "users", on_delete: :nullify
+  add_foreign_key "recipe_histories", "recipes"
+  add_foreign_key "recipe_histories", "users"
   add_foreign_key "recipe_ingredients", "ingredients"
   add_foreign_key "recipe_ingredients", "recipes", on_delete: :cascade
   add_foreign_key "recipes", "users"

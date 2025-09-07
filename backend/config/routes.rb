@@ -44,6 +44,10 @@ Rails.application.routes.draw do
       # Ingredients master and user inventory
       resources :ingredients, only: [:index, :create, :update, :destroy]
       resources :user_ingredients
+
+      # Recipes and recipe histories
+      resources :recipes, only: [:index, :show]
+      resources :recipe_histories, only: [:index, :create]
     end
   end
 
