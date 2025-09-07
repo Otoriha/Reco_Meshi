@@ -205,7 +205,7 @@ class RecipeConverter
     
     if amount.is_a?(String)
       # 文字列から数値を抽出（分数や小数に対応）
-      cleaned = amount.gsub(/[^\d.\\/]/, '')
+      cleaned = amount.gsub(/[^\d.\/]/, '')
       
       if cleaned.include?('/')
         # 分数の場合（例: "1/2"）
