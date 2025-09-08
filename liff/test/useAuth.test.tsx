@@ -13,39 +13,58 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 describe('useAuth', () => {
   beforeEach(async () => {
+    // 呼び出し履歴のみクリア（setup.tsのグローバルモックは保持）
     vi.clearAllMocks()
-    
+
     mockLiff.isInClient.mockReturnValue(true)
     mockLiff.isLoggedIn.mockReturnValue(true)
-    
-    // axiosPlain.post を成功に設定（他テストのspyが影響しないよう保護）
+    // IDトークン・デコード済みトークンの形を明示（有効期限は将来時刻）
+    const futureExp = Math.floor(Date.now() / 1000) + 3600
+    mockLiff.getIDToken.mockReturnValue('mock-id-token')
+    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as any)
+
+    // axiosPlain.post をURLに応じて分岐モック
     const { axiosPlain } = await import('../src/api/client')
     if ('mockRestore' in axiosPlain.post) {
       // @ts-ignore
       axiosPlain.post.mockRestore()
     }
-    vi.spyOn(axiosPlain, 'post').mockResolvedValue({
-      data: {
-        token: 'mock-jwt-token',
-        user: {
-          userId: 'mock-user-id',
-          displayName: 'Mock User',
-          pictureUrl: 'https://example.com/avatar.jpg',
-        },
-      },
-    } as any)
-    
+    vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+      }
+      if (typeof url === 'string' && url.includes('/auth/line_login')) {
+        return Promise.resolve({
+          data: {
+            token: 'mock-jwt-token',
+            user: {
+              userId: 'mock-user-id',
+              displayName: 'Mock User',
+              pictureUrl: 'https://example.com/avatar.jpg',
+            },
+          },
+        } as any)
+      }
+      return Promise.resolve({ data: {} } as any)
+    })
+
+    // 直接axios.createを呼ぶ箇所があっても成功するよう一応モック
     mockedAxios.create.mockReturnValue({
-      post: vi.fn().mockResolvedValue({
-        data: {
-          token: 'mock-jwt-token',
-          user: {
-            userId: 'mock-user-id',
-            displayName: 'Mock User',
-            pictureUrl: 'https://example.com/avatar.jpg'
-          }
+      post: vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/auth/generate_nonce')) {
+          return Promise.resolve({ data: { nonce: 'mock-nonce' } })
         }
-      })
+        return Promise.resolve({
+          data: {
+            token: 'mock-jwt-token',
+            user: {
+              userId: 'mock-user-id',
+              displayName: 'Mock User',
+              pictureUrl: 'https://example.com/avatar.jpg',
+            },
+          },
+        })
+      }),
     } as any)
   })
 
