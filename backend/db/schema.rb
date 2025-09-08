@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_07_084909) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_08_064416) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -73,8 +73,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_07_084909) do
     t.text "memo"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "rating"
     t.index ["recipe_id"], name: "index_recipe_histories_on_recipe_id"
+    t.index ["user_id", "cooked_at"], name: "index_recipe_histories_on_user_id_and_cooked_at"
     t.index ["user_id"], name: "index_recipe_histories_on_user_id"
+    t.check_constraint "rating >= 1 AND rating <= 5", name: "rating_between_1_and_5"
   end
 
   create_table "recipe_ingredients", force: :cascade do |t|
