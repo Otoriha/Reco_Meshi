@@ -5,6 +5,8 @@ import Home from './pages/Home/Home'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
+import RecipeList from './pages/Recipes/RecipeList'
+import RecipeDetail from './pages/Recipes/RecipeDetail'
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route element={<PrivateRoute />}>
             <Route path="/ingredients" element={<Ingredients />} />
+            <Route path="/recipes" element={<RecipeList />} />
+            <Route path="/recipes/:id" element={<RecipeDetail />} />
             <Route path="/recipe-history" element={<RecipeHistory />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

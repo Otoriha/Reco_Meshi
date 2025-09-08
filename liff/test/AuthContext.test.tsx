@@ -34,7 +34,8 @@ const renderWithProvider = (children: React.ReactNode) => {
 }
 
 describe('AuthContext', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // 呼び出し履歴のみクリア（setup.tsのグローバルモックは保持）
     vi.clearAllMocks()
     // sessionStorageをクリア
     const mockSessionStorage = vi.mocked(window.sessionStorage)
@@ -43,19 +44,49 @@ describe('AuthContext', () => {
     // LIFFのデフォルト状態を復元
     mockLiff.isInClient.mockReturnValue(true)
     mockLiff.isLoggedIn.mockReturnValue(true)
-    
-    // axiosのデフォルトモック設定
-    mockedAxios.create.mockReturnValue({
-      post: vi.fn().mockResolvedValue({
+    const futureExp = Math.floor(Date.now() / 1000) + 3600
+    mockLiff.getIDToken.mockReturnValue('mock-id-token')
+    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as any)
+
+    // axiosPlain.post をURLで分岐するようにモック
+    const { axiosPlain } = await import('../src/api/client')
+    if ('mockRestore' in axiosPlain.post) {
+      // @ts-ignore
+      axiosPlain.post.mockRestore()
+    }
+    vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+      }
+      return Promise.resolve({
         data: {
           token: 'mock-jwt-token',
           user: {
             userId: 'mock-user-id',
             displayName: 'Mock User',
-            pictureUrl: 'https://example.com/avatar.jpg'
-          }
+            pictureUrl: 'https://example.com/avatar.jpg',
+          },
+        },
+      } as any)
+    })
+
+    // 念のため、axios.createベースの呼び出しにも成功レスポンスを用意
+    mockedAxios.create.mockReturnValue({
+      post: vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/auth/generate_nonce')) {
+          return Promise.resolve({ data: { nonce: 'mock-nonce' } })
         }
-      })
+        return Promise.resolve({
+          data: {
+            token: 'mock-jwt-token',
+            user: {
+              userId: 'mock-user-id',
+              displayName: 'Mock User',
+              pictureUrl: 'https://example.com/avatar.jpg',
+            },
+          },
+        })
+      }),
     } as any)
   })
 
@@ -135,14 +166,19 @@ describe('AuthContext', () => {
   })
 
   test('ログアウト処理が正常に動作する', async () => {
-    // 初期認証を確実に成功させる
+    // 初期認証を確実に成功させる（URLに応じて分岐モック）
     const { axiosPlain } = await import('../src/api/client')
-    vi.spyOn(axiosPlain, 'post').mockResolvedValue({
-      data: {
-        token: 'mock-jwt-token',
-        user: { userId: 'mock-user-id', displayName: 'Mock User' },
-      },
-    } as any)
+    vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+      }
+      return Promise.resolve({
+        data: {
+          token: 'mock-jwt-token',
+          user: { userId: 'mock-user-id', displayName: 'Mock User' },
+        },
+      } as any)
+    })
 
     renderWithProvider(<TestComponent />)
     
