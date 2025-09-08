@@ -4,7 +4,7 @@ class Api::V1::RecipesController < ApplicationController
 
   # GET /api/v1/recipes
   def index
-    recipes = Recipe.includes(:user).recent.limit(50)
+    recipes = current_user.recipes.includes(:user).recent.limit(50)
     render json: {
       success: true,
       data: recipes.map { |recipe| recipe_list_json(recipe) }
@@ -22,7 +22,7 @@ class Api::V1::RecipesController < ApplicationController
   private
 
   def set_recipe
-    @recipe = Recipe.includes(recipe_ingredients: :ingredient).find(params[:id])
+    @recipe = current_user.recipes.includes(recipe_ingredients: :ingredient).find(params[:id])
   end
 
   def recipe_list_json(recipe)

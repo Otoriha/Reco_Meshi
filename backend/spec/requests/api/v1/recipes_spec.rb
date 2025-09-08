@@ -10,10 +10,10 @@ RSpec.describe 'Api::V1::Recipes', type: :request do
 
   describe 'GET /api/v1/recipes' do
     before do
-      # 複数ユーザーのレシピを作成（コントローラは全体のrecentを返す）
+      # 認証ユーザーのレシピを作成（コントローラはcurrent_userのレシピのみを返す）
       create_list(:recipe, 2, user: user)
       other_user = create(:user, :confirmed)
-      create(:recipe, user: other_user)
+      create(:recipe, user: other_user) # このレシピは返されない
     end
 
     it '認証なしは401を返す' do
@@ -29,7 +29,7 @@ RSpec.describe 'Api::V1::Recipes', type: :request do
       body = JSON.parse(response.body)
       expect(body['success']).to eq(true)
       expect(body['data']).to be_an(Array)
-      expect(body['data'].size).to be >= 3
+      expect(body['data'].size).to eq(2) # current_userのレシピのみ返される
 
       sample = body['data'].first
       expect(sample).to include('id', 'title', 'cooking_time', 'formatted_cooking_time', 'difficulty', 'difficulty_display', 'servings', 'created_at')

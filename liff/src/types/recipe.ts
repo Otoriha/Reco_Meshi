@@ -42,6 +42,4 @@ export interface CreateRecipeHistoryParams {
 }
 
 // チェックボックス用のローカル状態
-export interface IngredientCheckState {
-  [ingredientId: number]: boolean
-}
+export type IngredientCheckState = Record<number, boolean>
