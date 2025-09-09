@@ -43,6 +43,39 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
     end
   end
 
+  describe 'GET /api/v1/recipe_histories/:id' do
+    let!(:recipe) { create(:recipe, user: user) }
+    let!(:recipe_history) { create(:recipe_history, user: user, recipe: recipe, rating: 4) }
+
+    it '認証なしは401を返す' do
+      get "/api/v1/recipe_histories/#{recipe_history.id}", as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it '認証済みで自ユーザーのレシピ履歴を取得できる' do
+      headers = auth_header_for(user)
+      get "/api/v1/recipe_histories/#{recipe_history.id}", headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['success']).to eq(true)
+      data = body['data']
+      expect(data['id']).to eq(recipe_history.id)
+      expect(data['rating']).to eq(4)
+      expect(data['recipe']).to include('id', 'title')
+    end
+
+    it '他ユーザーのレシピ履歴は404を返す' do
+      other_user = create(:user, :confirmed)
+      other_recipe = create(:recipe, user: other_user)
+      other_history = create(:recipe_history, user: other_user, recipe: other_recipe)
+
+      headers = auth_header_for(user)
+      get "/api/v1/recipe_histories/#{other_history.id}", headers: headers, as: :json
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe 'POST /api/v1/recipe_histories' do
     let!(:recipe) { create(:recipe, user: user) }
 
@@ -68,11 +101,105 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       expect(body['data']).to include('recipe_id' => recipe.id, 'memo' => 'また作りたい')
     end
 
+    it 'ratingパラメータ付きで作成できる' do
+      headers = auth_header_for(user)
+      params = {
+        recipe_history: {
+          recipe_id: recipe.id,
+          memo: 'おいしかった',
+          rating: 5,
+          cooked_at: Time.current.iso8601
+        }
+      }
+
+      post '/api/v1/recipe_histories', params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:created)
+      body = JSON.parse(response.body)
+      expect(body['success']).to eq(true)
+      expect(body['data']).to include('rating' => 5)
+    end
+
+    it '無効なratingでは422を返す' do
+      headers = auth_header_for(user)
+      params = {
+        recipe_history: {
+          recipe_id: recipe.id,
+          rating: 10,
+          cooked_at: Time.current.iso8601
+        }
+      }
+
+      post '/api/v1/recipe_histories', params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+      body = JSON.parse(response.body)
+      expect(body['success']).to eq(false)
+    end
+
     it '不正なパラメータでは422を返す（recipe_id欠如など）' do
       headers = auth_header_for(user)
       post '/api/v1/recipe_histories', params: { recipe_history: { memo: 'x', cooked_at: Time.current.iso8601 } }, headers: headers, as: :json
       expect(response).to have_http_status(:unprocessable_entity)
     end
   end
-end
 
+  describe 'PATCH /api/v1/recipe_histories/:id' do
+    let!(:recipe) { create(:recipe, user: user) }
+    let!(:recipe_history) { create(:recipe_history, user: user, recipe: recipe, rating: nil) }
+
+    it '認証なしは401を返す' do
+      patch "/api/v1/recipe_histories/#{recipe_history.id}", params: { recipe_history: { rating: 5 } }, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it 'ratingを更新できる' do
+      headers = auth_header_for(user)
+      params = { recipe_history: { rating: 4 } }
+
+      patch "/api/v1/recipe_histories/#{recipe_history.id}", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+
+      body = JSON.parse(response.body)
+      expect(body['success']).to eq(true)
+      expect(body['data']['rating']).to eq(4)
+      expect(body['message']).to eq('評価を更新しました')
+
+      recipe_history.reload
+      expect(recipe_history.rating).to eq(4)
+    end
+
+    it 'ratingをnilに更新できる' do
+      recipe_history.update!(rating: 3)
+      headers = auth_header_for(user)
+      params = { recipe_history: { rating: nil } }
+
+      patch "/api/v1/recipe_histories/#{recipe_history.id}", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+
+      body = JSON.parse(response.body)
+      expect(body['data']['rating']).to be_nil
+    end
+
+    it '無効なratingでは422を返す' do
+      headers = auth_header_for(user)
+      params = { recipe_history: { rating: 10 } }
+
+      patch "/api/v1/recipe_histories/#{recipe_history.id}", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:unprocessable_entity)
+
+      body = JSON.parse(response.body)
+      expect(body['success']).to eq(false)
+    end
+
+    it '他ユーザーのレシピ履歴は404を返す' do
+      other_user = create(:user, :confirmed)
+      other_recipe = create(:recipe, user: other_user)
+      other_history = create(:recipe_history, user: other_user, recipe: other_recipe)
+
+      headers = auth_header_for(user)
+      params = { recipe_history: { rating: 5 } }
+
+      patch "/api/v1/recipe_histories/#{other_history.id}", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+end
