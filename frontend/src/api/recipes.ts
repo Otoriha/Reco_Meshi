@@ -13,7 +13,7 @@ export const recipesApi = {
   async listRecipes(): Promise<Recipe[]> {
     const response = await apiClient.get<ApiResponse<Recipe[]>>('/recipes')
     if (!response.data.success) {
-      throw new Error('レシピ一覧の取得に失敗しました')
+      throw new Error(response.data.message || 'レシピ一覧の取得に失敗しました')
     }
     return response.data.data
   },
@@ -22,7 +22,7 @@ export const recipesApi = {
   async getRecipe(id: number): Promise<Recipe> {
     const response = await apiClient.get<ApiResponse<Recipe>>(`/recipes/${id}`)
     if (!response.data.success) {
-      throw new Error('レシピ詳細の取得に失敗しました')
+      throw new Error(response.data.message || 'レシピ詳細の取得に失敗しました')
     }
     return response.data.data
   },
@@ -31,7 +31,7 @@ export const recipesApi = {
   async listRecipeHistories(): Promise<RecipeHistory[]> {
     const response = await apiClient.get<ApiResponse<RecipeHistory[]>>('/recipe_histories')
     if (!response.data.success) {
-      throw new Error('調理履歴の取得に失敗しました')
+      throw new Error(response.data.message || '調理履歴の取得に失敗しました')
     }
     return response.data.data
   },

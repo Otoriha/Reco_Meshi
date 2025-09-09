@@ -73,7 +73,7 @@ const RecipeDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-center items-center min-h-64">
+          <div className="flex justify-center items-center h-64">
             <div className="text-gray-600">読み込み中...</div>
           </div>
         </div>
