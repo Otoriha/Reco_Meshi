@@ -9,6 +9,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
+import RecipeList from './pages/Recipes/RecipeList'
+import RecipeDetail from './pages/Recipes/RecipeDetail'
 
 type AuthMode = 'login' | 'signup';
 
@@ -42,6 +44,8 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/ingredients" element={<Ingredients />} />
+              <Route path="/recipes" element={<RecipeList />} />
+              <Route path="/recipes/:id" element={<RecipeDetail />} />
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
