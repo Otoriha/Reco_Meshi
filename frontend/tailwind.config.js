@@ -1,5 +1,4 @@
-import forms from '@tailwindcss/forms';
-import lineClamp from '@tailwindcss/line-clamp';
+import forms from '@tailwindcss/forms'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -10,8 +9,5 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [
-    forms,
-    lineClamp,
-  ],
+  plugins: [forms],
 };
