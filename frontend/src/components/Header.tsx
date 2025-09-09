@@ -34,9 +34,6 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
 
   return (
     <>
-      {/* Tailwind v4用のダミー要素 - 本番では削除 */}
-      <div className="hidden bg-white shadow shadow-md shadow-lg text-gray-700 text-gray-900 hover:text-gray-900 space-x-4 max-w-7xl px-4 sm:px-6 lg:px-8 py-4 text-2xl font-bold bg-gray-50 bg-gray-100 p-6 rounded-lg text-xl font-semibold"></div>
-      
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
