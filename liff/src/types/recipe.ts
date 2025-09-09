@@ -25,6 +25,7 @@ export interface RecipeHistory {
   recipe_id: number
   cooked_at: string
   memo: string | null
+  rating?: number | null
   created_at: string
   updated_at: string
   recipe?: {
@@ -38,7 +39,12 @@ export interface RecipeHistory {
 export interface CreateRecipeHistoryParams {
   recipe_id: number
   memo?: string
+  rating?: number | null
   cooked_at?: string
+}
+
+export interface UpdateRecipeHistoryParams {
+  rating?: number | null
 }
 
 // チェックボックス用のローカル状態
