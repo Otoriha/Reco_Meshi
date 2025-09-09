@@ -33,8 +33,9 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
   };
 
   return (
-    <header className="bg-white shadow">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <h1 className="text-2xl font-bold text-gray-900">
             <Link to="/" className="hover:opacity-80">レコめし</Link>
@@ -44,6 +45,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
               <>
                 <Link to="/" className="text-gray-700 hover:text-gray-900">ダッシュボード</Link>
                 <Link to="/ingredients" className="text-gray-700 hover:text-gray-900">食材リスト</Link>
+                <Link to="/recipes" className="text-gray-700 hover:text-gray-900">レシピ</Link>
                 <Link to="/recipe-history" className="text-gray-700 hover:text-gray-900">レシピ履歴</Link>
                 <Link to="/settings" className="text-gray-700 hover:text-gray-900">設定</Link>
               </>
@@ -63,6 +65,7 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
         </div>
       </div>
     </header>
+    </>
   );
 };
 
