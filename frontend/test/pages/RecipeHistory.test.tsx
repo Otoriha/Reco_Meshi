@@ -1,5 +1,6 @@
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import React from 'react'
+import { BrowserRouter } from 'react-router-dom'
 import RecipeHistory from '../../src/pages/RecipeHistory/RecipeHistory'
 import type { RecipeHistory as RecipeHistoryType, PaginationMeta } from '../../src/types/recipe'
 
@@ -57,6 +58,10 @@ vi.mock('../../src/api/recipes', () => ({
   }
 }))
 
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<BrowserRouter>{component}</BrowserRouter>)
+}
+
 describe('RecipeHistory Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -67,7 +72,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('初期表示時にローディングが表示され、データ取得後にリストが表示される', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     // ローディング表示の確認
     expect(screen.getByText('読み込み中...')).toBeInTheDocument()
@@ -83,7 +88,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('フィルタ機能が正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -106,7 +111,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('検索機能が正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -125,7 +130,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('評価フィルタが正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -149,7 +154,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('レシピアイテムをクリックするとモーダルが開く', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -170,7 +175,7 @@ describe('RecipeHistory Page', () => {
     const updatedHistory = { ...mockHistory1, rating: 4, memo: '更新されたメモ' }
     mockUpdateRecipeHistory.mockResolvedValue(updatedHistory)
     
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -217,7 +222,7 @@ describe('RecipeHistory Page', () => {
       meta: { ...mockMeta, total_count: 24 }
     })
     
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -247,7 +252,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('ページネーションが正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -272,7 +277,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('フィルタクリア機能が正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()
@@ -307,7 +312,7 @@ describe('RecipeHistory Page', () => {
     const errorMessage = 'データの取得に失敗しました'
     mockFetchRecipeHistories.mockRejectedValue(new Error(errorMessage))
     
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument()
@@ -320,7 +325,7 @@ describe('RecipeHistory Page', () => {
       meta: { current_page: 1, per_page: 20, total_pages: 0, total_count: 0 }
     })
     
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('レシピ履歴がありません')).toBeInTheDocument()
@@ -328,7 +333,7 @@ describe('RecipeHistory Page', () => {
   })
 
   it('モーダルのクローズボタンが正しく動作する', async () => {
-    render(<RecipeHistory />)
+    renderWithRouter(<RecipeHistory />)
     
     await waitFor(() => {
       expect(screen.getByText('カレーライス')).toBeInTheDocument()

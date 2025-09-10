@@ -140,7 +140,7 @@ describe('Pagination Component', () => {
   })
 
   it('多数のページがある場合に省略記号が表示される', () => {
-    const { getByText, queryByText } = render(
+    const { getAllByText, getByText, queryByText } = render(
       <Pagination
         currentPage={5}
         totalPages={20}
@@ -151,8 +151,9 @@ describe('Pagination Component', () => {
     // 最初のページは表示
     expect(getByText('1')).toBeInTheDocument()
     
-    // 省略記号が表示される
-    expect(getByText('...')).toBeInTheDocument()
+    // 省略記号が表示される（複数ある場合がある）
+    const ellipsis = getAllByText('...')
+    expect(ellipsis.length).toBeGreaterThan(0)
     
     // 現在のページ周辺は表示
     expect(getByText('3')).toBeInTheDocument()
