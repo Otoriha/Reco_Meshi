@@ -45,6 +45,7 @@ export interface CreateRecipeHistoryParams {
 
 export interface UpdateRecipeHistoryParams {
   rating?: number | null
+  memo?: string | null
 }
 
 // チェックボックス用のローカル状態
