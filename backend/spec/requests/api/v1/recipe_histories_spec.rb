@@ -47,7 +47,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
 
     it 'start_dateパラメータでフィルタできる' do
       headers = auth_header_for(user)
-      get '/api/v1/recipe_histories', headers: headers, params: { start_date: Time.current.strftime('%Y-%m-%d') }, as: :json
+      get "/api/v1/recipe_histories?start_date=#{Time.current.strftime('%Y-%m-%d')}", headers: headers, as: :json
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
@@ -58,7 +58,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
     it 'end_dateパラメータでフィルタできる' do
       headers = auth_header_for(user)
       yesterday = 1.day.ago.strftime('%Y-%m-%d')
-      get '/api/v1/recipe_histories', headers: headers, params: { end_date: yesterday }, as: :json
+      get "/api/v1/recipe_histories?end_date=#{yesterday}", headers: headers, as: :json
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
@@ -68,7 +68,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
 
     it 'recipe_idパラメータでフィルタできる' do
       headers = auth_header_for(user)
-      get '/api/v1/recipe_histories', headers: headers, params: { recipe_id: recipe.id }, as: :json
+      get "/api/v1/recipe_histories?recipe_id=#{recipe.id}", headers: headers, as: :json
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
@@ -80,7 +80,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
 
     it 'ページネーションパラメータが機能する' do
       headers = auth_header_for(user)
-      get '/api/v1/recipe_histories', headers: headers, params: { page: 1, per_page: 1 }, as: :json
+      get "/api/v1/recipe_histories?page=1&per_page=1", headers: headers, as: :json
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
@@ -283,6 +283,32 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       }.not_to change(RecipeHistory, :count)
       
       expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe 'GET /api/v1/recipe_histories (rated_only フィルタ)' do
+    let(:headers) { auth_header_for(user) }
+    let!(:recipe) { create(:recipe, user: user) }
+
+    before do
+      create(:recipe_history, user: user, recipe: recipe, rating: nil, cooked_at: 2.days.ago)
+      create(:recipe_history, user: user, recipe: recipe, rating: 5, cooked_at: 3.days.ago)
+    end
+
+    it 'rated_only=true で評価済みのみを返す' do
+      get '/api/v1/recipe_histories?rated_only=true', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['data']).to all(satisfy { |h| !h['rating'].nil? })
+    end
+
+    it 'rated_only=false で全件返す' do
+      get '/api/v1/recipe_histories?rated_only=false', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      # 2件 + 前のテストで作成したものを考慮せず、このブロック内の件数を検証
+      # このブロックのbeforeで2件作成しているため、最低2件は返る
+      expect(body['data'].size).to be >= 2
     end
   end
 end
