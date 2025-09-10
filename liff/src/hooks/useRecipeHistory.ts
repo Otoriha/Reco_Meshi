@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { recipesApi } from '../api/recipes'
 import type { RecipeHistory, UpdateRecipeHistoryParams } from '../types/recipe'
 import type { PaginationMeta, RecipeHistoriesParams } from '../api/recipes'
@@ -34,13 +34,31 @@ const INITIAL_STATE: UseRecipeHistoryState = {
 
 export const useRecipeHistory = (): UseRecipeHistoryReturn => {
   const [state, setState] = useState<UseRecipeHistoryState>(INITIAL_STATE)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const requestIdRef = useRef(0)
 
   const fetchHistories = useCallback(async (
     params: RecipeHistoriesParams = {}, 
     replace = true
   ): Promise<void> => {
+    // 実行中のリクエストをキャンセル
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // 新しいAbortControllerとリクエストIDを生成
+    abortControllerRef.current = new AbortController()
+    const currentRequestId = ++requestIdRef.current
+
     try {
-      if (replace) {
+      // loading状態を設定する前に、現在のloadingMoreをチェック
+      const shouldPreventConcurrency = replace && state.loadingMore
+      if (shouldPreventConcurrency) {
+        // フィルタ変更時に無限スクロールが実行中の場合は待機
+        setState(prev => ({ ...prev, loading: true, error: null }))
+        // 短時間待機してloadingMoreが終了するのを待つ
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } else if (replace) {
         setState(prev => ({ ...prev, loading: true, error: null }))
       } else {
         setState(prev => ({ ...prev, loadingMore: true, error: null }))
@@ -48,6 +66,11 @@ export const useRecipeHistory = (): UseRecipeHistoryReturn => {
 
       const defaultParams = { per_page: 20, page: 1, ...params }
       const result = await recipesApi.fetchRecipeHistories(defaultParams)
+
+      // リクエストが最新のものかチェック
+      if (currentRequestId !== requestIdRef.current) {
+        return // 古いレスポンスは破棄
+      }
 
       setState(prev => ({
         ...prev,
@@ -58,6 +81,16 @@ export const useRecipeHistory = (): UseRecipeHistoryReturn => {
         initialized: true
       }))
     } catch (err) {
+      // AbortErrorの場合は無視
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+
+      // リクエストが最新のものかチェック
+      if (currentRequestId !== requestIdRef.current) {
+        return
+      }
+
       const errorMessage = err instanceof Error ? err.message : '調理履歴の取得に失敗しました'
       setState(prev => ({
         ...prev,
@@ -67,16 +100,16 @@ export const useRecipeHistory = (): UseRecipeHistoryReturn => {
         initialized: true
       }))
     }
-  }, [])
+  }, [state.loadingMore])
 
   const loadMore = useCallback(async (): Promise<void> => {
-    if (!state.meta || !hasMorePages(state.meta) || state.loadingMore) {
+    if (!state.meta || !hasMorePages(state.meta) || state.loadingMore || state.loading) {
       return
     }
 
     const nextPage = state.meta.current_page + 1
     await fetchHistories({ page: nextPage }, false)
-  }, [state.meta, state.loadingMore, fetchHistories])
+  }, [state.meta, state.loadingMore, state.loading, fetchHistories])
 
   const updateHistory = useCallback(async (
     id: number, 
@@ -125,6 +158,15 @@ export const useRecipeHistory = (): UseRecipeHistoryReturn => {
       fetchHistories()
     }
   }, [state.initialized, fetchHistories])
+
+  // コンポーネントのアンマウント時にリクエストをキャンセル
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   const hasNextPage = useMemo(() => {
     return hasMorePages(state.meta || undefined)

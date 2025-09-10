@@ -212,4 +212,114 @@ describe('useRecipeHistory', () => {
     
     expect(recipesApi.fetchRecipeHistories).toHaveBeenCalledTimes(2) // 初期化 + リフレッシュ
   })
+
+  it('フィルタ変更時の競合状態を防ぐ（replace=trueとloadMoreの競合）', async () => {
+    // loadingMoreがtrueの状態を作る
+    const slowLoadMoreResponse = new Promise(resolve => 
+      setTimeout(() => resolve({ data: [], meta: mockMeta }), 500)
+    )
+    
+    vi.mocked(recipesApi.fetchRecipeHistories)
+      .mockResolvedValueOnce(mockApiResponse) // 初期化
+      .mockResolvedValueOnce(slowLoadMoreResponse) // 遅いloadMore
+      .mockResolvedValue({ data: [mockRecipeHistories[0]], meta: mockMeta }) // フィルタ変更
+
+    const { result } = renderHook(() => useRecipeHistory())
+    
+    // 初期化を待つ
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true)
+    })
+
+    // loadMoreを開始（遅いレスポンス）
+    act(() => {
+      result.current.loadMore()
+    })
+
+    // loadingMoreがtrueになるのを待つ
+    await waitFor(() => {
+      expect(result.current.loadingMore).toBe(true)
+    })
+
+    // フィルタ変更（replace=true）を実行
+    await act(async () => {
+      await result.current.fetchHistories({ rated_only: true }, true)
+    })
+
+    // フィルタ変更が優先され、loadingMoreもfalseになっている
+    expect(result.current.loading).toBe(false)
+    expect(result.current.histories).toHaveLength(1)
+  })
+
+  it('古いレスポンスは破棄される（レスポンス順序逆転問題の回避）', async () => {
+    let firstRequestResolver: any
+    let secondRequestResolver: any
+
+    const firstRequest = new Promise(resolve => {
+      firstRequestResolver = resolve
+    })
+    const secondRequest = new Promise(resolve => {
+      secondRequestResolver = resolve
+    })
+
+    vi.mocked(recipesApi.fetchRecipeHistories)
+      .mockResolvedValueOnce(mockApiResponse) // 初期化
+      .mockResolvedValueOnce(firstRequest) // 最初のリクエスト（遅い）
+      .mockResolvedValueOnce(secondRequest) // 2番目のリクエスト（早い）
+
+    const { result } = renderHook(() => useRecipeHistory())
+    
+    // 初期化を待つ
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true)
+    })
+
+    // 2つのリクエストを立て続けに実行
+    const firstPromise = act(async () => {
+      await result.current.fetchHistories({ page: 1 }, true)
+    })
+    const secondPromise = act(async () => {
+      await result.current.fetchHistories({ page: 2 }, true)
+    })
+
+    // 2番目のリクエスト（新しい）を先に完了
+    secondRequestResolver({
+      data: [{ ...mockRecipeHistories[0], id: 2 }],
+      meta: { ...mockMeta, current_page: 2 }
+    })
+    await secondPromise
+
+    // 1番目のリクエスト（古い）を後に完了
+    firstRequestResolver({
+      data: [{ ...mockRecipeHistories[0], id: 1 }],
+      meta: { ...mockMeta, current_page: 1 }
+    })
+    await firstPromise
+
+    // 新しいリクエスト（2番目）の結果が反映されている
+    expect(result.current.histories[0].id).toBe(2)
+    expect(result.current.meta?.current_page).toBe(2)
+  })
+
+  it('loadMoreがloadingまたはloadingMoreの間は実行されない', async () => {
+    const { result } = renderHook(() => useRecipeHistory())
+    
+    // 初期化を待つ
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true)
+    })
+
+    // loading状態にする
+    act(() => {
+      result.current.fetchHistories({}, true)
+    })
+
+    // loadingがtrueの間はloadMoreが実行されない
+    await act(async () => {
+      await result.current.loadMore()
+    })
+
+    // fetchRecipeHistoriesの呼び出し回数は初期化 + fetchHistoriesのみ
+    expect(recipesApi.fetchRecipeHistories).toHaveBeenCalledTimes(2)
+  })
 })
