@@ -61,13 +61,13 @@ class Api::V1::RecipeHistoriesController < ApplicationController
       render json: {
         success: true,
         data: recipe_history_json(@recipe_history),
-        message: "評価を更新しました"
+        message: "調理記録を更新しました"
       }
     else
       render json: {
         success: false,
         errors: @recipe_history.errors.full_messages,
-        message: "評価の更新に失敗しました"
+        message: "調理記録の更新に失敗しました"
       }, status: :unprocessable_entity
     end
   end
@@ -120,7 +120,7 @@ class Api::V1::RecipeHistoriesController < ApplicationController
   end
 
   def update_params
-    params.require(:recipe_history).permit(:rating)
+    params.require(:recipe_history).permit(:rating, :memo)
   end
 
   # 安全な日付パース（不正日付は無視）
