@@ -6,6 +6,7 @@ class Api::V1::RecipeHistoriesController < ApplicationController
   wrap_parameters :recipe_history, include: [:recipe_id, :memo, :cooked_at, :rating]
 
   # GET /api/v1/recipe_histories
+  # 常にcooked_atの降順（最新順）で返却
   def index
     histories = filtered_histories_scope
                   .includes(:recipe)
@@ -97,17 +98,16 @@ class Api::V1::RecipeHistoriesController < ApplicationController
   def filtered_histories_scope
     histories = current_user.recipe_histories
 
-    if params[:start_date].present?
-      from = Time.zone.parse(params[:start_date]).beginning_of_day rescue nil
-      histories = histories.where('cooked_at >= ?', from) if from
-    end
-    if params[:end_date].present?
-      to = Time.zone.parse(params[:end_date]).end_of_day rescue nil
-      histories = histories.where('cooked_at <= ?', to) if to
-    end
+    # 日付フィルタ（start_date/end_date）
+    start_date = parse_date_param(params[:start_date])
+    end_date = parse_date_param(params[:end_date])
+    histories = histories.cooked_after(start_date&.beginning_of_day) if start_date
+    histories = histories.cooked_before(end_date&.end_of_day) if end_date
 
+    # レシピIDフィルタ
     histories = histories.where(recipe_id: params[:recipe_id]) if params[:recipe_id].present?
 
+    # 評価済みフィルタ
     if params[:rated_only].present?
       histories = histories.rated if ActiveModel::Type::Boolean.new.cast(params[:rated_only])
     end
@@ -121,6 +121,15 @@ class Api::V1::RecipeHistoriesController < ApplicationController
 
   def update_params
     params.require(:recipe_history).permit(:rating)
+  end
+
+  # 安全な日付パース（不正日付は無視）
+  def parse_date_param(date_string)
+    return nil if date_string.blank?
+    Time.zone.parse(date_string)
+  rescue ArgumentError => e
+    Rails.logger.warn "Invalid date format: #{date_string} - #{e.message}"
+    nil
   end
 
   def recipe_history_json(history)

@@ -311,4 +311,50 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       expect(body['data'].size).to be >= 2
     end
   end
+
+  describe 'GET /api/v1/recipe_histories (境界値・バリデーションテスト)' do
+    let(:headers) { auth_header_for(user) }
+    let!(:recipe) { create(:recipe, user: user) }
+    
+    before do
+      create(:recipe_history, user: user, recipe: recipe, cooked_at: Time.current)
+    end
+
+    it 'per_page=0の場合は1にクランプされる' do
+      get '/api/v1/recipe_histories?per_page=0', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['meta']['per_page']).to eq(1)
+    end
+
+    it 'per_page=負数の場合は1にクランプされる' do
+      get '/api/v1/recipe_histories?per_page=-5', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['meta']['per_page']).to eq(1)
+    end
+
+    it 'per_page=101の場合は100にクランプされる' do
+      get '/api/v1/recipe_histories?per_page=101', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body['meta']['per_page']).to eq(100)
+    end
+
+    it '不正な日付形式の場合はフィルタが無視される' do
+      get '/api/v1/recipe_histories?start_date=invalid-date', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      # フィルタが無視されるため、全ての履歴が返される
+      expect(body['data'].size).to be >= 1
+    end
+
+    it '空文字列の日付パラメータの場合はフィルタが無視される' do
+      get '/api/v1/recipe_histories?start_date=&end_date=', headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      # フィルタが無視されるため、全ての履歴が返される
+      expect(body['data'].size).to be >= 1
+    end
+  end
 end
