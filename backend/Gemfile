@@ -48,6 +48,8 @@ gem "line-bot-api", "~> 2.1", require: "line/bot"
 # Google Cloud Vision API
 gem "google-cloud-vision", "~> 2.0"
 
+
+
 # AI API clients
 gem "ruby-openai", "~> 6.0"
 gem "faraday", "~> 2.0"
@@ -75,3 +77,6 @@ end
 group :development do
   gem "pry-rails"
 end
+
+# Pagination
+gem "kaminari"

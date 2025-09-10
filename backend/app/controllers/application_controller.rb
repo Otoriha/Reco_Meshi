@@ -1,6 +1,9 @@
 class ApplicationController < ActionController::API
   include Devise::Controllers::Helpers
   
+  # Disable parameter wrapping globally
+  wrap_parameters false
+  
   # APIモードのため、protect_from_forgeryを含めない
   # Deviseコントローラー用の設定
   before_action :configure_permitted_parameters, if: :devise_controller?
