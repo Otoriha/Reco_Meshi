@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_08_064416) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_11_080314) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -109,6 +109,36 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_08_064416) do
     t.index ["user_id"], name: "index_recipes_on_user_id"
   end
 
+  create_table "shopping_list_items", force: :cascade do |t|
+    t.bigint "shopping_list_id", null: false, comment: "所属する買い物リスト"
+    t.bigint "ingredient_id", null: false, comment: "購入する食材"
+    t.decimal "quantity", precision: 10, scale: 2, null: false, comment: "購入量"
+    t.string "unit", limit: 20, null: false, comment: "単位"
+    t.boolean "is_checked", default: false, null: false, comment: "購入済みチェック"
+    t.datetime "checked_at", comment: "チェック日時（監査用）"
+    t.integer "lock_version", default: 0, null: false, comment: "楽観ロック用バージョン"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ingredient_id"], name: "index_shopping_list_items_on_ingredient_id"
+    t.index ["is_checked"], name: "index_shopping_list_items_on_is_checked"
+    t.index ["shopping_list_id", "ingredient_id"], name: "idx_on_shopping_list_id_ingredient_id_f6963fd74f", unique: true
+    t.index ["shopping_list_id"], name: "index_shopping_list_items_on_shopping_list_id"
+  end
+
+  create_table "shopping_lists", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "リスト作成者"
+    t.bigint "recipe_id", comment: "基となったレシピ"
+    t.integer "status", default: 0, null: false, comment: "リストの状態（0:pending, 1:in_progress, 2:completed）"
+    t.string "title", limit: 100, comment: "買い物リストタイトル"
+    t.text "note", comment: "メモ欄"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recipe_id"], name: "index_shopping_lists_on_recipe_id"
+    t.index ["status"], name: "index_shopping_lists_on_status"
+    t.index ["user_id", "created_at"], name: "index_shopping_lists_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_shopping_lists_on_user_id"
+  end
+
   create_table "user_ingredients", force: :cascade do |t|
     t.bigint "user_id", null: false, comment: "ユーザーID"
     t.bigint "ingredient_id", null: false, comment: "食材ID"
@@ -155,6 +185,10 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_08_064416) do
   add_foreign_key "recipe_ingredients", "ingredients"
   add_foreign_key "recipe_ingredients", "recipes", on_delete: :cascade
   add_foreign_key "recipes", "users"
+  add_foreign_key "shopping_list_items", "ingredients"
+  add_foreign_key "shopping_list_items", "shopping_lists"
+  add_foreign_key "shopping_lists", "recipes"
+  add_foreign_key "shopping_lists", "users"
   add_foreign_key "user_ingredients", "fridge_images"
   add_foreign_key "user_ingredients", "ingredients"
   add_foreign_key "user_ingredients", "users"

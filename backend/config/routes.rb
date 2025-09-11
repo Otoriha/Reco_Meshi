@@ -48,6 +48,15 @@ Rails.application.routes.draw do
       # Recipes and recipe histories
       resources :recipes, only: [:index, :show]
       resources :recipe_histories, only: [:index, :show, :create, :update, :destroy]
+
+      # Shopping lists and items
+      resources :shopping_lists do
+        resources :items, controller: 'shopping_list_items', only: [:update, :destroy] do
+          collection do
+            patch :bulk_update
+          end
+        end
+      end
     end
   end
 

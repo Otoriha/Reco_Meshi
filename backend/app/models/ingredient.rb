@@ -12,6 +12,10 @@ class Ingredient < ApplicationRecord
   # Associations
   has_many :user_ingredients, dependent: :destroy
   has_many :users, through: :user_ingredients
+  has_many :recipe_ingredients, dependent: :destroy
+  has_many :recipes, through: :recipe_ingredients
+  has_many :shopping_list_items, dependent: :destroy
+  has_many :shopping_lists, through: :shopping_list_items
 
   # Validations
   validates :name, presence: true, uniqueness: true, length: { maximum: 100 }
