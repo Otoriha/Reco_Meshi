@@ -45,6 +45,25 @@ export interface CreateRecipeHistoryParams {
 
 export interface UpdateRecipeHistoryParams {
   rating?: number | null
+  memo?: string | null
+}
+
+// ページネーション用メタ情報
+export interface PaginationMeta {
+  current_page: number
+  per_page: number
+  total_pages: number
+  total_count: number
+}
+
+// レシピ履歴検索パラメータ
+export interface RecipeHistoriesParams {
+  page?: number
+  per_page?: number
+  start_date?: string
+  end_date?: string
+  recipe_id?: number
+  rated_only?: boolean
 }
 
 // チェックボックス用のローカル状態
