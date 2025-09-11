@@ -2,8 +2,6 @@ class Api::V1::RecipeHistoriesController < ApplicationController
   before_action :authenticate_user!
   before_action :find_recipe_history, only: [ :show, :update, :destroy ]
   
-  # Configure parameter wrapping only for POST/PATCH actions  
-  wrap_parameters :recipe_history, include: [:recipe_id, :memo, :cooked_at, :rating]
 
   # GET /api/v1/recipe_histories
   # 常にcooked_atの降順（最新順）で返却
@@ -61,7 +59,7 @@ class Api::V1::RecipeHistoriesController < ApplicationController
       render json: {
         success: true,
         data: recipe_history_json(@recipe_history),
-        message: "調理記録を更新しました"
+        message: "評価を更新しました"
       }
     else
       render json: {

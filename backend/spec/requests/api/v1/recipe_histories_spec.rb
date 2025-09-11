@@ -188,6 +188,14 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       post '/api/v1/recipe_histories', params: { recipe_history: { memo: 'x', cooked_at: Time.current.iso8601 } }, headers: headers, as: :json
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    it 'フラットJSONでは400を返す（ParameterMissing）' do
+      headers = auth_header_for(user)
+      post '/api/v1/recipe_histories', params: { recipe_id: recipe.id, memo: 'フラット形式' }, headers: headers, as: :json
+      expect(response).to have_http_status(:bad_request)
+      body = JSON.parse(response.body)
+      expect(body['error']).to include('param is missing or the value is empty: recipe_history')
+    end
   end
 
   describe 'PATCH /api/v1/recipe_histories/:id' do
