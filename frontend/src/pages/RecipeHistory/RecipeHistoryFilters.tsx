@@ -19,13 +19,13 @@ const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
   clearFilters
 }) => {
   const periodOptions = [
-    { value: 'all' as const, label: '全期間' },
+    { value: 'all' as const, label: 'すべて' },
     { value: 'this-week' as const, label: '今週' },
     { value: 'this-month' as const, label: '今月' }
   ]
 
   const ratingOptions = [
-    { value: null, label: '全て' },
+    { value: null, label: 'すべて表示' },
     { value: true, label: '評価済み' },
     { value: false, label: '未評価' }
   ]
@@ -39,7 +39,7 @@ const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
             onClick={clearFilters}
             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
-            フィルタをクリア
+            クリア
           </button>
         )}
       </div>
@@ -54,7 +54,7 @@ const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
             type="text"
             value={filters.searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="レシピ名やメモで検索"
+            placeholder="レシピ名で検索..."
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>

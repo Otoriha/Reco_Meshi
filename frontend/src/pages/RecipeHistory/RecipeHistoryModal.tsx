@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import { useToast } from '../../hooks/useToast'
+import Toast from '../../components/Toast'
 import type { RecipeHistory, UpdateRecipeHistoryParams } from '../../types/recipe'
 
 interface RecipeHistoryModalProps {
@@ -24,6 +26,7 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const { toast, showSuccess, showError, hideToast } = useToast()
 
   useEffect(() => {
     if (history) {
@@ -92,10 +95,10 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
 
       if (Object.keys(params).length > 0) {
         await onUpdate(history.id, params)
-        alert('調理記録を更新しました')
+        showSuccess('調理記録を更新しました')
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : '更新に失敗しました')
+      showError(err instanceof Error ? err.message : '更新に失敗しました')
     } finally {
       setIsUpdating(false)
     }
@@ -107,10 +110,10 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
     try {
       setIsDeleting(true)
       await onDelete(history.id)
-      alert('調理記録を削除しました')
+      showSuccess('調理記録を削除しました')
       onClose()
     } catch (err) {
-      alert(err instanceof Error ? err.message : '削除に失敗しました')
+      showError(err instanceof Error ? err.message : '削除に失敗しました')
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
@@ -127,8 +130,11 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-800 line-clamp-2">
-                {history.recipe?.title || 'レシピ名不明'}
+                レシピ詳細
               </h2>
+              <h3 className="text-lg text-gray-600 mt-2">
+                {history.recipe?.title || 'レシピ名不明'}
+              </h3>
               <p className="text-sm text-gray-500 mt-2">
                 調理日時: {formatDateTime(history.cooked_at)}
               </p>
@@ -140,7 +146,7 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 ml-4 text-2xl"
             >
-              ✕
+              ×
             </button>
           </div>
         </div>
@@ -208,7 +214,7 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
                 disabled={isUpdating}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                {isUpdating ? '更新中...' : '変更を保存'}
+                {isUpdating ? '更新中...' : '更新'}
               </button>
             )}
             
@@ -217,7 +223,7 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
                 onClick={() => setShowDeleteConfirm(true)}
                 className="w-full bg-white hover:bg-red-50 text-red-600 border-2 border-red-600 font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                この記録を削除
+                削除
               </button>
             ) : (
               <div className="space-y-3">
@@ -244,6 +250,14 @@ const RecipeHistoryModal: React.FC<RecipeHistoryModalProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* トースト通知 */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   )
 }

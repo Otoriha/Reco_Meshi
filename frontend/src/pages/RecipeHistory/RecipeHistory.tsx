@@ -71,6 +71,15 @@ const RecipeHistory: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     await deleteHistory(id)
+    
+    // 削除後に現在のページが空になった場合の処理
+    setTimeout(() => {
+      const filteredAfterDelete = filterLocalData(histories.filter(h => h.id !== id))
+      if (filteredAfterDelete.length === 0 && currentPage > 1) {
+        // 現在のページが空で、かつ1ページ目以外の場合は前のページに移動
+        handlePageChange(currentPage - 1)
+      }
+    }, 100) // 少し遅延させてstate更新を待つ
   }
 
   const handlePageChange = async (page: number) => {
@@ -83,6 +92,9 @@ const RecipeHistory: React.FC = () => {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">レシピ履歴</h1>
+          <div className="text-center py-8">
+            <p className="text-gray-600">読み込み中...</p>
+          </div>
           <RecipeHistorySkeletonList count={5} />
         </div>
       </div>
@@ -121,7 +133,7 @@ const RecipeHistory: React.FC = () => {
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <div className="text-6xl mb-6">🍽️</div>
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              {hasActiveFilters ? 'フィルタ条件に一致する履歴がありません' : '調理履歴がありません'}
+              {hasActiveFilters ? 'フィルタ条件に一致する履歴がありません' : 'レシピ履歴がありません'}
             </h3>
             <p className="text-gray-600 mb-6">
               {hasActiveFilters 
@@ -134,7 +146,7 @@ const RecipeHistory: React.FC = () => {
                 onClick={clearFilters}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
-                フィルタをクリア
+                クリア
               </button>
             ) : (
               <Link

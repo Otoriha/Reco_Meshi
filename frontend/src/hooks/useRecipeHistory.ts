@@ -85,14 +85,19 @@ export const useRecipeHistory = (): UseRecipeHistoryReturn => {
     try {
       await recipesApi.deleteRecipeHistory(id)
       
-      setState(prev => ({
-        ...prev,
-        histories: prev.histories.filter(history => history.id !== id),
-        meta: prev.meta ? {
+      setState(prev => {
+        const newHistories = prev.histories.filter(history => history.id !== id)
+        const newMeta = prev.meta ? {
           ...prev.meta,
           total_count: prev.meta.total_count - 1
         } : null
-      }))
+        
+        return {
+          ...prev,
+          histories: newHistories,
+          meta: newMeta
+        }
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '調理記録の削除に失敗しました'
       throw new Error(errorMessage)
