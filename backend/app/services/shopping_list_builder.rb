@@ -61,15 +61,32 @@ class ShoppingListBuilder
       next unless ingredient
       
       required_amount = recipe_ingredient.amount || 0
+      recipe_unit = recipe_ingredient.unit
+      ingredient_unit = ingredient.unit
+      
+      # レシピの必要量を食材マスター単位に変換
+      converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
       available_amount = user_inventory[ingredient.id] || 0
       
-      if available_amount < required_amount
-        shortage_amount = required_amount - available_amount
+      # 変換結果に基づいて不足量を計算
+      shortage_amount = if converted_required_amount.nil?
+        # 変換不可の場合は在庫を考慮せずレシピ量をそのまま使用
+        log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit)
+        required_amount
+      else
+        # 変換成功の場合は在庫差し引き
+        shortage = converted_required_amount - available_amount
+        shortage > 0 ? shortage : 0
+      end
+      
+      if shortage_amount > 0
+        # 最終的な単位は食材マスター単位に統一
+        final_unit = converted_required_amount.nil? ? recipe_unit : ingredient_unit
         
         missing_ingredients << {
           ingredient_id: ingredient.id,
           quantity: normalize_quantity(shortage_amount),
-          unit: normalize_unit(recipe_ingredient.unit, ingredient.unit)
+          unit: final_unit
         }
       end
     end
@@ -111,20 +128,36 @@ class ShoppingListBuilder
     ingredient_unit
   end
   
+  # レシピ単位を食材マスター単位に変換
+  def convert_to_base_unit(amount, recipe_unit, ingredient_unit)
+    return amount if recipe_unit.blank? || recipe_unit == ingredient_unit
+    
+    UnitConverterService.convert(amount, from: recipe_unit, to: ingredient_unit)
+  end
+  
+  # 単位変換の警告ログを出力
+  def log_conversion_warning(ingredient_name, recipe_unit, ingredient_unit)
+    Rails.logger.warn({
+      event: 'unit_conversion_failed',
+      ingredient_name: ingredient_name,
+      recipe_unit: recipe_unit,
+      ingredient_unit: ingredient_unit,
+      message: "単位変換に失敗しました。在庫差し引きをスキップしてレシピ量をそのまま使用します。"
+    }.to_json)
+  end
+  
   def consolidate_ingredients(ingredients)
     consolidated = {}
     
     ingredients.each do |ingredient_data|
       id = ingredient_data[:ingredient_id]
-      unit = ingredient_data[:unit]
       quantity = ingredient_data[:quantity]
       
-      key = "#{id}_#{unit}"
-      
-      if consolidated[key]
-        consolidated[key][:quantity] += quantity
+      # 単位変換後は ingredient_id のみで集約（単位が統一されているため）
+      if consolidated[id]
+        consolidated[id][:quantity] += quantity
       else
-        consolidated[key] = ingredient_data.dup
+        consolidated[id] = ingredient_data.dup
       end
     end
     
