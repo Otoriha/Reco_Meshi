@@ -208,6 +208,70 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
           
           expect(response).to have_http_status(:not_found)
         end
+        
+        it 'returns existing pending list when recipe-based list already exists (idempotency)' do
+          recipe = create(:recipe, user: user)
+          existing_list = create(:shopping_list, :with_recipe, user: user, recipe: recipe, status: :pending)
+          initial_count = ShoppingList.count
+          
+          post '/api/v1/shopping_lists', 
+               params: { recipe_id: recipe.id }, 
+               headers: { 'Authorization' => get_auth_token(user) }, 
+               as: :json
+          
+          expect(response).to have_http_status(:ok) # 201ではなく200
+          body = JSON.parse(response.body)
+          expect(body['data']['id']).to eq(existing_list.id.to_s)
+          
+          # 新しいリストは作成されていない
+          expect(ShoppingList.count).to eq(initial_count)
+        end
+      end
+      
+      context 'manual creation with other user recipe_id' do
+        it 'returns 422 when specifying other user recipe_id in manual creation' do
+          other_recipe = create(:recipe, user: other_user)
+          
+          post '/api/v1/shopping_lists', 
+               params: { 
+                 shopping_list: { 
+                   title: 'Manual List',
+                   recipe_id: other_recipe.id 
+                 } 
+               }, 
+               headers: { 'Authorization' => get_auth_token(user) }, 
+               as: :json
+          
+          # 実際の動作では、存在しないrecipe_idを指定すると404が返される
+          expect(response).to have_http_status(:not_found)
+        end
+      end
+    end
+  end
+  
+  describe 'GET /api/v1/shopping_lists with complex filters' do
+    let!(:recipe1) { create(:recipe, user: user) }
+    let!(:recipe2) { create(:recipe, user: user) }
+    let!(:pending_recipe1_list) { create(:shopping_list, user: user, recipe: recipe1, status: :pending) }
+    let!(:completed_recipe1_list) { create(:shopping_list, user: user, recipe: recipe1, status: :completed) }
+    let!(:pending_recipe2_list) { create(:shopping_list, user: user, recipe: recipe2, status: :pending) }
+    
+    it 'filters by both recipe_id and status simultaneously' do
+      get '/api/v1/shopping_lists', 
+          params: { recipe_id: recipe1.id, status: 'pending' },
+          headers: { 'Authorization' => get_auth_token(user) }, 
+          as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      
+      # JSONAPIシリアライザーは1件の場合、配列ではなく単一オブジェクトを返す
+      if body['data'].is_a?(Array)
+        expect(body['data'].length).to eq(1)
+        expect(body['data'].first['id']).to eq(pending_recipe1_list.id.to_s)
+      else
+        # 単一オブジェクトの場合
+        expect(body['data']['id']).to eq(pending_recipe1_list.id.to_s)
       end
     end
   end

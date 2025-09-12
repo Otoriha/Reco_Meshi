@@ -1,10 +1,10 @@
 class ShoppingList < ApplicationRecord
   # Enums (整数型)
-  enum status: {
+  enum :status, {
     pending: 0,
     in_progress: 1,
     completed: 2
-  }, _prefix: true
+  }, prefix: true
   
   # Associations
   belongs_to :user

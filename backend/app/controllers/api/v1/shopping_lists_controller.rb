@@ -14,7 +14,7 @@ class Api::V1::ShoppingListsController < ApplicationController
 
     # Recipe filtering
     recipe_id = params[:recipe_id].presence&.to_i
-    records = records.where(recipe_id: recipe_id) if recipe_id.present?
+    records = records.where(recipe_id: recipe_id) if recipe_id.present? && recipe_id >= 1
 
     # Pagination
     page = params[:page]&.to_i || 1
