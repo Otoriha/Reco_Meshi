@@ -1,9 +1,9 @@
 class ShoppingList < ApplicationRecord
   # Enums (整数型)
-  enum status: { 
-    pending: 0, 
-    in_progress: 1, 
-    completed: 2 
+  enum status: {
+    pending: 0,
+    in_progress: 1,
+    completed: 2
   }, _prefix: true
   
   # Associations
@@ -20,12 +20,17 @@ class ShoppingList < ApplicationRecord
   
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
-  scope :by_status, ->(value) {
-    next all if value.blank?
-    statuses.key?(value.to_s) ? where(status: statuses[value.to_s]) : none
-  }
+  scope :by_status, ->(value) do
+    if value.blank?
+      all
+    elsif statuses.key?(value.to_s)
+      where(status: statuses[value.to_s])
+    else
+      none
+    end
+  end
   scope :by_user, ->(user_id) { where(user_id: user_id) }
-  scope :active, -> { where(status: [:pending, :in_progress]) }
+  scope :active, -> { where(status: statuses.values_at('pending', 'in_progress')) }
   scope :completed, -> { status_completed }
   
   # Instance methods

@@ -43,6 +43,8 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
             headers: headers, 
             as: :json
 
+        puts "Response status: #{response.status}"
+        puts "Response body: #{response.body}" if response.status != 200
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
         expect(body['data'].length).to eq(1)

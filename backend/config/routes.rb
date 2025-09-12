@@ -50,7 +50,15 @@ Rails.application.routes.draw do
       resources :recipe_histories, only: [:index, :show, :create, :update, :destroy]
 
       # Shopping lists and items
-      resources :shopping_lists do
+      # 明示的にHTTPメソッドとアクションをマッピングしてルーティングの曖昧さを排除
+      get    'shopping_lists',          to: 'shopping_lists#index'
+      post   'shopping_lists',          to: 'shopping_lists#create'
+      get    'shopping_lists/:id',      to: 'shopping_lists#show'
+      patch  'shopping_lists/:id',      to: 'shopping_lists#update'
+      put    'shopping_lists/:id',      to: 'shopping_lists#update'
+      delete 'shopping_lists/:id',      to: 'shopping_lists#destroy'
+
+      resources :shopping_lists, only: [] do
         resources :items, controller: 'shopping_list_items', only: [:update, :destroy] do
           collection do
             patch :bulk_update

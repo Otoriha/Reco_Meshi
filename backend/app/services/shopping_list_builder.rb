@@ -25,7 +25,9 @@ class ShoppingListBuilder
   def validate_inputs
     @errors << 'ユーザーが指定されていません' unless @user
     @errors << 'レシピが指定されていません' unless @recipe
-    @errors << 'レシピに材料が含まれていません' if @recipe&.recipe_ingredients&.empty?
+    if @recipe && !@recipe.recipe_ingredients.exists?
+      @errors << 'レシピに材料が含まれていません'
+    end
   end
   
   def create_shopping_list

@@ -1,10 +1,10 @@
 class Recipe < ApplicationRecord
   # Enums
-  enum difficulty: {
+  enum :difficulty, {
     easy: 'easy',
     medium: 'medium',
     hard: 'hard'
-  }, _prefix: :difficulty
+  }, prefix: :difficulty
 
   # Associations
   belongs_to :user
