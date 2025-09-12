@@ -4,23 +4,19 @@ class Api::V1::ShoppingListsController < ApplicationController
 
   # GET /api/v1/shopping_lists
   def index
-    Rails.logger.info "DEBUG: ShoppingLists#index params=#{params.to_unsafe_h.inspect}"
     records = current_user.shopping_lists
                           .includes(:recipe, shopping_list_items: :ingredient)
                           .recent
 
-    # Status filtering (permit to avoid UnfilteredParameters errors in Rails 7.2)
-    status_param = params.permit(:status)[:status]
-    records = records.by_status(status_param) if status_param.present?
+    # Status filtering
+    status = params[:status]
+    records = records.by_status(status) if status.present?
 
-    # Recipe filtering (coerce to integer and ignore invalid)
-    recipe_param = params.permit(:recipe_id)[:recipe_id]
-    if recipe_param.present?
-      recipe_id = Integer(recipe_param) rescue nil
-      records = records.where(recipe_id: recipe_id) if recipe_id
-    end
+    # Recipe filtering
+    recipe_id = params[:recipe_id].presence&.to_i
+    records = records.where(recipe_id: recipe_id) if recipe_id.present?
 
-    # Pagination (defensive clamp)
+    # Pagination
     page = params[:page]&.to_i || 1
     page = 1 if page < 1
     per_page = params[:per_page]&.to_i || 20
@@ -41,7 +37,6 @@ class Api::V1::ShoppingListsController < ApplicationController
 
   # POST /api/v1/shopping_lists
   def create
-    Rails.logger.info "DEBUG: ShoppingLists#create params=#{params.to_unsafe_h.inspect}"
     recipe_id_param = params[:recipe_id] || params.dig(:shopping_list, :recipe_id)
 
     if recipe_id_param.present?
