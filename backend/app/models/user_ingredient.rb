@@ -1,6 +1,6 @@
 class UserIngredient < ApplicationRecord
   # Enums
-  enum status: {
+  enum :status, {
     available: 'available',
     used: 'used',
     expired: 'expired'

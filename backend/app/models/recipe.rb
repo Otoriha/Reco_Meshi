@@ -1,16 +1,17 @@
 class Recipe < ApplicationRecord
   # Enums
-  enum difficulty: {
+  enum :difficulty, {
     easy: 'easy',
     medium: 'medium',
     hard: 'hard'
-  }, _prefix: :difficulty
+  }, prefix: :difficulty
 
   # Associations
   belongs_to :user
   has_many :recipe_ingredients, dependent: :destroy
   has_many :ingredients, through: :recipe_ingredients
   has_many :recipe_histories, dependent: :destroy
+  has_many :shopping_lists
 
   # Validations
   validates :title, presence: true, length: { maximum: 100 }
