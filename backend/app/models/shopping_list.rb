@@ -16,10 +16,14 @@ class ShoppingList < ApplicationRecord
   validates :status, presence: true
   validates :title, length: { maximum: 100 }, allow_blank: true
   validates :note, length: { maximum: 1000 }, allow_blank: true
+  validate :recipe_belongs_to_user, if: -> { recipe_id.present? }
   
   # Scopes
   scope :recent, -> { order(created_at: :desc) }
-  scope :by_status, ->(status) { where(status: status) if status.present? }
+  scope :by_status, ->(value) {
+    next all if value.blank?
+    statuses.key?(value.to_s) ? where(status: statuses[value.to_s]) : none
+  }
   scope :by_user, ->(user_id) { where(user_id: user_id) }
   scope :active, -> { where(status: [:pending, :in_progress]) }
   scope :completed, -> { status_completed }
@@ -54,5 +58,12 @@ class ShoppingList < ApplicationRecord
   
   def can_be_completed?
     unchecked_items_count.zero? && total_items_count > 0
+  end
+  
+  private
+  
+  def recipe_belongs_to_user
+    return if recipe&.user_id == user_id
+    errors.add(:recipe_id, 'は自分のレシピのみ指定可能です')
   end
 end

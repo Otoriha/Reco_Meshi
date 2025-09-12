@@ -33,14 +33,23 @@ class Api::V1::ShoppingListsController < ApplicationController
 
   # POST /api/v1/shopping_lists
   def create
-    if params[:recipe_id].present?
-      create_from_recipe
+    recipe_id_param = params[:recipe_id] || params.dig(:shopping_list, :recipe_id)
+
+    if recipe_id_param.present?
+      recipe = current_user.recipes.find(recipe_id_param) # 所有者検証を兼ねる
+      builder = ShoppingListBuilder.new(current_user, recipe)
+      @shopping_list = builder.build
+      render json: ShoppingListSerializer.new(@shopping_list,
+        include: [:recipe, :shopping_list_items, 'shopping_list_items.ingredient']
+      ).serializable_hash, status: :created
     else
       create_manually
     end
+  rescue ActiveRecord::RecordNotFound
+    render json: { errors: [{ detail: 'レシピが見つかりません' }] }, status: :not_found
   rescue StandardError => e
-    Rails.logger.error "ShoppingList作成エラー: #{e.message}"
-    render json: { errors: [{ detail: e.message }] }, status: :unprocessable_entity
+    Rails.logger.error "ShoppingList作成エラー: #{e.class} #{e.message}"
+    render json: { errors: [{ detail: '作成に失敗しました' }] }, status: :unprocessable_entity
   end
 
   # PATCH/PUT /api/v1/shopping_lists/:id
@@ -61,32 +70,27 @@ class Api::V1::ShoppingListsController < ApplicationController
   private
 
   def set_shopping_list
-    @shopping_list = current_user.shopping_lists.find(params[:id])
+    @shopping_list = ShoppingList.includes(:recipe, shopping_list_items: :ingredient)
+                                .find(params[:id])
   rescue ActiveRecord::RecordNotFound
     render json: { errors: [{ detail: '買い物リストが見つかりません' }] }, status: :not_found
   end
 
   def authorize_user!
-    unless @shopping_list.user == current_user
+    unless @shopping_list&.user_id == current_user.id
       render json: { errors: [{ detail: 'アクセス権限がありません' }] }, status: :forbidden
     end
   end
 
-  def create_from_recipe
-    recipe = current_user.recipes.find(params[:recipe_id])
-    builder = ShoppingListBuilder.new(current_user, recipe)
-    @shopping_list = builder.build
-
-    render json: ShoppingListSerializer.new(
-      @shopping_list,
-      include: [:recipe, :shopping_list_items, 'shopping_list_items.ingredient']
-    ).serializable_hash, status: :created
-  rescue ActiveRecord::RecordNotFound
-    render json: { errors: [{ detail: 'レシピが見つかりません' }] }, status: :not_found
-  end
 
   def create_manually
-    @shopping_list = current_user.shopping_lists.build(shopping_list_params)
+    recipe_id_param = params.dig(:shopping_list, :recipe_id)
+    if recipe_id_param.present? && !current_user.recipes.exists?(id: recipe_id_param)
+      render json: { errors: [{ detail: '自分のレシピのみ指定できます' }] }, status: :unprocessable_entity
+      return
+    end
+
+    @shopping_list = current_user.shopping_lists.build(create_shopping_list_params)
     
     if @shopping_list.save
       render json: ShoppingListSerializer.new(@shopping_list).serializable_hash, status: :created
@@ -96,6 +100,10 @@ class Api::V1::ShoppingListsController < ApplicationController
   end
 
   def shopping_list_params
+    params.require(:shopping_list).permit(:status, :title, :note)
+  end
+
+  def create_shopping_list_params
     params.require(:shopping_list).permit(:status, :title, :note, :recipe_id)
   end
 

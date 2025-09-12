@@ -70,7 +70,7 @@ class Api::V1::ShoppingListItemsController < ApplicationController
   private
 
   def set_shopping_list
-    @shopping_list = current_user.shopping_lists.find(params[:shopping_list_id])
+    @shopping_list = ShoppingList.find(params[:shopping_list_id])
   rescue ActiveRecord::RecordNotFound
     render json: { errors: [{ detail: '買い物リストが見つかりません' }] }, status: :not_found
   end
@@ -82,7 +82,7 @@ class Api::V1::ShoppingListItemsController < ApplicationController
   end
 
   def authorize_user!
-    unless @shopping_list&.user == current_user
+    unless @shopping_list&.user_id == current_user.id
       render json: { errors: [{ detail: 'アクセス権限がありません' }] }, status: :forbidden
     end
   end
