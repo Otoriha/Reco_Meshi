@@ -365,6 +365,37 @@ RSpec.describe "Api::V1::Line", type: :request do
           expect(response).to have_http_status(:ok)
         end
 
+        it "marks all unchecked items as completed in complete_list postback" do
+          # 複数のアイテムを作成
+          ingredient2 = create(:ingredient, name: '人参')
+          ingredient3 = create(:ingredient, name: 'じゃがいも')
+          item2 = create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient2, is_checked: false)
+          item3 = create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient3, is_checked: true) # 既にチェック済み
+
+          mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+          expect(response).to have_http_status(:ok)
+          
+          # 全アイテムがチェック済みになる
+          shopping_list_item.reload
+          item2.reload
+          item3.reload
+          
+          expect(shopping_list_item.is_checked).to eq(true)
+          expect(shopping_list_item.checked_at).to be_present
+          expect(item2.is_checked).to eq(true)
+          expect(item2.checked_at).to be_present
+          expect(item3.is_checked).to eq(true) # 既にチェック済みなので変わらず
+          # 既にチェック済みの場合はchecked_atは更新されない（意図された動作）
+          
+          # リストが完了状態になる
+          shopping_list.reload
+          expect(shopping_list.status).to eq('completed')
+        end
+
         it "handles unauthorized shopping list access" do
           other_user = create(:user)
           other_shopping_list = create(:shopping_list, user: other_user)

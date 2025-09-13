@@ -191,7 +191,8 @@ end
     unless user
       fallback_message = line_bot_service.create_text_message(
         "申し訳ございません。ユーザー情報を確認できませんでした。\n\n" \
-        "アカウント登録を行ってからご利用ください。"
+        "アカウント登録を行ってからご利用ください。\n" \
+        "#{line_bot_service.generate_liff_url('/')}"
       )
       return line_bot_service.reply_message(event.reply_token, fallback_message)
     end
@@ -249,7 +250,8 @@ end
     unless user
       fallback_message = line_bot_service.create_text_message(
         "申し訳ございません。ユーザー情報を確認できませんでした。\n\n" \
-        "アカウント登録を行ってからご利用ください。"
+        "アカウント登録を行ってからご利用ください。\n" \
+        "#{line_bot_service.generate_liff_url('/')}"
       )
       return line_bot_service.reply_message(event.reply_token, fallback_message)
     end
@@ -291,10 +293,7 @@ end
   end
 
   def resolve_user_from_line_id(line_user_id)
-    return nil if line_user_id.blank?
-    
-    line_account = LineAccount.find_by(line_user_id: line_user_id)
-    line_account&.user
+    LineUserResolver.resolve_user_from_line_id(line_user_id)
   end
 
   def send_updated_shopping_list(reply_token, shopping_list)
