@@ -10,9 +10,9 @@ class MessageResponseService
     when :recipe
       create_recipe_suggestion_message
     when :ingredients
-      create_ingredients_list_message
+      create_ingredients_list_message(user_id)
     when :shopping
-      create_shopping_list_message
+      create_shopping_list_message(user_id)
     when :help
       create_help_message
     when :unknown
@@ -23,6 +23,13 @@ class MessageResponseService
   end
 
   private
+
+  def resolve_user_from_line_id(line_user_id)
+    return nil if line_user_id.blank?
+    
+    line_account = LineAccount.find_by(line_user_id: line_user_id)
+    line_account&.user
+  end
 
   def create_greeting_message
     @line_bot_service.create_text_message(
@@ -134,44 +141,151 @@ class MessageResponseService
     )
   end
 
-  def create_ingredients_list_message
-    # 将来的にはユーザーの実際の食材リストを表示
-    mock_ingredients = [
-      { name: "玉ねぎ", quantity: "2個", expiry: "3日後" },
-      { name: "人参", quantity: "1本", expiry: "5日後" },
-      { name: "じゃがいも", quantity: "3個", expiry: "1週間後" },
-      { name: "豚肉", quantity: "200g", expiry: "明日" }
-    ]
-
-    message = "📝 現在の食材リスト\n\n"
-    mock_ingredients.each do |ingredient|
-      message += "• #{ingredient[:name]} (#{ingredient[:quantity]}) - 消費期限: #{ingredient[:expiry]}\n"
+  def create_ingredients_list_message(line_user_id = nil)
+    user = resolve_user_from_line_id(line_user_id)
+    
+    unless user
+      return @line_bot_service.create_text_message(
+        "📝 食材リスト機能をご利用いただくには、まずアプリでアカウント登録を行ってください。\n\n" \
+        "Webアプリまたは「ヘルプ」コマンドでLIFFアプリへのリンクをご確認ください。"
+      )
     end
 
-    message += "\n🥕 食材の詳細管理はLIFFアプリをご利用ください！\n"
-    message += "\n※現在はサンプルデータを表示しています。"
+    # ユーザーの食材リストを取得（利用可能なもののみ）
+    user_ingredients = user.user_ingredients
+                          .joins(:ingredient)
+                          .where(status: 'available')
+                          .includes(:ingredient)
+                          .order('ingredients.name ASC')
+                          .limit(20) # 表示件数制限
 
+    if user_ingredients.empty?
+      return @line_bot_service.create_text_message(
+        "📝 現在、登録されている食材がありません。\n\n" \
+        "冷蔵庫の写真を送っていただくか、LIFFアプリで食材を登録してください。"
+      )
+    end
+
+    message = "📝 現在の食材リスト\n\n"
+    
+    user_ingredients.each do |user_ingredient|
+      ingredient_name = user_ingredient.ingredient&.name || "不明な食材"
+      quantity = user_ingredient.quantity.present? ? " #{user_ingredient.quantity}" : ""
+      unit = user_ingredient.unit.present? ? "#{user_ingredient.unit}" : ""
+      
+      # 消費期限の表示
+      expiry_info = ""
+      if user_ingredient.expiry_date
+        days_until_expiry = (user_ingredient.expiry_date - Date.current).to_i
+        if days_until_expiry <= 0
+          expiry_info = " - ⚠️消費期限切れ"
+        elsif days_until_expiry <= 3
+          expiry_info = " - ⚠️#{days_until_expiry}日後まで"
+        elsif days_until_expiry <= 7
+          expiry_info = " - #{days_until_expiry}日後まで"
+        end
+      end
+      
+      message += "• #{ingredient_name}#{quantity}#{unit}#{expiry_info}\n"
+    end
+
+    if user.user_ingredients.where(status: 'available').count > 20
+      message += "\n...他#{user.user_ingredients.where(status: 'available').count - 20}件\n"
+    end
+
+    message += "\n🥕 食材の詳細管理はLIFFアプリをご利用ください！"
+
+    @line_bot_service.create_text_message(message)
+  rescue => e
+    Rails.logger.error "Ingredients list message generation error: #{e.class}: #{e.message}"
+    @line_bot_service.create_text_message(
+      "申し訳ございません。食材リストの取得中にエラーが発生しました。\n\n" \
+      "しばらく時間をおいてから再度お試しください。"
+    )
+  end
+
+  def create_shopping_list_message(line_user_id = nil)
+    user = resolve_user_from_line_id(line_user_id)
+    
+    unless user
+      return @line_bot_service.create_text_message(
+        "🛒 買い物リスト機能をご利用いただくには、まずアプリでアカウント登録を行ってください。\n\n" \
+        "Webアプリまたは「ヘルプ」コマンドでLIFFアプリへのリンクをご確認ください。"
+      )
+    end
+
+    # 最新のアクティブな買い物リストを取得
+    shopping_list = user.shopping_lists
+                       .includes(shopping_list_items: :ingredient)
+                       .active
+                       .recent
+                       .first
+
+    unless shopping_list
+      return @line_bot_service.create_text_message(
+        "🛒 現在、アクティブな買い物リストがありません。\n\n" \
+        "レシピを提案してもらうか、LIFFアプリで買い物リストを作成してください。"
+      )
+    end
+
+    # 環境変数によるFlex切り替え
+    if flex_enabled?
+      create_flex_shopping_list_message(shopping_list)
+    else
+      create_text_shopping_list_message(shopping_list)
+    end
+  rescue => e
+    Rails.logger.error "Shopping list message generation error: #{e.class}: #{e.message}"
+    @line_bot_service.create_text_message(
+      "申し訳ございません。買い物リストの取得中にエラーが発生しました。\n\n" \
+      "しばらく時間をおいてから再度お試しください。"
+    )
+  end
+
+  def create_text_shopping_list_message(shopping_list)
+    message = "🛒 #{shopping_list.display_title}\n\n"
+    
+    if shopping_list.recipe
+      message += "📖 レシピ: #{shopping_list.recipe.title}\n\n"
+    end
+    
+    unchecked_items = shopping_list.shopping_list_items.unchecked.includes(:ingredient)
+    checked_items = shopping_list.shopping_list_items.checked.includes(:ingredient)
+    
+    if unchecked_items.any?
+      message += "📝 未購入の商品:\n"
+      unchecked_items.each do |item|
+        ingredient_name = item.ingredient&.name || "不明な食材"
+        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        unit = item.unit.present? ? "#{item.unit}" : ""
+        message += "☐ #{ingredient_name}#{quantity}#{unit}\n"
+      end
+      message += "\n"
+    end
+    
+    if checked_items.any?
+      message += "✅ 購入済み:\n"
+      checked_items.each do |item|
+        ingredient_name = item.ingredient&.name || "不明な食材"
+        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        unit = item.unit.present? ? "#{item.unit}" : ""
+        message += "☑ #{ingredient_name}#{quantity}#{unit}\n"
+      end
+      message += "\n"
+    end
+    
+    progress = shopping_list.completion_percentage
+    message += "進捗: #{progress}% (#{shopping_list.shopping_list_items.checked.count}/#{shopping_list.total_items_count})\n\n"
+    
+    message += "詳細な管理はLIFFアプリをご利用ください！"
+    
     @line_bot_service.create_text_message(message)
   end
 
-  def create_shopping_list_message
-    # 将来的には不足食材を自動で検出
-    mock_shopping_items = [
-      { name: "牛乳", reason: "冷蔵庫にありません" },
-      { name: "卵", reason: "あと1個しかありません" },
-      { name: "パン", reason: "明日で消費期限切れ" },
-      { name: "醤油", reason: "残り少なくなっています" }
-    ]
-
-    message = "🛒 買い物リスト\n\n"
-    mock_shopping_items.each do |item|
-      message += "• #{item[:name]}\n  (#{item[:reason]})\n\n"
-    end
-
-    message += "💡 レシピに必要な食材も自動で追加予定です！\n"
-    message += "\n※現在はサンプルデータを表示しています。"
-
-    @line_bot_service.create_text_message(message)
+  def create_flex_shopping_list_message(shopping_list)
+    # ShoppingListMessageServiceを使用してFlexメッセージを生成
+    message_service = ShoppingListMessageService.new(@line_bot_service)
+    message_service.generate_flex_message(shopping_list)
   end
 
   def create_help_message
