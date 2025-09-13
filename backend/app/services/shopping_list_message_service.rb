@@ -17,7 +17,7 @@ class ShoppingListMessageService
       message += "📝 未購入の商品:\n"
       unchecked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
         message += "☐ #{ingredient_name}#{quantity}#{unit}\n"
       end
@@ -28,7 +28,7 @@ class ShoppingListMessageService
       message += "✅ 購入済み:\n"
       checked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
         message += "☑ #{ingredient_name}#{quantity}#{unit}\n"
       end
@@ -106,7 +106,7 @@ class ShoppingListMessageService
       
       unchecked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
         
         contents << create_checkable_item_box(
@@ -129,7 +129,7 @@ class ShoppingListMessageService
       
       checked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
+        quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
         
         contents << create_checkable_item_box(
@@ -173,6 +173,16 @@ class ShoppingListMessageService
   end
 
   private
+
+  def format_quantity(quantity)
+    return quantity.to_s if quantity.nil?
+    
+    if quantity % 1 == 0
+      quantity.to_i.to_s
+    else
+      quantity.to_s
+    end
+  end
 
   def create_checkable_item_box(text, postback_data, is_checked)
     {

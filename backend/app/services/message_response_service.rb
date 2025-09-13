@@ -170,8 +170,8 @@ class MessageResponseService
     
     user_ingredients.each do |user_ingredient|
       ingredient_name = user_ingredient.ingredient&.name || "不明な食材"
-      quantity = user_ingredient.quantity.present? ? " #{user_ingredient.quantity}" : ""
-      unit = user_ingredient.unit.present? ? "#{user_ingredient.unit}" : ""
+      quantity = user_ingredient.quantity.present? ? " #{format_quantity(user_ingredient.quantity)}" : ""
+      unit = user_ingredient.ingredient&.unit.present? ? "#{user_ingredient.ingredient.unit}" : ""
       
       # 消費期限の表示
       expiry_info = ""
@@ -416,5 +416,17 @@ class MessageResponseService
     # その他のエラー時もテキストメッセージにフォールバック
     text = format_recipe_text(json_text)
     @line_bot_service.create_text_message(text)
+  end
+
+  private
+
+  def format_quantity(quantity)
+    return quantity.to_s if quantity.nil?
+    
+    if quantity % 1 == 0
+      quantity.to_i.to_s
+    else
+      quantity.to_s
+    end
   end
 end

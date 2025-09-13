@@ -254,12 +254,12 @@ RSpec.describe MessageResponseService do
       context 'with valid user and ingredients' do
         let(:user) { create(:user) }
         let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
-        let(:ingredient) { create(:ingredient, name: '玉ねぎ') }
+        let(:ingredient) { create(:ingredient, name: '玉ねぎ', unit: '個') }
 
         before do
           line_account
           create(:user_ingredient, user: user, ingredient: ingredient, 
-                 quantity: 2, unit: '個', status: 'available', 
+                 quantity: 2, status: 'available', 
                  expiry_date: 3.days.from_now.to_date)
         end
 
@@ -712,14 +712,21 @@ RSpec.describe MessageResponseService do
     end
 
     it 'ingredients message contains proper formatting' do
+      user = create(:user)
+      ingredient = create(:ingredient, name: 'テスト食材', unit: 'g')
+      line_account = create(:line_account, user: user, line_user_id: 'test_user_formatting')
+      create(:user_ingredient, user: user, ingredient: ingredient, 
+             quantity: 100, status: 'available', 
+             expiry_date: 3.days.from_now.to_date)
+      
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('📝')
         expect(message).to include('• ')
-        expect(message).to include('消費期限:')
+        expect(message).to include('日後まで')
         mock_message
       end
       
-      service.generate_response(:ingredients)
+      service.generate_response(:ingredients, 'test_user_formatting')
     end
   end
 end

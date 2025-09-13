@@ -194,17 +194,25 @@ RSpec.describe "Api::V1::Line", type: :request do
     end
 
     def create_v2_postback_event(data = "recipe_request")
-      # doubleを使用してモックオブジェクトを作成
-      postback = double('Line::Bot::V2::Webhook::PostbackContent')
+      # Line::Bot::V2::Webhook::PostbackEventのモックを作成
+      postback = double('PostbackContent')
       allow(postback).to receive(:data).and_return(data)
 
-      source = double('Line::Bot::V2::Webhook::UserSource')
+      source = double('UserSource')
       allow(source).to receive(:user_id).and_return("test_user_id")
 
-      event = double('Line::Bot::V2::Webhook::PostbackEvent')
+      event = double('PostbackEvent')
       allow(event).to receive(:postback).and_return(postback)
       allow(event).to receive(:source).and_return(source)
       allow(event).to receive(:reply_token).and_return("test_reply_token")
+      
+      # すべてのクラスチェックをスタブ
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::MessageEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::FollowEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::UnfollowEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::PostbackEvent).and_return(true)
+      allow(event).to receive(:respond_to?).with(:postback).and_return(true)
+      
       event
     end
 

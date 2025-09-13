@@ -31,8 +31,7 @@ end
   private
 
   def handle_event(event)
-  case event
-  when Line::Bot::V2::Webhook::MessageEvent
+  if event.is_a?(Line::Bot::V2::Webhook::MessageEvent)
     case event.message
     when Line::Bot::V2::Webhook::TextMessageContent
       handle_text_message(event)
@@ -41,11 +40,11 @@ end
     when Line::Bot::V2::Webhook::StickerMessageContent
       handle_sticker_message(event)
     end
-  when Line::Bot::V2::Webhook::FollowEvent
+  elsif event.is_a?(Line::Bot::V2::Webhook::FollowEvent)
     handle_follow_event(event)
-  when Line::Bot::V2::Webhook::UnfollowEvent
+  elsif event.is_a?(Line::Bot::V2::Webhook::UnfollowEvent)
     handle_unfollow_event(event)
-  when Line::Bot::V2::Webhook::PostbackEvent
+  elsif event.is_a?(Line::Bot::V2::Webhook::PostbackEvent) || event.respond_to?(:postback)
     handle_postback_event(event)
   end
 end
