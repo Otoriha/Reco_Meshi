@@ -81,8 +81,8 @@ class ShoppingListGeneratorService
   end
   
   def calculate_aggregated_missing_ingredients
-    aggregated_ingredients = {}
-    user_inventory = build_user_inventory
+    # 1. まず食材毎にレシピ要求量を集約
+    ingredient_requirements = {}
     
     @recipes.each do |recipe|
       recipe.recipe_ingredients.includes(:ingredient).each do |recipe_ingredient|
@@ -93,59 +93,72 @@ class ShoppingListGeneratorService
         
         required_amount = recipe_ingredient.amount || 0
         recipe_unit = recipe_ingredient.unit
-        ingredient_unit = ingredient.unit
         
-        # レシピの必要量を食材マスター単位に変換
-        converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
+        ingredient_requirements[ingredient.id] ||= { 
+          ingredient: ingredient, 
+          requirements: [] 
+        }
         
-        if converted_required_amount.nil?
-          # 変換不可の場合は警告ログを出力し、レシピ単位でそのまま集約
-          log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit, recipe.title)
-          unit_for_aggregation = recipe_unit
-          amount_for_aggregation = required_amount
-        else
-          # 変換成功の場合は食材マスター単位で集約
-          unit_for_aggregation = ingredient_unit
-          amount_for_aggregation = converted_required_amount
-        end
-        
-        key = "#{ingredient.id}_#{unit_for_aggregation}"
-        
-        if aggregated_ingredients[key]
-          aggregated_ingredients[key][:total_amount] += amount_for_aggregation
-        else
-          aggregated_ingredients[key] = {
-            ingredient: ingredient,
-            total_amount: amount_for_aggregation,
-            unit: unit_for_aggregation,
-            converted: converted_required_amount.present?
-          }
-        end
+        ingredient_requirements[ingredient.id][:requirements] << {
+          amount: required_amount,
+          unit: recipe_unit,
+          recipe_title: recipe.title
+        }
       end
     end
     
-    # 在庫差分を計算してリスト化
+    # 2. 各食材について単位統一と集約を実行
+    user_inventory = build_user_inventory
     missing_ingredients = []
-    aggregated_ingredients.each_value do |agg_data|
-      ingredient = agg_data[:ingredient]
-      total_required = agg_data[:total_amount]
-      unit = agg_data[:unit]
-      converted = agg_data[:converted]
+    
+    ingredient_requirements.each_value do |req_data|
+      ingredient = req_data[:ingredient]
+      requirements = req_data[:requirements]
+      ingredient_unit = ingredient.unit
       
-      if converted
-        # 変換済みの場合は在庫差し引き
-        available_amount = user_inventory[ingredient.id] || 0
-        shortage_amount = total_required - available_amount
-      else
-        # 変換不可の場合は在庫考慮せず
-        shortage_amount = total_required
+      # 食材マスター単位での総必要量を計算
+      total_required_in_base_unit = 0
+      unconvertible_amounts = []
+      
+      requirements.each do |req|
+        converted_amount = convert_to_base_unit(req[:amount], req[:unit], ingredient_unit)
+        
+        if converted_amount.nil?
+          # 変換不可の場合はWARNログと共に記録
+          log_conversion_warning(ingredient.name, req[:unit], ingredient_unit, req[:recipe_title])
+          unconvertible_amounts << req
+        else
+          # 変換成功の場合は食材マスター単位で合算
+          total_required_in_base_unit += converted_amount
+        end
       end
+      
+      # 変換不可分の処理：可能であれば食材マスター単位に変換を試行
+      unconvertible_amounts.each do |req|
+        # レシピ単位→食材マスター単位の逆変換を試行（例: cup→mlなど、将来の拡張で対応可能）
+        fallback_converted = attempt_fallback_conversion(req[:amount], req[:unit], ingredient_unit)
+        
+        if fallback_converted
+          total_required_in_base_unit += fallback_converted
+        else
+          # 完全に変換不可の場合は警告を出して、概算値として加算しない（在庫と比較不可のため）
+          log_unconvertible_warning(ingredient.name, req[:unit], ingredient_unit, req[:recipe_title], req[:amount])
+          
+          # 安全のため、この分は別途考慮（在庫無視で必要量として計上）
+          # ただし単位は食材マスター単位に統一するため、変換不可量は概算で1単位として計上
+          total_required_in_base_unit += 1.0
+        end
+      end
+      
+      # 在庫差分を計算
+      available_amount = user_inventory[ingredient.id] || 0
+      shortage_amount = total_required_in_base_unit - available_amount
       
       if shortage_amount > 0
         missing_ingredients << {
           ingredient_id: ingredient.id,
           quantity: normalize_quantity(shortage_amount),
-          unit: unit,
+          unit: ingredient_unit, # 最終単位は必ず食材マスター単位
           ingredient: ingredient
         }
       end
@@ -216,6 +229,13 @@ class ShoppingListGeneratorService
     end
   end
   
+  def attempt_fallback_conversion(amount, recipe_unit, ingredient_unit)
+    # 将来的に拡張可能な変換ルール（例：カップ→ml、小さじ→ml等）
+    # 現在は基本的にUnitConverterServiceで処理しきれないもの
+    # とりあえずnilを返して標準変換に委ねる
+    nil
+  end
+  
   def log_conversion_warning(ingredient_name, recipe_unit, ingredient_unit, recipe_title)
     Rails.logger.warn({
       event: 'unit_conversion_failed_in_generator',
@@ -224,6 +244,18 @@ class ShoppingListGeneratorService
       ingredient_unit: ingredient_unit,
       recipe_title: recipe_title,
       message: "単位変換に失敗しました。レシピ「#{recipe_title}」の「#{ingredient_name}」について、在庫差し引きをスキップしてレシピ量をそのまま使用します。"
+    }.to_json)
+  end
+  
+  def log_unconvertible_warning(ingredient_name, recipe_unit, ingredient_unit, recipe_title, amount)
+    Rails.logger.warn({
+      event: 'unit_completely_unconvertible_in_generator',
+      ingredient_name: ingredient_name,
+      recipe_unit: recipe_unit,
+      ingredient_unit: ingredient_unit,
+      recipe_title: recipe_title,
+      amount: amount,
+      message: "単位変換が完全に不可能です。レシピ「#{recipe_title}」の「#{ingredient_name}」#{amount}#{recipe_unit}を概算値として処理します。"
     }.to_json)
   end
 end

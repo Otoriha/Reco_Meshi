@@ -80,8 +80,14 @@ class ShoppingListBuilder
       end
       
       if shortage_amount > 0
-        # 最終的な単位は食材マスター単位に統一
-        final_unit = converted_required_amount.nil? ? recipe_unit : ingredient_unit
+        # 最終単位の決定ロジック
+        final_unit = if converted_required_amount.nil?
+          # 変換失敗時: レシピ単位が許可されていれば使用、未許可なら食材単位にフォールバック
+          ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit) ? recipe_unit : ingredient_unit
+        else
+          # 変換成功時: 食材マスター単位に統一
+          ingredient_unit
+        end
         
         missing_ingredients << {
           ingredient_id: ingredient.id,
