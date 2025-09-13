@@ -200,8 +200,11 @@ end
     # 買い物リストの権限確認
     shopping_list = user.shopping_lists.find_by(id: shopping_list_id)
     unless shopping_list
+      liff_url = line_bot_service.generate_liff_url("/shopping-lists")
       fallback_message = line_bot_service.create_text_message(
-        "申し訳ございません。指定された買い物リストが見つかりませんでした。"
+        "申し訳ございません。指定された買い物リストが見つかりませんでした。\n\n" \
+        "最新の買い物リストはLIFFアプリでご確認ください。\n" \
+        "#{liff_url}"
       )
       return line_bot_service.reply_message(event.reply_token, fallback_message)
     end
@@ -255,14 +258,17 @@ end
     # 買い物リストの権限確認
     shopping_list = user.shopping_lists.find_by(id: shopping_list_id)
     unless shopping_list
+      liff_url = line_bot_service.generate_liff_url("/shopping-lists")
       fallback_message = line_bot_service.create_text_message(
-        "申し訳ございません。指定された買い物リストが見つかりませんでした。"
+        "申し訳ございません。指定された買い物リストが見つかりませんでした。\n\n" \
+        "最新の買い物リストはLIFFアプリでご確認ください。\n" \
+        "#{liff_url}"
       )
       return line_bot_service.reply_message(event.reply_token, fallback_message)
     end
 
-    # 全アイテムをチェック済みに
-    shopping_list.shopping_list_items.unchecked.update_all(checked: true)
+    # 全アイテムをチェック済みに（コールバックを実行してchecked_atも更新）
+    shopping_list.shopping_list_items.unchecked.find_each(&:mark_as_checked!)
     
     # リストを完了状態に
     shopping_list.mark_as_completed!
@@ -294,12 +300,11 @@ end
 
   def send_updated_shopping_list(reply_token, shopping_list)
     # 環境変数によるFlex切り替え
-    if flex_enabled?
-      message_service = ShoppingListMessageService.new(line_bot_service)
-      response_message = message_service.generate_flex_message(shopping_list)
+    message_service = ShoppingListMessageService.new(line_bot_service)
+    response_message = if flex_enabled?
+      message_service.generate_flex_message(shopping_list)
     else
-      message_service = ShoppingListMessageService.new(line_bot_service)
-      response_message = message_service.generate_text_message(shopping_list)
+      message_service.generate_text_message(shopping_list)
     end
 
     line_bot_service.reply_message(reply_token, response_message)

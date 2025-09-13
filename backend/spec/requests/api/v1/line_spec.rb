@@ -351,6 +351,8 @@ RSpec.describe "Api::V1::Line", type: :request do
           expect {
             post '/api/v1/line/webhook', params: postback_event, headers: headers
           }.to change { shopping_list.reload.status }.from('pending').to('completed')
+          .and change { shopping_list_item.reload.is_checked }.from(false).to(true)
+          .and change { shopping_list_item.reload.checked_at }.from(nil).to(be_present)
 
           expect(response).to have_http_status(:ok)
         end

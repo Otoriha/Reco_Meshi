@@ -243,43 +243,9 @@ class MessageResponseService
   end
 
   def create_text_shopping_list_message(shopping_list)
-    message = "🛒 #{shopping_list.display_title}\n\n"
-    
-    if shopping_list.recipe
-      message += "📖 レシピ: #{shopping_list.recipe.title}\n\n"
-    end
-    
-    unchecked_items = shopping_list.shopping_list_items.unchecked.includes(:ingredient)
-    checked_items = shopping_list.shopping_list_items.checked.includes(:ingredient)
-    
-    if unchecked_items.any?
-      message += "📝 未購入の商品:\n"
-      unchecked_items.each do |item|
-        ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
-        unit = item.unit.present? ? "#{item.unit}" : ""
-        message += "☐ #{ingredient_name}#{quantity}#{unit}\n"
-      end
-      message += "\n"
-    end
-    
-    if checked_items.any?
-      message += "✅ 購入済み:\n"
-      checked_items.each do |item|
-        ingredient_name = item.ingredient&.name || "不明な食材"
-        quantity = item.quantity.present? ? " #{item.quantity}" : ""
-        unit = item.unit.present? ? "#{item.unit}" : ""
-        message += "☑ #{ingredient_name}#{quantity}#{unit}\n"
-      end
-      message += "\n"
-    end
-    
-    progress = shopping_list.completion_percentage
-    message += "進捗: #{progress}% (#{shopping_list.shopping_list_items.checked.count}/#{shopping_list.total_items_count})\n\n"
-    
-    message += "詳細な管理はLIFFアプリをご利用ください！"
-    
-    @line_bot_service.create_text_message(message)
+    # ShoppingListMessageServiceを使用してテキストメッセージを生成
+    message_service = ShoppingListMessageService.new(@line_bot_service)
+    message_service.generate_text_message(shopping_list)
   end
 
   def create_flex_shopping_list_message(shopping_list)

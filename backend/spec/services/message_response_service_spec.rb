@@ -361,6 +361,23 @@ RSpec.describe MessageResponseService do
             service.generate_response(:shopping, 'test_user_id')
           end
         end
+
+        context 'with flex disabled' do
+          before do
+            allow(ENV).to receive(:[]).with('LINE_FLEX_ENABLED').and_return('false')
+          end
+
+          it 'creates text shopping list message as fallback' do
+            expect(line_bot_service).to receive(:create_text_message).with(
+              a_string_including('🛒').and(
+                a_string_including('☐ 玉ねぎ 2個')
+              )
+            )
+            expect(line_bot_service).not_to receive(:create_flex_message)
+            
+            service.generate_response(:shopping, 'test_user_id')
+          end
+        end
       end
     end
 

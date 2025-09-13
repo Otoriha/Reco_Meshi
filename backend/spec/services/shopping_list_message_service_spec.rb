@@ -62,6 +62,53 @@ RSpec.describe ShoppingListMessageService, type: :service do
       expect(bubble).to have_key(:footer)
     end
 
+    context 'アイテム数が多い場合' do
+      let(:shopping_list_with_many_items) { create(:shopping_list, user: user) }
+      
+      before do
+        # 未購入アイテムを12個作成（表示制限10件を超える）
+        12.times do |i|
+          ingredient = create(:ingredient, name: "食材#{i+1}")
+          create(:shopping_list_item, shopping_list: shopping_list_with_many_items, 
+                 ingredient: ingredient, is_checked: false)
+        end
+        
+        # 購入済みアイテムを7個作成（表示制限5件を超える）
+        7.times do |i|
+          ingredient = create(:ingredient, name: "購入済み食材#{i+1}")
+          create(:shopping_list_item, shopping_list: shopping_list_with_many_items, 
+                 ingredient: ingredient, is_checked: true)
+        end
+      end
+
+      it '未購入アイテムを最大10件まで表示する' do
+        bubble = service.send(:generate_checklist_bubble, shopping_list_with_many_items)
+        body_contents = bubble[:body][:contents]
+        item_boxes = body_contents.select { |content| content[:action]&.dig(:type) == "postback" }
+        unchecked_boxes = item_boxes.select { |box| box[:action][:data].include?("check_item") && !box[:contents].first[:text].include?("☑") }
+        
+        expect(unchecked_boxes.length).to eq(10)
+      end
+
+      it '購入済みアイテムを最大5件まで表示する' do
+        bubble = service.send(:generate_checklist_bubble, shopping_list_with_many_items)
+        body_contents = bubble[:body][:contents]
+        item_boxes = body_contents.select { |content| content[:action]&.dig(:type) == "postback" }
+        checked_boxes = item_boxes.select { |box| box[:action][:data].include?("check_item") && box[:contents].first[:text].include?("☑") }
+        
+        expect(checked_boxes.length).to eq(5)
+      end
+
+      it 'アイテム数制限の警告を表示する' do
+        bubble = service.send(:generate_checklist_bubble, shopping_list_with_many_items)
+        body_contents = bubble[:body][:contents]
+        warning_text = body_contents.find { |content| content[:text]&.include?("...他") }
+        
+        expect(warning_text).to be_present
+        expect(warning_text[:text]).to include("...他4件") # 19 - 15 = 4件
+      end
+    end
+
     it 'タイトルとレシピ情報を含む' do
       body_contents = bubble[:body][:contents]
       title_content = body_contents.find { |content| content[:text]&.include?(shopping_list.display_title) }
@@ -77,6 +124,23 @@ RSpec.describe ShoppingListMessageService, type: :service do
       
       expect(liff_button).to be_present
       expect(liff_button[:action][:uri]).to include("shopping-lists/#{shopping_list.id}")
+    end
+
+    it '未購入アイテムに正しいpostbackデータが設定されている' do
+      body_contents = bubble[:body][:contents]
+      item_boxes = body_contents.select { |content| content[:action]&.dig(:type) == "postback" }
+      
+      unchecked_item_box = item_boxes.find { |box| box[:action][:data].include?("check_item") }
+      expect(unchecked_item_box).to be_present
+      expect(unchecked_item_box[:action][:data]).to eq("check_item:#{shopping_list.id}:#{shopping_list.shopping_list_items.unchecked.first.id}")
+    end
+
+    it 'フッターに買い物完了ボタンとpostbackデータが設定されている' do
+      footer_contents = bubble[:footer][:contents]
+      complete_button = footer_contents.find { |content| content[:action][:type] == "postback" }
+      
+      expect(complete_button).to be_present
+      expect(complete_button[:action][:data]).to eq("complete_list:#{shopping_list.id}")
     end
   end
 
