@@ -1,6 +1,6 @@
 class ShoppingListItem < ApplicationRecord
   # Constants
-  ALLOWED_UNITS = %w[g kg ml l 個 本 束 パック 袋 枚 缶 瓶 箱 玉].freeze
+  ALLOWED_UNITS = %w[g kg ml l 個 本 束 パック 袋 枚 缶 瓶 箱 玉 尾].freeze
   
   # Associations
   belongs_to :shopping_list

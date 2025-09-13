@@ -174,6 +174,107 @@ RSpec.describe ShoppingListBuilder, type: :service do
       end
     end
 
+    describe 'unit conversion' do
+      let(:flour) { create(:ingredient, name: '小麦粉', unit: 'g', category: 'others') }
+      let(:milk) { create(:ingredient, name: '牛乳', unit: 'ml', category: 'dairy') }
+
+      context 'when recipe unit is compatible with ingredient unit' do
+        before do
+          create(:recipe_ingredient, recipe: recipe, ingredient: flour, amount: 2, unit: 'kg')
+          create(:recipe_ingredient, recipe: recipe, ingredient: milk, amount: 1, unit: 'l')
+          create(:user_ingredient, user: user, ingredient: flour, quantity: 500, status: 'available')
+          create(:user_ingredient, user: user, ingredient: milk, quantity: 200, status: 'available')
+        end
+
+        it 'converts recipe units to ingredient units and calculates shortage' do
+          result = builder.build
+
+          flour_item = result.shopping_list_items.find { |item| item.ingredient == flour }
+          expect(flour_item.quantity).to eq(1500.0) # 2kg - 500g = 1500g
+          expect(flour_item.unit).to eq('g')
+
+          milk_item = result.shopping_list_items.find { |item| item.ingredient == milk }
+          expect(milk_item.quantity).to eq(800.0) # 1l - 200ml = 800ml
+          expect(milk_item.unit).to eq('ml')
+        end
+      end
+
+      context 'when recipe unit is incompatible with ingredient unit' do
+        let(:fish) { create(:ingredient, name: 'さば', unit: '尾', category: 'fish') }
+
+        before do
+          create(:recipe_ingredient, recipe: recipe, ingredient: fish, amount: 200, unit: 'g')
+          create(:user_ingredient, user: user, ingredient: fish, quantity: 1, status: 'available')
+        end
+
+        it 'ignores inventory and uses recipe amount as is' do
+          allow(Rails.logger).to receive(:warn)
+
+          result = builder.build
+
+          fish_item = result.shopping_list_items.find { |item| item.ingredient == fish }
+          expect(fish_item.quantity).to eq(200.0) # 在庫無視でレシピ量そのまま
+          expect(fish_item.unit).to eq('g')
+
+          expect(Rails.logger).to have_received(:warn)
+        end
+      end
+
+      context 'when recipe unit is unsupported and incompatible with ingredient unit' do
+        let(:flour) { create(:ingredient, name: '小麦粉', unit: 'g', category: 'others') }
+
+        before do
+          create(:recipe_ingredient, recipe: recipe, ingredient: flour, amount: 2, unit: 'cup') # unsupported unit
+          create(:user_ingredient, user: user, ingredient: flour, quantity: 100, status: 'available')
+        end
+
+        it 'falls back to ingredient unit when recipe unit is not allowed' do
+          allow(Rails.logger).to receive(:warn)
+
+          result = builder.build
+
+          flour_item = result.shopping_list_items.find { |item| item.ingredient == flour }
+          expect(flour_item.quantity).to eq(2.0) # 変換不可で在庫無視でレシピ量そのまま
+          expect(flour_item.unit).to eq('g') # 未許可単位なので食材単位にフォールバック
+
+          expect(Rails.logger).to have_received(:warn)
+        end
+      end
+
+      context 'when user has sufficient inventory after conversion' do
+        before do
+          create(:recipe_ingredient, recipe: recipe, ingredient: flour, amount: 1, unit: 'kg')
+          create(:user_ingredient, user: user, ingredient: flour, quantity: 1200, status: 'available')
+        end
+
+        it 'does not add item to shopping list' do
+          result = builder.build
+
+          flour_items = result.shopping_list_items.select { |item| item.ingredient == flour }
+          expect(flour_items).to be_empty
+        end
+      end
+    end
+
+    describe 'ingredient consolidation after unit conversion' do
+      let(:sugar) { create(:ingredient, name: '砂糖', unit: 'g', category: 'others') }
+
+      before do
+        # 同じ食材を異なる単位で2回追加（変換後は同じ単位になる）
+        create(:recipe_ingredient, recipe: recipe, ingredient: sugar, amount: 0.5, unit: 'kg')
+        create(:recipe_ingredient, recipe: recipe, ingredient: sugar, amount: 200, unit: 'g')
+      end
+
+      it 'consolidates ingredients by ingredient_id only after unit conversion' do
+        result = builder.build
+
+        sugar_items = result.shopping_list_items.select { |item| item.ingredient == sugar }
+        expect(sugar_items.count).to eq(1)
+        expect(sugar_items.first.quantity).to eq(700.0) # 500g + 200g
+        expect(sugar_items.first.unit).to eq('g')
+      end
+    end
+
     describe 'transaction rollback' do
       before do
         create(:recipe_ingredient, recipe: recipe, ingredient: onion, amount: 2, unit: '個')
