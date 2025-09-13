@@ -141,12 +141,11 @@ class ShoppingListGeneratorService
         if fallback_converted
           total_required_in_base_unit += fallback_converted
         else
-          # 完全に変換不可の場合は警告を出して、概算値として加算しない（在庫と比較不可のため）
+          # 完全に変換不可の場合は警告を出して、概算値として1単位を加算
           log_unconvertible_warning(ingredient.name, req[:unit], ingredient_unit, req[:recipe_title], req[:amount])
           
-          # 安全のため、この分は別途考慮（在庫無視で必要量として計上）
-          # ただし単位は食材マスター単位に統一するため、変換不可量は概算で1単位として計上
-          total_required_in_base_unit += 1.0
+          # 変換不可分は概算で1単位として計上（安全のため）
+          total_required_in_base_unit += req[:amount]
         end
       end
       

@@ -24,7 +24,8 @@ RSpec.describe ShoppingListItem, type: :model do
       it 'rejects invalid units' do
         shopping_list_item.unit = 'invalid_unit'
         expect(shopping_list_item).not_to be_valid
-        expect(shopping_list_item.errors[:unit]).to include('は有効な単位を選択してください（g、kg、ml、l、個、本、束、パック、袋、枚、缶、瓶、箱、袋、玉）')
+        expected_message = "は有効な単位を選択してください（#{ShoppingListItem::ALLOWED_UNITS.join('、')}）"
+        expect(shopping_list_item.errors[:unit]).to include(expected_message)
       end
     end
 
