@@ -317,6 +317,57 @@ RSpec.describe "Api::V1::Line", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
+      describe 'shopping list postback events' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+        let(:shopping_list) { create(:shopping_list, user: user, status: :pending) }
+        let(:ingredient) { create(:ingredient, name: '玉ねぎ') }
+        let(:shopping_list_item) { create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient, is_checked: false) }
+
+        before do
+          line_account
+          shopping_list_item
+          allow_any_instance_of(LineBotService).to receive(:reply_message).and_return(double(code: '200'))
+          allow_any_instance_of(LineBotService).to receive(:create_text_message).and_return(double('message'))
+          allow_any_instance_of(LineBotService).to receive(:create_flex_message).and_return(double('message'))
+          allow_any_instance_of(LineBotService).to receive(:generate_liff_url).and_return('https://liff.line.me/test')
+        end
+
+        it "handles check_item postback event" do
+          mock_event = create_v2_postback_event("check_item:#{shopping_list.id}:#{shopping_list_item.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          expect {
+            post '/api/v1/line/webhook', params: postback_event, headers: headers
+          }.to change { shopping_list_item.reload.is_checked }.from(false).to(true)
+
+          expect(response).to have_http_status(:ok)
+        end
+
+        it "handles complete_list postback event" do
+          mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          expect {
+            post '/api/v1/line/webhook', params: postback_event, headers: headers
+          }.to change { shopping_list.reload.status }.from('pending').to('completed')
+
+          expect(response).to have_http_status(:ok)
+        end
+
+        it "handles unauthorized shopping list access" do
+          other_user = create(:user)
+          other_shopping_list = create(:shopping_list, user: other_user)
+          
+          mock_event = create_v2_postback_event("check_item:#{other_shopping_list.id}:999")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+          expect(response).to have_http_status(:ok)
+        end
+      end
+
       it "handles sticker message successfully" do
         mock_event = create_v2_sticker_message_event
         allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
