@@ -224,56 +224,160 @@ RSpec.describe MessageResponseService do
     end
 
     context 'when command is :ingredients' do
-      it 'creates an ingredients list message' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('現在の食材リスト')
-        )
-        
-        service.generate_response(:ingredients)
+      context 'without valid user_id' do
+        it 'creates account registration message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('アカウント登録を行ってください')
+          )
+          
+          service.generate_response(:ingredients, 'invalid_user_id')
+        end
       end
 
-      it 'includes mock ingredients with quantities and expiry dates' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_matching(/玉ねぎ.*2個.*3日後/)
-        )
-        
-        service.generate_response(:ingredients)
+      context 'with valid user but no ingredients' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+
+        before do
+          line_account
+        end
+
+        it 'creates no ingredients message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('登録されている食材がありません')
+          )
+          
+          service.generate_response(:ingredients, 'test_user_id')
+        end
       end
 
-      it 'mentions LIFF app for detailed management' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('LIFFアプリをご利用ください')
-        )
-        
-        service.generate_response(:ingredients)
+      context 'with valid user and ingredients' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+        let(:ingredient) { create(:ingredient, name: '玉ねぎ', unit: '個') }
+
+        before do
+          line_account
+          create(:user_ingredient, user: user, ingredient: ingredient, 
+                 quantity: 2, status: 'available', 
+                 expiry_date: 3.days.from_now.to_date)
+        end
+
+        it 'creates ingredients list message with actual data' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('📝 現在の食材リスト').and(
+              a_string_including('• 玉ねぎ 2個')
+            )
+          )
+          
+          service.generate_response(:ingredients, 'test_user_id')
+        end
+
+        it 'mentions LIFF app for detailed management' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('LIFFアプリをご利用ください')
+          )
+          
+          service.generate_response(:ingredients, 'test_user_id')
+        end
       end
     end
 
     context 'when command is :shopping' do
-      it 'creates a shopping list message' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('買い物リスト')
-        )
-        
-        service.generate_response(:shopping)
-      end
-
-      it 'includes mock shopping items with reasons' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('牛乳').and(
-            a_string_including('冷蔵庫にありません')
+      context 'without valid user_id' do
+        it 'creates account registration message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('アカウント登録を行ってください')
           )
-        )
-        
-        service.generate_response(:shopping)
+          
+          service.generate_response(:shopping, 'invalid_user_id')
+        end
       end
 
-      it 'mentions future recipe ingredient integration' do
-        expect(line_bot_service).to receive(:create_text_message).with(
-          a_string_including('レシピに必要な食材も自動で追加予定')
-        )
-        
-        service.generate_response(:shopping)
+      context 'with valid user_id but no line account' do
+        it 'creates account registration message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('アカウント登録を行ってください')
+          )
+          
+          service.generate_response(:shopping, 'user_without_line_account')
+        end
+      end
+
+      context 'with valid user but no shopping lists' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+
+        before do
+          line_account
+        end
+
+        it 'creates no shopping list message' do
+          expect(line_bot_service).to receive(:create_text_message).with(
+            a_string_including('アクティブな買い物リストがありません')
+          )
+          
+          service.generate_response(:shopping, 'test_user_id')
+        end
+      end
+
+      context 'with valid user and shopping list' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+        let(:shopping_list) { create(:shopping_list, user: user, status: :pending) }
+        let(:ingredient) { create(:ingredient, name: '玉ねぎ') }
+
+        before do
+          line_account
+          create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient, quantity: 2, unit: '個', is_checked: false)
+        end
+
+        context 'with flex disabled' do
+          before do
+            allow(ENV).to receive(:[]).with('LINE_FLEX_ENABLED').and_return('false')
+          end
+
+          it 'creates text shopping list message' do
+            expect(line_bot_service).to receive(:create_text_message).with(
+              a_string_including('🛒').and(
+                a_string_including('☐ 玉ねぎ 2個')
+              )
+            )
+            
+            service.generate_response(:shopping, 'test_user_id')
+          end
+        end
+
+        context 'with flex enabled' do
+          before do
+            allow(ENV).to receive(:[]).with('LINE_FLEX_ENABLED').and_return('true')
+            allow(line_bot_service).to receive(:create_flex_message).and_return(mock_message)
+            allow(line_bot_service).to receive(:generate_liff_url).and_return('https://liff.line.me/test')
+          end
+
+          it 'creates flex shopping list message' do
+            expect(line_bot_service).to receive(:create_flex_message)
+            
+            service.generate_response(:shopping, 'test_user_id')
+          end
+        end
+
+        context 'with flex disabled' do
+          before do
+            allow(ENV).to receive(:[]).with('LINE_FLEX_ENABLED').and_return('false')
+          end
+
+          it 'creates text shopping list message as fallback' do
+            expect(line_bot_service).to receive(:create_text_message).with(
+              a_string_including('🛒').and(
+                a_string_including('☐ 玉ねぎ 2個')
+              )
+            )
+            expect(line_bot_service).not_to receive(:create_flex_message)
+            
+            service.generate_response(:shopping, 'test_user_id')
+          end
+        end
       end
     end
 
@@ -608,14 +712,21 @@ RSpec.describe MessageResponseService do
     end
 
     it 'ingredients message contains proper formatting' do
+      user = create(:user)
+      ingredient = create(:ingredient, name: 'テスト食材', unit: 'g')
+      line_account = create(:line_account, user: user, line_user_id: 'test_user_formatting')
+      create(:user_ingredient, user: user, ingredient: ingredient, 
+             quantity: 100, status: 'available', 
+             expiry_date: 3.days.from_now.to_date)
+      
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('📝')
         expect(message).to include('• ')
-        expect(message).to include('消費期限:')
+        expect(message).to include('日後まで')
         mock_message
       end
       
-      service.generate_response(:ingredients)
+      service.generate_response(:ingredients, 'test_user_formatting')
     end
   end
 end

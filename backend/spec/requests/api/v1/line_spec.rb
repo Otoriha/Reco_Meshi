@@ -194,17 +194,25 @@ RSpec.describe "Api::V1::Line", type: :request do
     end
 
     def create_v2_postback_event(data = "recipe_request")
-      # doubleを使用してモックオブジェクトを作成
-      postback = double('Line::Bot::V2::Webhook::PostbackContent')
+      # Line::Bot::V2::Webhook::PostbackEventのモックを作成
+      postback = double('PostbackContent')
       allow(postback).to receive(:data).and_return(data)
 
-      source = double('Line::Bot::V2::Webhook::UserSource')
+      source = double('UserSource')
       allow(source).to receive(:user_id).and_return("test_user_id")
 
-      event = double('Line::Bot::V2::Webhook::PostbackEvent')
+      event = double('PostbackEvent')
       allow(event).to receive(:postback).and_return(postback)
       allow(event).to receive(:source).and_return(source)
       allow(event).to receive(:reply_token).and_return("test_reply_token")
+      
+      # すべてのクラスチェックをスタブ
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::MessageEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::FollowEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::UnfollowEvent).and_return(false)
+      allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::PostbackEvent).and_return(true)
+      allow(event).to receive(:respond_to?).with(:postback).and_return(true)
+      
       event
     end
 
@@ -315,6 +323,90 @@ RSpec.describe "Api::V1::Line", type: :request do
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
         expect(response).to have_http_status(:ok)
+      end
+
+      describe 'shopping list postback events' do
+        let(:user) { create(:user) }
+        let(:line_account) { create(:line_account, user: user, line_user_id: 'test_user_id') }
+        let(:shopping_list) { create(:shopping_list, user: user, status: :pending) }
+        let(:ingredient) { create(:ingredient, name: '玉ねぎ') }
+        let(:shopping_list_item) { create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient, is_checked: false) }
+
+        before do
+          line_account
+          shopping_list_item
+          allow_any_instance_of(LineBotService).to receive(:reply_message).and_return(double(code: '200'))
+          allow_any_instance_of(LineBotService).to receive(:create_text_message).and_return(double('message'))
+          allow_any_instance_of(LineBotService).to receive(:create_flex_message).and_return(double('message'))
+          allow_any_instance_of(LineBotService).to receive(:generate_liff_url).and_return('https://liff.line.me/test')
+        end
+
+        it "handles check_item postback event" do
+          mock_event = create_v2_postback_event("check_item:#{shopping_list.id}:#{shopping_list_item.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          expect {
+            post '/api/v1/line/webhook', params: postback_event, headers: headers
+          }.to change { shopping_list_item.reload.is_checked }.from(false).to(true)
+
+          expect(response).to have_http_status(:ok)
+        end
+
+        it "handles complete_list postback event" do
+          mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          expect {
+            post '/api/v1/line/webhook', params: postback_event, headers: headers
+          }.to change { shopping_list.reload.status }.from('pending').to('completed')
+          .and change { shopping_list_item.reload.is_checked }.from(false).to(true)
+          .and change { shopping_list_item.reload.checked_at }.from(nil).to(be_present)
+
+          expect(response).to have_http_status(:ok)
+        end
+
+        it "marks all unchecked items as completed in complete_list postback" do
+          # 複数のアイテムを作成
+          ingredient2 = create(:ingredient, name: '人参')
+          ingredient3 = create(:ingredient, name: 'じゃがいも')
+          item2 = create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient2, is_checked: false)
+          item3 = create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient3, is_checked: true) # 既にチェック済み
+
+          mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+          expect(response).to have_http_status(:ok)
+          
+          # 全アイテムがチェック済みになる
+          shopping_list_item.reload
+          item2.reload
+          item3.reload
+          
+          expect(shopping_list_item.is_checked).to eq(true)
+          expect(shopping_list_item.checked_at).to be_present
+          expect(item2.is_checked).to eq(true)
+          expect(item2.checked_at).to be_present
+          expect(item3.is_checked).to eq(true) # 既にチェック済みなので変わらず
+          # 既にチェック済みの場合はchecked_atは更新されない（意図された動作）
+          
+          # リストが完了状態になる
+          shopping_list.reload
+          expect(shopping_list.status).to eq('completed')
+        end
+
+        it "handles unauthorized shopping list access" do
+          other_user = create(:user)
+          other_shopping_list = create(:shopping_list, user: other_user)
+          
+          mock_event = create_v2_postback_event("check_item:#{other_shopping_list.id}:999")
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+
+          post '/api/v1/line/webhook', params: postback_event, headers: headers
+
+          expect(response).to have_http_status(:ok)
+        end
       end
 
       it "handles sticker message successfully" do
