@@ -35,7 +35,9 @@ class Api::V1::ShoppingListItemsController < ApplicationController
         item = @shopping_list.shopping_list_items.find(item_params[:id])
         
         if item.update(item_params.permit(:is_checked, :lock_version))
-          results << ShoppingListItemSerializer.new(item, include: [:ingredient]).serializable_hash
+          # JSON:API形式のdataを抽出してresultsに追加
+          serialized = ShoppingListItemSerializer.new(item, include: [:ingredient]).serializable_hash
+          results << serialized[:data]
         else
           errors << {
             id: item_params[:id],

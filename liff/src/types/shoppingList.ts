@@ -1,8 +1,8 @@
 // 基本的な買い物リスト型
 export interface ShoppingList {
   id: number
-  userId: number
-  recipeId: number | null
+  userId?: number
+  recipeId?: number | null
   title: string | null
   note: string | null
   status: 'pending' | 'in_progress' | 'completed'
@@ -21,8 +21,8 @@ export interface ShoppingList {
 // 買い物リストアイテム型
 export interface ShoppingListItem {
   id: number
-  shoppingListId: number
-  ingredientId: number
+  shoppingListId?: number
+  ingredientId?: number
   quantity: number
   unit: string | null
   isChecked: boolean
@@ -47,7 +47,8 @@ export interface Ingredient {
   id: number
   name: string
   category: string
-  displayName: string
+  displayName?: string
+  displayNameWithEmoji?: string
 }
 
 // JSON:API レスポンス型

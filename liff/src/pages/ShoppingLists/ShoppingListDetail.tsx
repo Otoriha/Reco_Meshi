@@ -270,7 +270,7 @@ const ShoppingListDetail: React.FC = () => {
                           : 'text-gray-900'
                       }`}
                     >
-                      {item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}
+                      {item.ingredient?.displayNameWithEmoji || item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}
                     </span>
                     <div className="text-sm text-gray-600 mt-1">
                       <span>{item.displayQuantityWithUnit}</span>
