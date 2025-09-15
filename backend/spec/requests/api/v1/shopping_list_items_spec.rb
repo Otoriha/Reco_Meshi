@@ -204,8 +204,8 @@ RSpec.describe 'Api::V1::ShoppingListItems', type: :request do
         expect(item2.is_checked).to be true
       end
 
-      it 'returns 422 and rolls back on partial failure' do
-        # item1は正常、item2は無効なパラメータ
+      it 'returns 409 and rolls back on partial failure' do
+        # item1は正常、item2は楽観的ロックエラー
         patch url, 
               params: { 
                 items: [
@@ -217,14 +217,14 @@ RSpec.describe 'Api::V1::ShoppingListItems', type: :request do
                   { 
                     id: item2.id, 
                     is_checked: true, 
-                    lock_version: 999  # 無効なlock_version
+                    lock_version: 999  # 無効なlock_version（楽観的ロックエラー）
                   }
                 ] 
               }, 
               headers: headers, 
               as: :json
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:conflict)
         
         # ロールバックにより、item1も更新されていないことを確認
         item1.reload
