@@ -19,7 +19,7 @@ const ShoppingListDetail: React.FC = () => {
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set())
   const [completing, setCompleting] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
-  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
   const editingItemsRef = useRef<Set<number>>(new Set())
 
@@ -54,7 +54,7 @@ const ShoppingListDetail: React.FC = () => {
           setShoppingList(list)
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error('買い物リスト詳細取得エラー:', e)
       if (isMountedRef.current) {
         setError(getShoppingListErrorMessage(e))
@@ -149,7 +149,7 @@ const ShoppingListDetail: React.FC = () => {
           canBeCompleted: serverItems.every(i => i.isChecked) && serverItems.length > 0
         }
       })
-    } catch (e: any) {
+    } catch (e) {
       console.error('アイテム更新エラー:', e)
       
       // エラー時のロールバック
@@ -166,7 +166,8 @@ const ShoppingListDetail: React.FC = () => {
       } : null)
 
       // エラーメッセージの設定
-      if (e.response?.status === 409) {
+      const err = e as { response?: { status?: number } }
+      if (err.response?.status === 409) {
         setError('他のユーザーによって更新されています。')
       } else {
         setError(getShoppingListErrorMessage(e))
@@ -196,7 +197,7 @@ const ShoppingListDetail: React.FC = () => {
       setTimeout(() => {
         navigate('/shopping-lists')
       }, 1500)
-    } catch (e: any) {
+    } catch (e) {
       console.error('完了処理エラー:', e)
       setError(getShoppingListErrorMessage(e))
     } finally {

@@ -10,7 +10,7 @@ const ShoppingLists: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isPolling, setIsPolling] = useState(false)
-  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
 
   const fetchShoppingLists = useCallback(async (showLoading = true) => {
@@ -25,7 +25,6 @@ const ShoppingLists: React.FC = () => {
 
     try {
       // 未完了・進行中のリストを取得（並列実行）
-      const activeStatuses = ['pending', 'in_progress'] as const
       const [pendingLists, inProgressLists] = await Promise.all([
         getShoppingLists({ status: 'pending', per_page: 50 }),
         getShoppingLists({ status: 'in_progress', per_page: 50 })
@@ -39,7 +38,7 @@ const ShoppingLists: React.FC = () => {
       if (isMountedRef.current) {
         setShoppingLists(mergedLists)
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error('買い物リスト取得エラー:', e)
       if (isMountedRef.current) {
         setError(getShoppingListErrorMessage(e))

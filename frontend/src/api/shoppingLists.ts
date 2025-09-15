@@ -1,8 +1,7 @@
 import { apiClient } from './client'
 import {
   normalizeJsonApiResource,
-  convertKeysToSnakeCase,
-  type ApiError
+  convertKeysToSnakeCase
 } from '../utils/jsonApi'
 import type {
   ShoppingList,
@@ -35,8 +34,9 @@ export async function getShoppingLists(params: GetShoppingListsParams = {}): Pro
     return response.data.data.map(resource => 
       normalizeJsonApiResource(resource, response.data.included || [])
     ) as ShoppingListSummary[]
-  } catch (error: any) {
-    if (error.response?.status === 404) {
+  } catch (error) {
+    const err = error as { response?: { status?: number } }
+    if (err.response?.status === 404) {
       return []
     }
     throw error
@@ -89,7 +89,11 @@ export async function updateShoppingList(
   }
 ): Promise<ShoppingList> {
   const requestBody: UpdateShoppingListRequest = {
-    shopping_list: convertKeysToSnakeCase(updates) as any
+    shopping_list: convertKeysToSnakeCase(updates) as {
+      status?: 'pending' | 'in_progress' | 'completed'
+      title?: string
+      note?: string
+    }
   }
 
   const response = await apiClient.patch<ShoppingListResponse>(`/shopping_lists/${id}`, requestBody)
@@ -167,8 +171,8 @@ export async function bulkUpdateShoppingListItems(
   )
 
   if (response.data.errors) {
-    const error = new Error(response.data.errors[0]?.detail || 'Bulk update failed') as any
-    error.itemErrors = response.data.item_errors
+    const error = new Error(response.data.errors[0]?.detail || 'Bulk update failed')
+    ;(error as Error & { itemErrors?: unknown }).itemErrors = response.data.item_errors
     throw error
   }
 
@@ -209,21 +213,22 @@ export async function deleteShoppingList(id: number): Promise<void> {
  * @param error エラーオブジェクト
  * @returns ユーザー向けエラーメッセージ
  */
-export function getShoppingListErrorMessage(error: any): string {
-  if (error.response?.status === 409) {
+export function getShoppingListErrorMessage(error: unknown): string {
+  const err = error as { response?: { status?: number; data?: { errors?: Array<{ detail?: string }> } }; message?: string }
+  if (err.response?.status === 409) {
     return '他のユーザーによって更新されています。画面を再読み込みして最新の状態を確認してください。'
   }
-  if (error.response?.status === 403) {
+  if (err.response?.status === 403) {
     return 'アクセス権限がありません。'
   }
-  if (error.response?.status === 404) {
+  if (err.response?.status === 404) {
     return '買い物リストが見つかりません。'
   }
-  if (error.response?.data?.errors?.[0]?.detail) {
-    return error.response.data.errors[0].detail
+  if (err.response?.data?.errors?.[0]?.detail) {
+    return err.response.data.errors[0].detail
   }
-  if (error.message) {
-    return error.message
+  if (err.message) {
+    return err.message
   }
   return '予期しないエラーが発生しました。'
 }
