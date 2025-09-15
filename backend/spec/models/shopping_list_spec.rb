@@ -148,8 +148,9 @@ RSpec.describe ShoppingList, type: :model do
       end
 
       context 'without title but with recipe' do
-        let(:recipe) { create(:recipe, title: 'カレー') }
-        let(:shopping_list) { create(:shopping_list, :with_recipe, recipe: recipe, title: nil) }
+        let(:user) { create(:user) }
+        let(:recipe) { create(:recipe, title: 'カレー', user: user) }
+        let(:shopping_list) { create(:shopping_list, :with_recipe, recipe: recipe, user: user, title: nil) }
 
         it 'returns recipe-based title' do
           expect(shopping_list.display_title).to eq('カレーの買い物リスト')
