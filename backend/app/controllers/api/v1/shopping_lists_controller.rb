@@ -1,6 +1,6 @@
 class Api::V1::ShoppingListsController < ApplicationController
-  before_action :set_shopping_list, only: [:show, :update, :destroy]
-  before_action :authorize_user!, only: [:show, :update, :destroy]
+  before_action :set_shopping_list, only: [:show, :update, :destroy, :complete]
+  before_action :authorize_user!, only: [:show, :update, :destroy, :complete]
 
   # GET /api/v1/shopping_lists
   def index
@@ -86,6 +86,29 @@ class Api::V1::ShoppingListsController < ApplicationController
   def destroy
     @shopping_list.destroy
     head :no_content
+  end
+
+  # PATCH /api/v1/shopping_lists/:id/complete
+  def complete
+    ActiveRecord::Base.transaction do
+      # 未チェックのアイテムを全てチェック済みにする
+      @shopping_list.shopping_list_items.unchecked.update_all(
+        is_checked: true,
+        checked_at: Time.current,
+        updated_at: Time.current
+      )
+      
+      # 買い物リストを完了状態にする
+      @shopping_list.mark_as_completed!
+    end
+
+    render json: ShoppingListSerializer.new(
+      @shopping_list.reload,
+      include: [:recipe, :shopping_list_items, 'shopping_list_items.ingredient']
+    ).serializable_hash
+  rescue StandardError => e
+    Rails.logger.error "買い物リスト完了処理エラー: #{e.class} #{e.message}"
+    render json: { errors: [{ detail: '完了処理に失敗しました' }] }, status: :unprocessable_entity
   end
 
   private
