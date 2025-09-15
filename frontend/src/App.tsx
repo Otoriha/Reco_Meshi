@@ -11,6 +11,8 @@ import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
 import RecipeList from './pages/Recipes/RecipeList'
 import RecipeDetail from './pages/Recipes/RecipeDetail'
+import ShoppingLists from './pages/ShoppingLists/ShoppingLists'
+import ShoppingListDetail from './pages/ShoppingLists/ShoppingListDetail'
 
 type AuthMode = 'login' | 'signup';
 
@@ -46,6 +48,8 @@ function AppContent() {
               <Route path="/ingredients" element={<Ingredients />} />
               <Route path="/recipes" element={<RecipeList />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />
+              <Route path="/shopping-lists" element={<ShoppingLists />} />
+              <Route path="/shopping-lists/:id" element={<ShoppingListDetail />} />
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
