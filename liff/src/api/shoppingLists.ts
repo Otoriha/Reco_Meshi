@@ -3,10 +3,7 @@ import type {
   ShoppingList,
   ShoppingListItem,
   ShoppingListSummary,
-  Recipe,
-  Ingredient,
   JsonApiResource,
-  JsonApiResponse,
   ShoppingListsResponse,
   ShoppingListResponse,
   GetShoppingListsParams,
@@ -16,8 +13,8 @@ import type {
 } from '../types/shoppingList'
 
 // JSON:API正規化ユーティリティ
-function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): any {
-  const normalized = {
+function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): Record<string, any> {
+  const normalized: Record<string, any> = {
     id: Number(resource.id),
     ...convertKeysFromSnakeCase(resource.attributes)
   }
@@ -122,8 +119,11 @@ export async function updateShoppingListItem(
   }
 ): Promise<ShoppingListItem> {
   const requestBody: UpdateShoppingListItemRequest = {
-    shopping_list_item: {
-      ...convertKeysToSnakeCase(updates)
+    shopping_list_item: convertKeysToSnakeCase(updates) as {
+      quantity?: number
+      unit?: string
+      is_checked?: boolean
+      lock_version: number
     }
   }
 
@@ -151,7 +151,11 @@ export async function bulkUpdateShoppingListItems(
   }>
 ): Promise<ShoppingListItem[]> {
   const requestBody: BulkUpdateShoppingListItemsRequest = {
-    items: items.map(item => convertKeysToSnakeCase(item))
+    items: items.map(item => convertKeysToSnakeCase(item) as {
+      id: number
+      is_checked: boolean
+      lock_version: number
+    })
   }
 
   const response = await apiClient.patch<BulkUpdateShoppingListItemsResponse>(
