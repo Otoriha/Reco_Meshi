@@ -23,6 +23,27 @@ const ShoppingListDetail: React.FC = () => {
   const isMountedRef = useRef(true)
   const editingItemsRef = useRef<Set<number>>(new Set())
 
+  const calculateCompletionPercentage = (items: ShoppingListItem[]): number => {
+    if (items.length === 0) return 0
+    const checkedCount = items.filter(item => item.isChecked).length
+    return Math.round((checkedCount / items.length) * 100)
+  }
+
+  const applyItemUpdates = (base: ShoppingList, items: ShoppingListItem[]): ShoppingList => {
+    const completionPercentage = calculateCompletionPercentage(items)
+    const uncheckedItemsCount = items.filter(item => !item.isChecked).length
+    const canBeCompleted = items.length > 0 && items.every(item => item.isChecked)
+
+    return {
+      ...base,
+      shoppingListItems: items,
+      completionPercentage,
+      uncheckedItemsCount,
+      canBeCompleted,
+      totalItemsCount: items.length
+    }
+  }
+
   const fetchShoppingList = useCallback(async (showLoading = true) => {
     if (!id) return
     
@@ -37,22 +58,41 @@ const ShoppingListDetail: React.FC = () => {
 
     try {
       const list = await getShoppingList(Number(id))
-      
+
       if (isMountedRef.current) {
-        // 編集中のアイテムは更新しない（楽観的更新を優先）
-        if (editingItemsRef.current.size > 0 && shoppingList) {
-          const mergedItems = list.shoppingListItems?.map(newItem => {
-            if (editingItemsRef.current.has(newItem.id)) {
-              // 編集中のアイテムは現在の値を保持
-              const currentItem = shoppingList.shoppingListItems?.find(item => item.id === newItem.id)
-              return currentItem || newItem
+        setShoppingList(prev => {
+          const nextItems = list.shoppingListItems ?? []
+
+          if (!prev) {
+            return applyItemUpdates(list, nextItems)
+          }
+
+          const currentItems = prev.shoppingListItems ?? []
+          const mergedItems = nextItems.map(newItem => {
+            const currentItem = currentItems.find(item => item.id === newItem.id)
+            if (!currentItem) {
+              return newItem
             }
+
+            const isEditing = editingItemsRef.current.has(newItem.id)
+            const currentLockVersion = currentItem.lockVersion ?? 0
+            const newLockVersion = newItem.lockVersion ?? 0
+            const currentUpdatedAt = currentItem.updatedAt ? new Date(currentItem.updatedAt).getTime() : 0
+            const newUpdatedAt = newItem.updatedAt ? new Date(newItem.updatedAt).getTime() : 0
+
+            if (
+              isEditing ||
+              currentLockVersion >= newLockVersion ||
+              currentUpdatedAt >= newUpdatedAt
+            ) {
+              return currentItem
+            }
+
             return newItem
           })
-          setShoppingList({ ...list, shoppingListItems: mergedItems })
-        } else {
-          setShoppingList(list)
-        }
+
+          return applyItemUpdates(list, mergedItems)
+        })
       }
     } catch (e) {
       console.error('買い物リスト詳細取得エラー:', e)
@@ -65,7 +105,7 @@ const ShoppingListDetail: React.FC = () => {
         setIsPolling(false)
       }
     }
-  }, [id, isPolling, shoppingList])
+  }, [id, isPolling])
 
   // ポーリングの設定
   const startPolling = useCallback(() => {
@@ -113,14 +153,10 @@ const ShoppingListDetail: React.FC = () => {
         : i
     ) || []
 
-    setShoppingList(prev => prev ? {
-      ...prev,
-      shoppingListItems: optimisticItems,
-      // 進捗も即座に更新
-      completionPercentage: calculateCompletionPercentage(optimisticItems),
-      uncheckedItemsCount: optimisticItems.filter(i => !i.isChecked).length,
-      canBeCompleted: optimisticItems.every(i => i.isChecked) && optimisticItems.length > 0
-    } : null)
+    setShoppingList(prev => {
+      if (!prev) return prev
+      return applyItemUpdates(prev, optimisticItems)
+    })
 
     setUpdatingItems(prev => new Set([...prev, item.id]))
 
@@ -136,18 +172,12 @@ const ShoppingListDetail: React.FC = () => {
 
       // サーバーからの正確な値で更新
       setShoppingList(prev => {
-        if (!prev) return null
+        if (!prev) return prev
         const serverItems = prev.shoppingListItems?.map(i =>
           i.id === updatedItem.id ? updatedItem : i
         ) || []
-        
-        return {
-          ...prev,
-          shoppingListItems: serverItems,
-          completionPercentage: calculateCompletionPercentage(serverItems),
-          uncheckedItemsCount: serverItems.filter(i => !i.isChecked).length,
-          canBeCompleted: serverItems.every(i => i.isChecked) && serverItems.length > 0
-        }
+
+        return applyItemUpdates(prev, serverItems)
       })
     } catch (e) {
       console.error('アイテム更新エラー:', e)
@@ -157,13 +187,10 @@ const ShoppingListDetail: React.FC = () => {
         i.id === item.id ? item : i
       ) || []
 
-      setShoppingList(prev => prev ? {
-        ...prev,
-        shoppingListItems: originalItems,
-        completionPercentage: calculateCompletionPercentage(originalItems),
-        uncheckedItemsCount: originalItems.filter(i => !i.isChecked).length,
-        canBeCompleted: originalItems.every(i => i.isChecked) && originalItems.length > 0
-      } : null)
+      setShoppingList(prev => {
+        if (!prev) return prev
+        return applyItemUpdates(prev, originalItems)
+      })
 
       // エラーメッセージの設定
       const err = e as { response?: { status?: number } }
@@ -215,12 +242,6 @@ const ShoppingListDetail: React.FC = () => {
     await fetchShoppingList()
     // ポーリングタイマーをリセット
     startPolling()
-  }
-
-  const calculateCompletionPercentage = (items: ShoppingListItem[]): number => {
-    if (items.length === 0) return 0
-    const checkedCount = items.filter(item => item.isChecked).length
-    return Math.round((checkedCount / items.length) * 100)
   }
 
   const formatDate = (dateString: string) => {

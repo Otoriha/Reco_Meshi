@@ -227,8 +227,5 @@ export function getShoppingListErrorMessage(error: unknown): string {
   if (err.response?.data?.errors?.[0]?.detail) {
     return err.response.data.errors[0].detail
   }
-  if (err.message) {
-    return err.message
-  }
   return '予期しないエラーが発生しました。'
 }

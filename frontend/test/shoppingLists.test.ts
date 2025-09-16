@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import React from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import ShoppingLists from '../src/pages/ShoppingLists/ShoppingLists'
@@ -27,10 +27,18 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
+const flushAsync = async () => {
+  await act(async () => {
+    await Promise.resolve()
+  })
+  await act(async () => {
+    await Promise.resolve()
+  })
+}
+
 describe('ShoppingLists Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
   })
 
   afterEach(() => {
@@ -43,7 +51,7 @@ describe('ShoppingLists Component', () => {
         id: 1,
         displayTitle: 'テスト買い物リスト1',
         status: 'pending',
-        statusDisplay: '未着手',
+        statusDisplay: '作成済み',
         completionPercentage: 50,
         totalItemsCount: 10,
         uncheckedItemsCount: 5,
@@ -58,7 +66,7 @@ describe('ShoppingLists Component', () => {
         id: 2,
         displayTitle: 'テスト買い物リスト2',
         status: 'in_progress',
-        statusDisplay: '進行中',
+        statusDisplay: '買い物中',
         completionPercentage: 80,
         totalItemsCount: 5,
         uncheckedItemsCount: 1,
@@ -88,8 +96,8 @@ describe('ShoppingLists Component', () => {
     })
 
     // ステータスとレシピの表示確認
-    expect(screen.getByText('未着手')).toBeInTheDocument()
-    expect(screen.getByText('進行中')).toBeInTheDocument()
+    expect(screen.getByText('作成済み')).toBeInTheDocument()
+    expect(screen.getByText('買い物中')).toBeInTheDocument()
     expect(screen.getByText('レシピ: テストレシピ')).toBeInTheDocument()
 
     // 進捗の表示確認
@@ -114,6 +122,7 @@ describe('ShoppingLists Component', () => {
   })
 
   it('ポーリングが設定された間隔で実行される', async () => {
+    vi.useFakeTimers()
     const mockShoppingLists: ShoppingListSummary[] = []
     const getSpy = vi.spyOn(shoppingListsApi, 'getShoppingLists')
       .mockResolvedValue(mockShoppingLists)
@@ -125,15 +134,13 @@ describe('ShoppingLists Component', () => {
     )
 
     // 初回の呼び出し（pending と in_progress の2回）
-    await waitFor(() => {
-      expect(getSpy).toHaveBeenCalledTimes(2)
-    })
+    await flushAsync()
+    expect(getSpy).toHaveBeenCalledTimes(2)
 
     // 30秒後のポーリング
     vi.advanceTimersByTime(30000)
-    await waitFor(() => {
-      expect(getSpy).toHaveBeenCalledTimes(4) // 初回2回 + ポーリング2回
-    })
+    await flushAsync()
+    expect(getSpy).toHaveBeenCalledTimes(4) // 初回2回 + ポーリング2回
   })
 })
 
@@ -142,7 +149,7 @@ describe('ShoppingListDetail Component', () => {
     id: 1,
     displayTitle: 'テスト買い物リスト',
     status: 'in_progress',
-    statusDisplay: '進行中',
+    statusDisplay: '買い物中',
     completionPercentage: 50,
     totalItemsCount: 2,
     uncheckedItemsCount: 1,
@@ -199,7 +206,6 @@ describe('ShoppingListDetail Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
   })
 
   afterEach(() => {
@@ -329,11 +335,17 @@ describe('ShoppingListDetail Component', () => {
   })
 
   it('完了処理が正常に動作する', async () => {
+    vi.useFakeTimers()
     const completableList = {
       ...mockShoppingList,
       canBeCompleted: true,
       uncheckedItemsCount: 0,
-      completionPercentage: 100
+      completionPercentage: 100,
+      shoppingListItems: mockShoppingList.shoppingListItems?.map(item => ({
+        ...item,
+        isChecked: true,
+        checkedAt: '2024-01-01T11:00:00Z'
+      }))
     }
 
     vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(completableList)
@@ -352,25 +364,21 @@ describe('ShoppingListDetail Component', () => {
       )
     )
 
-    await waitFor(() => {
-      expect(screen.getByText('買い物完了（在庫に反映）')).toBeInTheDocument()
-    })
-
+    await flushAsync()
     const completeButton = screen.getByText('買い物完了（在庫に反映）')
     fireEvent.click(completeButton)
 
-    await waitFor(() => {
-      expect(completeSpy).toHaveBeenCalledWith(1)
-    })
+    await flushAsync()
+    expect(completeSpy).toHaveBeenCalledWith(1)
 
     // 1.5秒後にナビゲート
     vi.advanceTimersByTime(1500)
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/shopping-lists')
-    })
+    await flushAsync()
+    expect(mockNavigate).toHaveBeenCalledWith('/shopping-lists')
   })
 
   it('ポーリングが編集中のアイテムを上書きしない', async () => {
+    vi.useFakeTimers()
     const getSpy = vi.spyOn(shoppingListsApi, 'getShoppingList')
       .mockResolvedValue(mockShoppingList)
 
@@ -387,9 +395,8 @@ describe('ShoppingListDetail Component', () => {
       )
     )
 
-    await waitFor(() => {
-      expect(screen.getByText('🥕 にんじん')).toBeInTheDocument()
-    })
+    await flushAsync()
+    expect(screen.getByText('🥕 にんじん')).toBeInTheDocument()
 
     const checkbox = screen.getAllByRole('checkbox')[0]
     fireEvent.click(checkbox)
@@ -401,9 +408,8 @@ describe('ShoppingListDetail Component', () => {
     vi.advanceTimersByTime(15000)
 
     // ポーリング中でも編集中のアイテムはチェック状態を維持
-    await waitFor(() => {
-      expect(checkbox).toBeChecked()
-    })
+    await flushAsync()
+    expect(checkbox).toBeChecked()
 
     expect(getSpy).toHaveBeenCalledTimes(2) // 初回 + ポーリング1回
   })
