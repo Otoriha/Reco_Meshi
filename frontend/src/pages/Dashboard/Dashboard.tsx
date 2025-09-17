@@ -1,18 +1,57 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { imageRecognitionApi } from '../../api/imageRecognition';
 import { FaCamera, FaClipboardList, FaHistory, FaCog } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
 
   const today = new Date();
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 (${['日', '月', '火', '水', '木', '金', '土'][today.getDay()]})`;
 
   const handleImageUpload = () => {
-    // TODO: 画像アップロード機能の実装
-    console.log('画像アップロード機能');
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadMessage(null);
+
+    try {
+      const images = Array.from(files);
+      const response =
+        images.length === 1
+          ? await imageRecognitionApi.recognizeIngredients(images[0])
+          : await imageRecognitionApi.recognizeMultipleIngredients(images);
+
+      if (response.success) {
+        const recognized = response.recognized_ingredients
+          .map((ingredient) => `${ingredient.name}(${Math.round(ingredient.confidence * 100)}%)`)
+          .join('、');
+        setUploadMessage(
+          recognized.length > 0
+            ? `識別された食材: ${recognized}`
+            : '食材を識別できませんでした。写真を確認してください。'
+        );
+      } else {
+        setUploadMessage(response.message ?? '画像の認識に失敗しました。');
+      }
+    } catch (error) {
+      console.error(error);
+      setUploadMessage('画像のアップロードに失敗しました。通信環境をご確認ください。');
+    } finally {
+      setIsUploading(false);
+      // 同じファイルを再度選択できるようにするために値をリセット
+      event.target.value = '';
+    }
   };
 
   const handleRecipeSuggest = () => {
@@ -50,16 +89,28 @@ const Dashboard: React.FC = () => {
               <p className="text-gray-600 mb-6">複数枚の写真をアップロードすることもできます。</p>
 
               <div className="space-y-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
                 <div className="text-gray-500 text-sm">
                   <p>写真をドラッグ&ドロップ</p>
                   <p>または</p>
                 </div>
                 <button
                   onClick={handleImageUpload}
-                  className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium"
+                  className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-70"
+                  disabled={isUploading}
                 >
-                  写真を選択
+                  {isUploading ? 'アップロード中...' : '写真を選択'}
                 </button>
+                {uploadMessage && (
+                  <p className="text-sm text-gray-700 whitespace-pre-line">{uploadMessage}</p>
+                )}
               </div>
             </div>
           </div>
