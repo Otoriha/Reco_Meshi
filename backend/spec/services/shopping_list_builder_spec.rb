@@ -36,7 +36,7 @@ RSpec.describe ShoppingListBuilder, type: :service do
           expect(result.title).to eq('カレーライスの買い物リスト')
 
           expect(result.shopping_list_items.count).to eq(2) # オプション材料は除く
-          
+
           onion_item = result.shopping_list_items.find { |item| item.ingredient == onion }
           expect(onion_item.quantity).to eq(2.0)
           expect(onion_item.unit).to eq('個')
@@ -154,7 +154,7 @@ RSpec.describe ShoppingListBuilder, type: :service do
 
         it 'uses recipe unit' do
           result = builder.build
-          
+
           flour_item = result.shopping_list_items.find { |item| item.ingredient == flour }
           expect(flour_item.unit).to eq('g')
         end
@@ -167,7 +167,7 @@ RSpec.describe ShoppingListBuilder, type: :service do
 
         it 'falls back to ingredient unit' do
           result = builder.build
-          
+
           flour_item = result.shopping_list_items.find { |item| item.ingredient == flour }
           expect(flour_item.unit).to eq('g')
         end
@@ -278,14 +278,14 @@ RSpec.describe ShoppingListBuilder, type: :service do
     describe 'transaction rollback' do
       before do
         create(:recipe_ingredient, recipe: recipe, ingredient: onion, amount: 2, unit: '個')
-        
+
         # モックで保存を失敗させる
         allow_any_instance_of(ShoppingListItem).to receive(:save!).and_raise(ActiveRecord::RecordInvalid.new)
       end
 
       it 'rolls back transaction on failure' do
         expect { builder.build }.to raise_error(StandardError, /買い物リストの作成に失敗しました/)
-        
+
         # ロールバックにより、ShoppingListが作成されないことを確認
         expect(user.shopping_lists.count).to eq(0)
       end

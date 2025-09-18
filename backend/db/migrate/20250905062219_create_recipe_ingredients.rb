@@ -11,7 +11,7 @@ class CreateRecipeIngredients < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    
+
     add_check_constraint :recipe_ingredients, 'ingredient_id IS NOT NULL OR ingredient_name IS NOT NULL', name: 'chk_ingredient_id_or_name_required'
   end
 end

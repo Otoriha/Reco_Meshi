@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { FaChevronDown } from 'react-icons/fa';
 
 interface HeaderProps {
@@ -10,6 +10,21 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
   const { isLoggedIn, user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const location = useLocation();
+
+  const isActivePath = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(path);
+  };
+
+  const getLinkClassName = (path: string) => {
+    const baseClass = "text-white hover:text-green-100 font-medium";
+    return isActivePath(path)
+      ? `${baseClass} border-b-2 border-white`
+      : baseClass;
+  };
 
   const handleLogout = async () => {
     if (!confirm('ログアウトしますか？')) {
@@ -45,11 +60,11 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
           <nav className="flex items-center space-x-6">
             {isLoggedIn && (
               <>
-                <Link to="/" className="text-white hover:text-green-100 font-medium border-b-2 border-white">ダッシュボード</Link>
-                <Link to="/ingredients" className="text-white hover:text-green-100 font-medium">食材リスト</Link>
-                <Link to="/shopping-lists" className="text-white hover:text-green-100 font-medium">買い物リスト</Link>
-                <Link to="/recipe-history" className="text-white hover:text-green-100 font-medium">レシピ履歴</Link>
-                <Link to="/settings" className="text-white hover:text-green-100 font-medium">設定</Link>
+                <Link to="/" className={getLinkClassName('/')}>ダッシュボード</Link>
+                <Link to="/ingredients" className={getLinkClassName('/ingredients')}>食材リスト</Link>
+                <Link to="/shopping-lists" className={getLinkClassName('/shopping-lists')}>買い物リスト</Link>
+                <Link to="/recipe-history" className={getLinkClassName('/recipe-history')}>レシピ履歴</Link>
+                <Link to="/settings" className={getLinkClassName('/settings')}>設定</Link>
               </>
             )}
             {isLoggedIn && user ? (

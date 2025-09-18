@@ -1,7 +1,7 @@
 class RecipeGenerator
   class GenerationError < StandardError; end
 
-  def initialize(user:, llm_provider: 'openai')
+  def initialize(user:, llm_provider: "openai")
     @user = user
     @llm_provider = llm_provider.to_s
     @recipe_converter = RecipeConverter.new
@@ -10,9 +10,9 @@ class RecipeGenerator
   # ユーザーの利用可能食材からレシピを生成
   def generate_from_user_ingredients(options = {})
     available_ingredients = fetch_user_available_ingredients
-    
+
     if available_ingredients.empty?
-      raise GenerationError, '利用可能な食材が見つかりません'
+      raise GenerationError, "利用可能な食材が見つかりません"
     end
 
     ingredient_names = available_ingredients.map(&:display_name)
@@ -22,7 +22,7 @@ class RecipeGenerator
   # 指定された食材リストからレシピを生成
   def generate_from_ingredients(ingredient_names, options = {})
     if ingredient_names.blank? || !ingredient_names.is_a?(Array)
-      raise GenerationError, '食材リストが必要です'
+      raise GenerationError, "食材リストが必要です"
     end
 
     generate_recipe(ingredient_names, options)
@@ -34,7 +34,7 @@ class RecipeGenerator
   end
 
   def unmatched_ingredients
-    @recipe_converter.unmatched_ingredients  
+    @recipe_converter.unmatched_ingredients
   end
 
   def ambiguous_matches
@@ -58,10 +58,10 @@ class RecipeGenerator
     begin
       # LLMサービスを取得
       llm_service = Llm::Factory.build(provider: @llm_provider)
-      
+
       # プロンプトを構築
       prompt = build_recipe_prompt(ingredient_names, options)
-      
+
       # LLMでレシピ生成
       response = llm_service.generate(
         messages: prompt,
@@ -69,9 +69,9 @@ class RecipeGenerator
         temperature: 0.7,
         max_tokens: 1500
       )
-      
+
       unless response&.text.present?
-        raise GenerationError, 'LLMからのレスポンスが空です'
+        raise GenerationError, "LLMからのレスポンスが空です"
       end
 
       # JSON形式の確認とパース（raw_jsonを優先）
@@ -105,11 +105,11 @@ class RecipeGenerator
   def build_recipe_prompt(ingredient_names, options)
     # 基本的なプロンプトを取得
     base_prompt = PromptTemplateService.recipe_generation(ingredients: ingredient_names)
-    
+
     # オプションに応じてプロンプトをカスタマイズ
     customized_system = customize_system_prompt(base_prompt[:system], options)
     customized_user = customize_user_prompt(base_prompt[:user], options)
-    
+
     {
       system: customized_system,
       user: customized_user
@@ -118,16 +118,16 @@ class RecipeGenerator
 
   def customize_system_prompt(base_system, options)
     customizations = []
-    
+
     if options[:difficulty]
       difficulty_text = case options[:difficulty].to_s
-                       when 'easy'
-                         '簡単で初心者でも作れるレシピ'
-                       when 'medium'
-                         '中程度の難易度のレシピ'
-                       when 'hard'
-                         '上級者向けの手の込んだレシピ'
-                       end
+      when "easy"
+                         "簡単で初心者でも作れるレシピ"
+      when "medium"
+                         "中程度の難易度のレシピ"
+      when "hard"
+                         "上級者向けの手の込んだレシピ"
+      end
       customizations << difficulty_text if difficulty_text
     end
 
@@ -150,13 +150,13 @@ class RecipeGenerator
 
   def customize_user_prompt(base_user, options)
     additional_requirements = []
-    
+
     if options[:cuisine_type]
       additional_requirements << "料理の種類：#{options[:cuisine_type]}"
     end
 
     if options[:dietary_restrictions]
-      restrictions = Array(options[:dietary_restrictions]).join('、')
+      restrictions = Array(options[:dietary_restrictions]).join("、")
       additional_requirements << "食事制限：#{restrictions}"
     end
 
@@ -182,7 +182,7 @@ class RecipeGenerator
     end
 
     if options[:servings] && (options[:servings].to_i < 1 || options[:servings].to_i > 20)
-      raise GenerationError, "サービング数は1〜20の範囲で指定してください"  
+      raise GenerationError, "サービング数は1〜20の範囲で指定してください"
     end
   end
 end

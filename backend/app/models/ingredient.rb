@@ -1,12 +1,12 @@
 class Ingredient < ApplicationRecord
   # Enums
   enum :category, {
-    vegetables: 'vegetables',
-    meat: 'meat',
-    fish: 'fish',
-    dairy: 'dairy',
-    seasonings: 'seasonings',
-    others: 'others'
+    vegetables: "vegetables",
+    meat: "meat",
+    fish: "fish",
+    dairy: "dairy",
+    seasonings: "seasonings",
+    others: "others"
   }
 
   # Associations
@@ -25,13 +25,13 @@ class Ingredient < ApplicationRecord
 
   # Scopes
   scope :by_category, ->(category) { where(category: category) }
-  scope :search, ->(query) { query.present? ? where('name ILIKE ?', "%#{query}%") : all }
+  scope :search, ->(query) { query.present? ? where("name ILIKE ?", "%#{query}%") : all }
 
   # Class methods
   def self.search_by_name(query)
     return all if query.blank?
-    
-    where('name ILIKE ?', "%#{query}%")
+
+    where("name ILIKE ?", "%#{query}%")
   end
 
   # Instance methods

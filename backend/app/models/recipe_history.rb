@@ -23,8 +23,8 @@ class RecipeHistory < ApplicationRecord
   scope :cooked_between, ->(start_date, end_date) {
     where(cooked_at: start_date..end_date) if start_date && end_date
   }
-  scope :cooked_after, ->(date) { where('cooked_at >= ?', date) if date }
-  scope :cooked_before, ->(date) { where('cooked_at <= ?', date) if date }
+  scope :cooked_after, ->(date) { where("cooked_at >= ?", date) if date }
+  scope :cooked_before, ->(date) { where("cooked_at <= ?", date) if date }
 
   # Instance methods
   def cooked_date

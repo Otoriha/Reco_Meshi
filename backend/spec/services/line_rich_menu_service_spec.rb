@@ -135,12 +135,12 @@ RSpec.describe LineRichMenuService, type: :service do
         # 公式SDK：戻り値は RichMenuListResponse（richmenus配列を持つ）
         rich_menu1 = double('RichMenuResponse', rich_menu_id: 'menu1')
         rich_menu2 = double('RichMenuResponse', rich_menu_id: 'menu2')
-        success_response = double('RichMenuListResponse', richmenus: [rich_menu1, rich_menu2])
+        success_response = double('RichMenuListResponse', richmenus: [ rich_menu1, rich_menu2 ])
         expect(mock_client).to receive(:get_rich_menu_list).and_return(success_response)
 
         result = service.get_rich_menu_list
 
-        expect(result).to eq([rich_menu1, rich_menu2])
+        expect(result).to eq([ rich_menu1, rich_menu2 ])
       end
     end
 
@@ -234,7 +234,7 @@ RSpec.describe LineRichMenuService, type: :service do
     it 'deletes all rich menus' do
       rich_menu1 = double('RichMenuResponse', rich_menu_id: 'menu1')
       rich_menu2 = double('RichMenuResponse', rich_menu_id: 'menu2')
-      allow(service).to receive(:get_rich_menu_list).and_return([rich_menu1, rich_menu2])
+      allow(service).to receive(:get_rich_menu_list).and_return([ rich_menu1, rich_menu2 ])
       allow(service).to receive(:delete_rich_menu).with('menu1').and_return(true)
       allow(service).to receive(:delete_rich_menu).with('menu2').and_return(true)
 
@@ -280,9 +280,9 @@ RSpec.describe LineRichMenuService, type: :service do
 
     it 'returns RichMenuRequest object' do
       allow(Line::Bot::V2::MessagingApi::RichMenuRequest).to receive(:new).and_call_original
-      
+
       result = service.send(:create_rich_menu_object)
-      
+
       expect(Line::Bot::V2::MessagingApi::RichMenuRequest).to have_received(:new)
     end
   end

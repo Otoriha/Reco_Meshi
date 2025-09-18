@@ -27,7 +27,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_login', params: valid_params
 
         expect(response).to have_http_status(:ok)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response).to have_key('token')
         expect(json_response).to have_key('user')
@@ -50,7 +50,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_login', params: invalid_params
 
         expect(response).to have_http_status(:bad_request)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('invalid_request')
         expect(json_response['error']['message']).to include('idTokenとnonceが必要です')
@@ -64,7 +64,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_login', params: invalid_params
 
         expect(response).to have_http_status(:bad_request)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('invalid_request')
       end
@@ -80,7 +80,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_login', params: valid_params
 
         expect(response).to have_http_status(:unauthorized)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('invalid_token')
         expect(json_response['error']['message']).to eq('Invalid token')
@@ -97,7 +97,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_login', params: valid_params
 
         expect(response).to have_http_status(:unauthorized)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('nonce_mismatch')
       end
@@ -122,7 +122,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_link', params: valid_params
 
         expect(response).to have_http_status(:ok)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['message']).to eq('LINE account linked successfully')
         expect(json_response).to have_key('lineAccount')
@@ -143,7 +143,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         post '/api/v1/auth/line_link', params: valid_params
 
         expect(response).to have_http_status(:conflict)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('already_linked')
         expect(json_response['error']['message']).to include('既に他のユーザーに連携されています')
@@ -181,7 +181,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         get '/api/v1/auth/line_profile'
 
         expect(response).to have_http_status(:ok)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response).to have_key('user')
         expect(json_response).to have_key('lineAccount')
@@ -207,7 +207,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
         get '/api/v1/auth/line_profile'
 
         expect(response).to have_http_status(:not_found)
-        
+
         json_response = JSON.parse(response.body)
         expect(json_response['error']['code']).to eq('line_account_not_found')
         expect(json_response['error']['message']).to include('LINEアカウントが連携されていません')
@@ -224,7 +224,7 @@ RSpec.describe 'Api::V1::Auth::LineAuth', type: :request do
       post '/api/v1/auth/generate_nonce'
 
       expect(response).to have_http_status(:ok)
-      
+
       json_response = JSON.parse(response.body)
       expect(json_response['nonce']).to eq('generated-nonce-123')
     end

@@ -11,6 +11,6 @@ class CreateShoppingLists < ActiveRecord::Migration[7.2]
     end
 
     add_index :shopping_lists, :status
-    add_index :shopping_lists, [:user_id, :created_at]
+    add_index :shopping_lists, [ :user_id, :created_at ]
   end
 end

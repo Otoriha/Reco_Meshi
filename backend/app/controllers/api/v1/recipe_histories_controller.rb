@@ -1,7 +1,7 @@
 class Api::V1::RecipeHistoriesController < ApplicationController
   before_action :authenticate_user!
   before_action :find_recipe_history, only: [ :show, :update, :destroy ]
-  
+
 
   # GET /api/v1/recipe_histories
   # 常にcooked_atの降順（最新順）で返却
@@ -11,7 +11,7 @@ class Api::V1::RecipeHistoriesController < ApplicationController
                   .recent
 
     # Kaminari ページネーション（デフォルト20、最大100）
-    per = [[(params[:per_page] || 20).to_i, 1].max, 100].min
+    per = [ [ (params[:per_page] || 20).to_i, 1 ].max, 100 ].min
     histories = histories.page(params[:page]).per(per)
 
     render json: {

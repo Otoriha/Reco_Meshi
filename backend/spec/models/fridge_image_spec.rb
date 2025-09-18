@@ -17,7 +17,7 @@ RSpec.describe FridgeImage, type: :model do
     it 'defines status enum correctly' do
       expect(FridgeImage.statuses).to eq({
         'pending' => 'pending',
-        'processing' => 'processing', 
+        'processing' => 'processing',
         'completed' => 'completed',
         'failed' => 'failed'
       })
@@ -33,7 +33,7 @@ RSpec.describe FridgeImage, type: :model do
     describe '.recent' do
       it 'returns images ordered by created_at desc' do
         recent_ids = FridgeImage.recent.pluck(:id)
-        expect(recent_ids.first).to eq([completed_image.id, failed_image.id].max)
+        expect(recent_ids.first).to eq([ completed_image.id, failed_image.id ].max)
         expect(recent_ids.last).to eq(old_image.id)
       end
     end
@@ -73,7 +73,7 @@ RSpec.describe FridgeImage, type: :model do
     describe '#has_ingredients?' do
       context 'when status is completed and has ingredients' do
         let(:fridge_image) { create(:fridge_image, :completed) }
-        
+
         it 'returns true' do
           expect(fridge_image.has_ingredients?).to be true
         end
@@ -81,7 +81,7 @@ RSpec.describe FridgeImage, type: :model do
 
       context 'when status is not completed' do
         let(:fridge_image) { create(:fridge_image, :processing) }
-        
+
         it 'returns false' do
           expect(fridge_image.has_ingredients?).to be false
         end
@@ -89,7 +89,7 @@ RSpec.describe FridgeImage, type: :model do
 
       context 'when recognized_ingredients is empty' do
         let(:fridge_image) { create(:fridge_image, :without_ingredients) }
-        
+
         it 'returns false' do
           expect(fridge_image.has_ingredients?).to be false
         end
@@ -99,7 +99,7 @@ RSpec.describe FridgeImage, type: :model do
     describe '#ingredient_count' do
       context 'when has ingredients' do
         let(:fridge_image) { create(:fridge_image, :completed) }
-        
+
         it 'returns correct count' do
           expect(fridge_image.ingredient_count).to eq(2)
         end
@@ -107,7 +107,7 @@ RSpec.describe FridgeImage, type: :model do
 
       context 'when has no ingredients' do
         let(:fridge_image) { create(:fridge_image, :processing) }
-        
+
         it 'returns 0' do
           expect(fridge_image.ingredient_count).to eq(0)
         end
@@ -116,7 +116,7 @@ RSpec.describe FridgeImage, type: :model do
 
     describe '#top_ingredients' do
       let(:fridge_image) { create(:fridge_image, :completed) }
-      
+
       it 'returns top ingredients up to limit' do
         top_ingredients = fridge_image.top_ingredients(1)
         expect(top_ingredients.size).to eq(1)
@@ -126,16 +126,16 @@ RSpec.describe FridgeImage, type: :model do
 
     describe '#ingredient_names' do
       let(:fridge_image) { create(:fridge_image, :completed) }
-      
+
       it 'returns array of ingredient names' do
         names = fridge_image.ingredient_names
-        expect(names).to eq(['トマト', '玉ねぎ'])
+        expect(names).to eq([ 'トマト', '玉ねぎ' ])
       end
     end
 
     describe '#start_processing!' do
       let(:fridge_image) { create(:fridge_image, :pending) }
-      
+
       it 'updates status to processing and clears timestamps' do
         fridge_image.start_processing!
         expect(fridge_image.status).to eq('processing')
@@ -153,10 +153,10 @@ RSpec.describe FridgeImage, type: :model do
         ]
       end
       let(:metadata) { { api_version: 'v1' }.deep_stringify_keys }
-      
+
       it 'updates to completed status with results' do
         fridge_image.complete_with_result!(ingredients_data, metadata)
-        
+
         expect(fridge_image.status).to eq('completed')
         expect(fridge_image.recognized_ingredients).to eq(ingredients_data)
         expect(fridge_image.image_metadata).to eq(metadata)
@@ -168,10 +168,10 @@ RSpec.describe FridgeImage, type: :model do
     describe '#fail_with_error!' do
       let(:fridge_image) { create(:fridge_image, :processing) }
       let(:error_message) { 'API Error: Rate limit exceeded' }
-      
+
       it 'updates to failed status with error message' do
         fridge_image.fail_with_error!(error_message)
-        
+
         expect(fridge_image.status).to eq('failed')
         expect(fridge_image.error_message).to eq(error_message)
         expect(fridge_image.recognized_at).to be_present
@@ -181,7 +181,7 @@ RSpec.describe FridgeImage, type: :model do
     describe '#from_line?' do
       context 'when has line_message_id and line_account' do
         let(:fridge_image) { create(:fridge_image, :from_line) }
-        
+
         it 'returns true' do
           expect(fridge_image.from_line?).to be true
         end
@@ -189,7 +189,7 @@ RSpec.describe FridgeImage, type: :model do
 
       context 'when missing line_message_id' do
         let(:fridge_image) { create(:fridge_image, line_message_id: nil) }
-        
+
         it 'returns false' do
           expect(fridge_image.from_line?).to be false
         end
@@ -199,7 +199,7 @@ RSpec.describe FridgeImage, type: :model do
     describe '#from_web?' do
       context 'when has user but no line_message_id' do
         let(:fridge_image) { create(:fridge_image, :from_web) }
-        
+
         it 'returns true' do
           expect(fridge_image.from_web?).to be true
         end
@@ -207,7 +207,7 @@ RSpec.describe FridgeImage, type: :model do
 
       context 'when has line_message_id' do
         let(:fridge_image) { create(:fridge_image, :from_line) }
-        
+
         it 'returns false' do
           expect(fridge_image.from_web?).to be false
         end

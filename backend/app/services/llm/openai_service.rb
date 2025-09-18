@@ -1,22 +1,22 @@
-require 'openai'
-require 'json'
+require "openai"
+require "json"
 
 module Llm
   class OpenaiService < BaseService
     def initialize(client: nil)
-      api_key = ENV['OPENAI_API_KEY']
-      raise 'OpenAI API key is not configured' if api_key.nil? || api_key.empty?
+      api_key = ENV["OPENAI_API_KEY"]
+      raise "OpenAI API key is not configured" if api_key.nil? || api_key.empty?
 
       timeout_s = (config_value(:timeout_ms).to_i / 1000.0)
       @client = client || OpenAI::Client.new(access_token: api_key, request_timeout: timeout_s)
     end
 
     def generate(messages:, response_format: :text, temperature: nil, max_tokens: nil)
-      model = ENV.fetch('OPENAI_MODEL', 'gpt-4o-mini')
+      model = ENV.fetch("OPENAI_MODEL", "gpt-4o-mini")
       temperature ||= config_value(:temperature).to_f
       max_tokens ||= config_value(:max_tokens).to_i
 
-      rfmt = response_format == :json ? { type: 'json_object' } : nil
+      rfmt = response_format == :json ? { type: "json_object" } : nil
 
       # Build parameters for Chat Completions
       params = {
@@ -28,10 +28,10 @@ module Llm
       }.compact
 
       # GPT-5系モデルには推論関連パラメータを付与
-      if model.start_with?('gpt-5')
+      if model.start_with?("gpt-5")
         params[:reasoning_effort] = config_value(:reasoning_effort)
         params[:verbosity] = config_value(:verbosity)
-        Rails.logger.warn('[LLM] Using GPT-5 model; applying reasoning_effort/verbosity') if defined?(Rails)
+        Rails.logger.warn("[LLM] Using GPT-5 model; applying reasoning_effort/verbosity") if defined?(Rails)
       end
 
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -40,17 +40,17 @@ module Llm
       end
       duration = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000.0).round
 
-      content = response.dig('choices', 0, 'message', 'content').to_s
-      usage = response['usage']
+      content = response.dig("choices", 0, "message", "content").to_s
+      usage = response["usage"]
 
-      ActiveSupport::Notifications.instrument('llm.request', {
-        provider: 'openai',
+      ActiveSupport::Notifications.instrument("llm.request", {
+        provider: "openai",
         model: model,
         duration: duration,
         tokens: usage
       })
 
-      result = Llm::Result.new(text: content, provider: 'openai', model: model, usage: usage)
+      result = Llm::Result.new(text: content, provider: "openai", model: model, usage: usage)
       if response_format == :json
         begin
           result.raw_json = JSON.parse(content)
@@ -67,8 +67,8 @@ module Llm
       sys = msgs[:system].to_s
       usr = msgs[:user].to_s
       arr = []
-      arr << { role: 'system', content: sys } unless sys.empty?
-      arr << { role: 'user', content: usr } unless usr.empty?
+      arr << { role: "system", content: sys } unless sys.empty?
+      arr << { role: "user", content: usr } unless usr.empty?
       arr
     end
 

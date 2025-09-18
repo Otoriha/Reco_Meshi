@@ -205,14 +205,14 @@ RSpec.describe "Api::V1::Line", type: :request do
       allow(event).to receive(:postback).and_return(postback)
       allow(event).to receive(:source).and_return(source)
       allow(event).to receive(:reply_token).and_return("test_reply_token")
-      
+
       # すべてのクラスチェックをスタブ
       allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::MessageEvent).and_return(false)
       allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::FollowEvent).and_return(false)
       allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::UnfollowEvent).and_return(false)
       allow(event).to receive(:is_a?).with(Line::Bot::V2::Webhook::PostbackEvent).and_return(true)
       allow(event).to receive(:respond_to?).with(:postback).and_return(true)
-      
+
       event
     end
 
@@ -224,7 +224,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles text message successfully" do
         mock_event = create_v2_text_message_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -234,7 +234,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles recipe command via text message" do
         mock_event = create_v2_text_message_event("レシピ教えて")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -243,7 +243,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles ingredients command via text message" do
         mock_event = create_v2_text_message_event("食材リスト")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -252,7 +252,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles shopping command via text message" do
         mock_event = create_v2_text_message_event("買い物リスト")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -261,7 +261,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles unknown command via text message" do
         mock_event = create_v2_text_message_event("ランダムなメッセージ")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: text_message_event, headers: headers
 
@@ -270,7 +270,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles image message successfully" do
         mock_event = create_v2_image_message_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: image_message_event, headers: headers
 
@@ -280,7 +280,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles follow event successfully" do
         mock_event = create_v2_follow_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: follow_event, headers: headers
 
@@ -290,7 +290,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles postback event successfully" do
         mock_event = create_v2_postback_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -300,7 +300,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles recipe postback event" do
         mock_event = create_v2_postback_event("recipe_request")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -309,7 +309,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles ingredients postback event" do
         mock_event = create_v2_postback_event("ingredients_list")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -318,7 +318,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles shopping postback event" do
         mock_event = create_v2_postback_event("shopping_list")
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -343,7 +343,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
         it "handles check_item postback event" do
           mock_event = create_v2_postback_event("check_item:#{shopping_list.id}:#{shopping_list_item.id}")
-          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
           expect {
             post '/api/v1/line/webhook', params: postback_event, headers: headers
@@ -354,7 +354,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
         it "handles complete_list postback event" do
           mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
-          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
           expect {
             post '/api/v1/line/webhook', params: postback_event, headers: headers
@@ -373,24 +373,24 @@ RSpec.describe "Api::V1::Line", type: :request do
           item3 = create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient3, is_checked: true) # 既にチェック済み
 
           mock_event = create_v2_postback_event("complete_list:#{shopping_list.id}")
-          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
           post '/api/v1/line/webhook', params: postback_event, headers: headers
 
           expect(response).to have_http_status(:ok)
-          
+
           # 全アイテムがチェック済みになる
           shopping_list_item.reload
           item2.reload
           item3.reload
-          
+
           expect(shopping_list_item.is_checked).to eq(true)
           expect(shopping_list_item.checked_at).to be_present
           expect(item2.is_checked).to eq(true)
           expect(item2.checked_at).to be_present
           expect(item3.is_checked).to eq(true) # 既にチェック済みなので変わらず
           # 既にチェック済みの場合はchecked_atは更新されない（意図された動作）
-          
+
           # リストが完了状態になる
           shopping_list.reload
           expect(shopping_list.status).to eq('completed')
@@ -399,9 +399,9 @@ RSpec.describe "Api::V1::Line", type: :request do
         it "handles unauthorized shopping list access" do
           other_user = create(:user)
           other_shopping_list = create(:shopping_list, user: other_user)
-          
+
           mock_event = create_v2_postback_event("check_item:#{other_shopping_list.id}:999")
-          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+          allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
           post '/api/v1/line/webhook', params: postback_event, headers: headers
 
@@ -411,7 +411,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles sticker message successfully" do
         mock_event = create_v2_sticker_message_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: sticker_message_event, headers: headers
 
@@ -421,7 +421,7 @@ RSpec.describe "Api::V1::Line", type: :request do
 
       it "handles unfollow event successfully" do
         mock_event = create_v2_unfollow_event
-        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([mock_event])
+        allow_any_instance_of(LineBotService).to receive(:parse_events_v2).and_return([ mock_event ])
 
         post '/api/v1/line/webhook', params: unfollow_event, headers: headers
 

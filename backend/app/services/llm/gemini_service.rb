@@ -1,23 +1,23 @@
-require 'faraday'
-require 'faraday/retry'
-require 'json'
+require "faraday"
+require "faraday/retry"
+require "json"
 
 module Llm
   class GeminiService < BaseService
-    API_BASE = 'https://generativelanguage.googleapis.com'.freeze
+    API_BASE = "https://generativelanguage.googleapis.com".freeze
 
     def initialize(connection: nil)
-      @api_key = ENV['GEMINI_API_KEY']
-      raise 'Gemini API key is not configured' if @api_key.nil? || @api_key.empty?
+      @api_key = ENV["GEMINI_API_KEY"]
+      raise "Gemini API key is not configured" if @api_key.nil? || @api_key.empty?
 
-      @model = ENV.fetch('GEMINI_MODEL', 'gemini-1.5-flash')
+      @model = ENV.fetch("GEMINI_MODEL", "gemini-1.5-flash")
       timeout_s = (config_value(:timeout_ms).to_i / 1000.0)
       max_retries = config_value(:max_retries).to_i
 
       @conn = connection || Faraday.new(url: API_BASE) do |f|
         f.request :json
         f.request :retry, max: max_retries, interval: 0.5, interval_randomness: 0.5, backoff_factor: 2,
-                          retry_statuses: [429, 500, 502, 503, 504],
+                          retry_statuses: [ 429, 500, 502, 503, 504 ],
                           methods: %i[post get],
                           retry_if: ->(env, _exception) { env.response&.status.to_i >= 500 || env.response&.status == 429 }
         f.response :json, content_type: /\bjson$/
@@ -34,8 +34,8 @@ module Llm
       body = {
         contents: [
           {
-            role: 'user',
-            parts: [{ text: prompt }]
+            role: "user",
+            parts: [ { text: prompt } ]
           }
         ],
         generationConfig: {
@@ -44,7 +44,7 @@ module Llm
         }
       }
       if response_format == :json
-        body[:generationConfig][:response_mime_type] = 'application/json'
+        body[:generationConfig][:response_mime_type] = "application/json"
       end
 
       path = "/v1beta/models/#{@model}:generateContent"
@@ -57,16 +57,16 @@ module Llm
       end
 
       text = extract_text(resp.body)
-      usage = resp.body['usageMetadata']
+      usage = resp.body["usageMetadata"]
 
-      ActiveSupport::Notifications.instrument('llm.request', {
-        provider: 'gemini',
+      ActiveSupport::Notifications.instrument("llm.request", {
+        provider: "gemini",
         model: @model,
         duration: duration,
         tokens: usage
       })
 
-      result = Llm::Result.new(text: text, provider: 'gemini', model: @model, usage: usage)
+      result = Llm::Result.new(text: text, provider: "gemini", model: @model, usage: usage)
       if response_format == :json
         begin
           result.raw_json = JSON.parse(text)
@@ -80,17 +80,17 @@ module Llm
     private
 
     def build_prompt(msgs)
-      [msgs[:system], msgs[:user]].compact.join("\n\n")
+      [ msgs[:system], msgs[:user] ].compact.join("\n\n")
     end
 
     def extract_text(body)
-      candidates = body['candidates']
-      return '' unless candidates && candidates.first
-      parts = candidates.first.dig('content', 'parts')
-      if parts && parts.first && parts.first['text']
-        parts.first['text']
+      candidates = body["candidates"]
+      return "" unless candidates && candidates.first
+      parts = candidates.first.dig("content", "parts")
+      if parts && parts.first && parts.first["text"]
+        parts.first["text"]
       else
-        ''
+        ""
       end
     end
 

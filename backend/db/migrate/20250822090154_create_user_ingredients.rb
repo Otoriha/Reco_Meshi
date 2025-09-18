@@ -7,12 +7,12 @@ class CreateUserIngredients < ActiveRecord::Migration[7.2]
       t.date :expiry_date, comment: '賞味期限'
       t.string :status, default: 'available', comment: 'available/used/expired'
       t.references :fridge_image, foreign_key: true, comment: '認識元の画像'
-      
+
       t.timestamps
     end
-    
+
     add_index :user_ingredients, :status
     add_index :user_ingredients, :expiry_date
-    add_index :user_ingredients, [:user_id, :ingredient_id, :status], name: 'idx_user_ingredients_composite'
+    add_index :user_ingredients, [ :user_id, :ingredient_id, :status ], name: 'idx_user_ingredients_composite'
   end
 end

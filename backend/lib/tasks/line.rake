@@ -2,9 +2,9 @@ namespace :line do
   desc "Setup LINE Bot rich menu"
   task setup_rich_menu: :environment do
     puts "Setting up LINE Bot rich menu..."
-    
+
     service = LineRichMenuService.new
-    
+
     if service.setup_default_rich_menu
       puts "✅ Rich menu setup completed successfully!"
     else
@@ -16,10 +16,10 @@ namespace :line do
   desc "List all rich menus"
   task list_rich_menus: :environment do
     puts "Listing all rich menus..."
-    
+
     service = LineRichMenuService.new
     rich_menus = service.get_rich_menu_list
-    
+
     if rich_menus.empty?
       puts "No rich menus found."
     else
@@ -37,10 +37,10 @@ namespace :line do
   desc "Get default rich menu"
   task get_default_rich_menu: :environment do
     puts "Getting default rich menu..."
-    
+
     service = LineRichMenuService.new
     default_menu_id = service.get_default_rich_menu_id
-    
+
     if default_menu_id
       puts "✅ Default rich menu ID: #{default_menu_id}"
     else
@@ -51,19 +51,19 @@ namespace :line do
   desc "Delete all rich menus"
   task cleanup_rich_menus: :environment do
     puts "Cleaning up all rich menus..."
-    
+
     service = LineRichMenuService.new
     service.cleanup_all_rich_menus
-    
+
     puts "✅ All rich menus have been deleted!"
   end
 
   desc "Cancel default rich menu"
   task cancel_default_rich_menu: :environment do
     puts "Cancelling default rich menu..."
-    
+
     service = LineRichMenuService.new
-    
+
     if service.cancel_default_rich_menu
       puts "✅ Default rich menu cancelled successfully!"
     else
@@ -74,7 +74,7 @@ namespace :line do
   desc "Test LINE Bot connection"
   task test_connection: :environment do
     puts "Testing LINE Bot connection..."
-    
+
     begin
       service = LineBotService.new
       # プロフィールAPIを使用して接続テスト（実際のユーザーIDが必要）
@@ -100,8 +100,8 @@ namespace :line do
     puts ""
     puts "Webhook URL should be: #{Rails.application.routes.url_helpers.api_v1_line_webhook_url rescue 'Unable to generate URL'}"
     puts ""
-    
-    if ENV['LINE_CHANNEL_SECRET'].blank? || ENV['LINE_CHANNEL_ACCESS_TOKEN'].blank?
+
+    if ENV["LINE_CHANNEL_SECRET"].blank? || ENV["LINE_CHANNEL_ACCESS_TOKEN"].blank?
       puts "⚠️  Warning: LINE Bot credentials are not properly configured!"
       puts "Please set LINE_CHANNEL_SECRET and LINE_CHANNEL_ACCESS_TOKEN in your environment variables."
     else

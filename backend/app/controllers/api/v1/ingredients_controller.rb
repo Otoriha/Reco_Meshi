@@ -1,5 +1,5 @@
 class Api::V1::IngredientsController < ApplicationController
-  before_action :set_ingredient, only: [:update, :destroy]
+  before_action :set_ingredient, only: [ :update, :destroy ]
 
   # GET /api/v1/ingredients
   # Params: category, search, page, per_page
@@ -10,14 +10,14 @@ class Api::V1::IngredientsController < ApplicationController
 
     page = params[:page].to_i > 0 ? params[:page].to_i : 1
     per_page = params[:per_page].to_i > 0 ? params[:per_page].to_i : 20
-    per_page = [per_page, 100].min
+    per_page = [ per_page, 100 ].min
     total = ingredients.count
     items = ingredients.offset((page - 1) * per_page).limit(per_page)
 
     data = IngredientSerializer.new(items).serializable_hash[:data].map { |d| d[:attributes] }
 
     render json: {
-      status: { code: 200, message: '食材を取得しました。' },
+      status: { code: 200, message: "食材を取得しました。" },
       data: data,
       meta: { total: total, page: page, per_page: per_page }
     }, status: :ok
@@ -28,7 +28,7 @@ class Api::V1::IngredientsController < ApplicationController
     ingredient = Ingredient.create!(ingredient_params)
 
     render json: {
-      status: { code: 201, message: '食材を作成しました。' },
+      status: { code: 201, message: "食材を作成しました。" },
       data: IngredientSerializer.new(ingredient).serializable_hash[:data][:attributes]
     }, status: :created
   end
@@ -38,7 +38,7 @@ class Api::V1::IngredientsController < ApplicationController
     @ingredient.update!(ingredient_params)
 
     render json: {
-      status: { code: 200, message: '食材を更新しました。' },
+      status: { code: 200, message: "食材を更新しました。" },
       data: IngredientSerializer.new(@ingredient).serializable_hash[:data][:attributes]
     }, status: :ok
   end
@@ -59,4 +59,3 @@ class Api::V1::IngredientsController < ApplicationController
     params.require(:ingredient).permit(:name, :category, :unit, :emoji)
   end
 end
-

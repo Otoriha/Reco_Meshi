@@ -6,9 +6,9 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   # ApplicationControllerのauthenticate_user!をスキップ
   # - ログイン時は認証不要
   # - ログアウトはトークンの有無/妥当性で応答を制御するため認証不要
-  skip_before_action :authenticate_user!, only: [:create, :destroy]
+  skip_before_action :authenticate_user!, only: [ :create, :destroy ]
 
-  before_action :normalize_devise_param_keys, only: [:create]
+  before_action :normalize_devise_param_keys, only: [ :create ]
 
   # カスタム認証（devise-jwtのdispatchは sign_in 呼び出しで発火）
   def create
@@ -16,8 +16,8 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
 
     if resource&.valid_password?(sign_in_params[:password])
       # CONFIRMABLE_ENABLED が有効な場合は confirmed_at を厳密に確認
-      if ENV['CONFIRMABLE_ENABLED'] == 'true' && !resource.confirmed_at.present?
-        render json: { error: 'メールアドレスの確認が必要です' }, status: :unauthorized
+      if ENV["CONFIRMABLE_ENABLED"] == "true" && !resource.confirmed_at.present?
+        render json: { error: "メールアドレスの確認が必要です" }, status: :unauthorized
         return
       end
 
@@ -25,7 +25,7 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
       sign_in(resource_name, resource, store: false)
       respond_with(resource)
     else
-      render json: { error: 'メールアドレスまたはパスワードが正しくありません' }, status: :unauthorized
+      render json: { error: "メールアドレスまたはパスワードが正しくありません" }, status: :unauthorized
     end
   end
 
@@ -47,13 +47,13 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
 
   def respond_with(resource, _opts = {})
     render json: {
-      status: { code: 200, message: 'ログインしました。' },
+      status: { code: 200, message: "ログインしました。" },
       data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
     }, status: :ok
   end
 
   def respond_to_on_destroy
-    token = request.headers['Authorization'].to_s.split(' ').last
+    token = request.headers["Authorization"].to_s.split(" ").last
 
     if token.blank?
       render json: {
@@ -67,15 +67,15 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
     begin
       JWT.decode(
         token,
-        ENV.fetch('DEVISE_JWT_SECRET_KEY', Rails.application.secret_key_base),
+        ENV.fetch("DEVISE_JWT_SECRET_KEY", Rails.application.secret_key_base),
         true,
-        { algorithm: 'HS256' }
+        { algorithm: "HS256" }
       )
 
       # ログアウト要求に使用したトークンをブラックリストに追加
       begin
         payload = JWT.decode(token, nil, false).first
-        JwtDenylist.create!(jti: payload['jti'], exp: Time.at(payload['exp'])) if payload['jti'] && payload['exp']
+        JwtDenylist.create!(jti: payload["jti"], exp: Time.at(payload["exp"])) if payload["jti"] && payload["exp"]
       rescue StandardError
         # 失敗時はブラックリスト登録をスキップ（応答は成功でよい）
       end

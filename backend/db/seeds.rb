@@ -77,7 +77,7 @@ ingredients_data.each do |ingredient_data|
     i.unit = ingredient_data[:unit]
     i.emoji = ingredient_data[:emoji]
   end
-  
+
   puts "✓ #{ingredient.display_name_with_emoji} (#{ingredient.category})"
 end
 

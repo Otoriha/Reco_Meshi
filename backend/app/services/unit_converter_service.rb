@@ -2,12 +2,12 @@ class UnitConverterService
   # 単位変換表（基本単位に対する倍数）
   CONVERSIONS = {
     mass: {
-      'g' => 1.0,
-      'kg' => 1000.0
+      "g" => 1.0,
+      "kg" => 1000.0
     },
     volume: {
-      'ml' => 1.0,
-      'l' => 1000.0
+      "ml" => 1.0,
+      "l" => 1000.0
     },
     # 個数系は相互変換しない（係数1.0で統一）
     count: %w[個 本 束 パック 袋 枚 缶 瓶 箱 玉 尾]
@@ -25,18 +25,18 @@ class UnitConverterService
 
       from_dimension = dimension_of(from)
       to_dimension = dimension_of(to)
-      
+
       # 異なるディメンション間は変換不可
       return nil unless from_dimension && from_dimension == to_dimension
-      
+
       case from_dimension
       when :mass, :volume
         conversion_table = CONVERSIONS[from_dimension]
         from_ratio = conversion_table[from]
         to_ratio = conversion_table[to]
-        
+
         return nil if from_ratio.nil? || to_ratio.nil?
-        
+
         # 基本単位での値を計算してから目標単位に変換
         base_amount = amount.to_f * from_ratio
         (base_amount / to_ratio).round(3)
@@ -55,10 +55,10 @@ class UnitConverterService
     def compatible?(from:, to:)
       return true if from == to
       return false if from.blank? || to.blank?
-      
+
       from_dimension = dimension_of(from)
       to_dimension = dimension_of(to)
-      
+
       from_dimension && from_dimension == to_dimension
     end
 
@@ -67,7 +67,7 @@ class UnitConverterService
     # @return [Symbol, nil] :mass, :volume, :count, nil（未知の単位）
     def dimension_of(unit)
       return nil if unit.blank?
-      
+
       CONVERSIONS.each do |dimension, definition|
         case definition
         when Hash
@@ -76,7 +76,7 @@ class UnitConverterService
           return dimension if definition.include?(unit)
         end
       end
-      
+
       nil
     end
 
@@ -101,11 +101,11 @@ class UnitConverterService
     def base_unit_for(dimension)
       case dimension
       when :mass
-        'g'
+        "g"
       when :volume
-        'ml'
+        "ml"
       when :count
-        '個' # 個数系はすべて等価だが、代表として '個' を返す
+        "個" # 個数系はすべて等価だが、代表として '個' を返す
       else
         nil
       end

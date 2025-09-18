@@ -67,4 +67,3 @@ RSpec.describe 'Api::V1::Recipes', type: :request do
     end
   end
 end
-

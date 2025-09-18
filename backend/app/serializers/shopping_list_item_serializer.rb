@@ -31,6 +31,6 @@ class ShoppingListItemSerializer
   end
 
   attribute :status_display do |object|
-    object.is_checked? ? '購入済み' : '未購入'
+    object.is_checked? ? "購入済み" : "未購入"
   end
 end

@@ -15,7 +15,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('こんにちは！レコめしへようこそ🍽️')
         )
-        
+
         service.generate_response(:greeting)
       end
 
@@ -23,7 +23,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('使えるコマンド')
         )
-        
+
         service.generate_response(:greeting)
       end
     end
@@ -47,7 +47,7 @@ RSpec.describe MessageResponseService do
           max_tokens: 1000,
           fallback_provider: 'gemini'
         }
-        
+
         allow(Llm::Factory).to receive(:build).and_return(mock_llm_service)
         allow(PromptTemplateService).to receive(:recipe_generation).and_return({
           system: 'You are a chef',
@@ -64,7 +64,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('🍳 今ある食材でのレシピ提案')
           )
-          
+
           service.generate_response(:recipe)
         end
 
@@ -229,7 +229,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('アカウント登録を行ってください')
           )
-          
+
           service.generate_response(:ingredients, 'invalid_user_id')
         end
       end
@@ -246,7 +246,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('登録されている食材がありません')
           )
-          
+
           service.generate_response(:ingredients, 'test_user_id')
         end
       end
@@ -258,8 +258,8 @@ RSpec.describe MessageResponseService do
 
         before do
           line_account
-          create(:user_ingredient, user: user, ingredient: ingredient, 
-                 quantity: 2, status: 'available', 
+          create(:user_ingredient, user: user, ingredient: ingredient,
+                 quantity: 2, status: 'available',
                  expiry_date: 3.days.from_now.to_date)
         end
 
@@ -269,7 +269,7 @@ RSpec.describe MessageResponseService do
               a_string_including('• 玉ねぎ 2個')
             )
           )
-          
+
           service.generate_response(:ingredients, 'test_user_id')
         end
 
@@ -277,7 +277,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('LIFFアプリをご利用ください')
           )
-          
+
           service.generate_response(:ingredients, 'test_user_id')
         end
       end
@@ -289,7 +289,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('アカウント登録を行ってください')
           )
-          
+
           service.generate_response(:shopping, 'invalid_user_id')
         end
       end
@@ -299,7 +299,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('アカウント登録を行ってください')
           )
-          
+
           service.generate_response(:shopping, 'user_without_line_account')
         end
       end
@@ -316,7 +316,7 @@ RSpec.describe MessageResponseService do
           expect(line_bot_service).to receive(:create_text_message).with(
             a_string_including('アクティブな買い物リストがありません')
           )
-          
+
           service.generate_response(:shopping, 'test_user_id')
         end
       end
@@ -343,7 +343,7 @@ RSpec.describe MessageResponseService do
                 a_string_including('☐ 玉ねぎ 2個')
               )
             )
-            
+
             service.generate_response(:shopping, 'test_user_id')
           end
         end
@@ -357,7 +357,7 @@ RSpec.describe MessageResponseService do
 
           it 'creates flex shopping list message' do
             expect(line_bot_service).to receive(:create_flex_message)
-            
+
             service.generate_response(:shopping, 'test_user_id')
           end
         end
@@ -374,7 +374,7 @@ RSpec.describe MessageResponseService do
               )
             )
             expect(line_bot_service).not_to receive(:create_flex_message)
-            
+
             service.generate_response(:shopping, 'test_user_id')
           end
         end
@@ -386,7 +386,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('レコめしの使い方')
         )
-        
+
         service.generate_response(:help)
       end
 
@@ -396,7 +396,7 @@ RSpec.describe MessageResponseService do
             a_string_including('冷蔵庫の写真を送信')
           )
         )
-        
+
         service.generate_response(:help)
       end
 
@@ -406,7 +406,7 @@ RSpec.describe MessageResponseService do
             a_string_including('「レシピ」「料理」')
           )
         )
-        
+
         service.generate_response(:help)
       end
     end
@@ -416,7 +416,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('メッセージの内容を理解できませんでした')
         )
-        
+
         service.generate_response(:unknown)
       end
 
@@ -426,7 +426,7 @@ RSpec.describe MessageResponseService do
             a_string_including('以下のコマンドもご利用いただけます')
           )
         )
-        
+
         service.generate_response(:unknown)
       end
     end
@@ -436,7 +436,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('メッセージの内容を理解できませんでした')
         )
-        
+
         service.generate_response(nil)
       end
 
@@ -444,7 +444,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_text_message).with(
           a_string_including('メッセージの内容を理解できませんでした')
         )
-        
+
         service.generate_response(:invalid_command)
       end
     end
@@ -606,10 +606,10 @@ RSpec.describe MessageResponseService do
       it 'creates flex message with default values' do
         expect(line_bot_service).to receive(:create_flex_message) do |alt_text, contents|
           expect(alt_text).to eq('[レシピ] おすすめレシピ')
-          
+
           title_component = contents[:body][:contents].first
           expect(title_component[:text]).to eq('おすすめレシピ')
-          
+
           time_component = contents[:body][:contents][1][:contents].first
           expect(time_component[:text]).to include('約15分')
         end
@@ -697,7 +697,7 @@ RSpec.describe MessageResponseService do
         expect(message).to include('📝 使えるコマンド')
         mock_message
       end
-      
+
       service.generate_response(:greeting)
     end
 
@@ -707,7 +707,7 @@ RSpec.describe MessageResponseService do
         expect(message).to include('約15分')
         mock_message
       end
-      
+
       service.generate_response(:recipe)
     end
 
@@ -715,17 +715,17 @@ RSpec.describe MessageResponseService do
       user = create(:user)
       ingredient = create(:ingredient, name: 'テスト食材', unit: 'g')
       line_account = create(:line_account, user: user, line_user_id: 'test_user_formatting')
-      create(:user_ingredient, user: user, ingredient: ingredient, 
-             quantity: 100, status: 'available', 
+      create(:user_ingredient, user: user, ingredient: ingredient,
+             quantity: 100, status: 'available',
              expiry_date: 3.days.from_now.to_date)
-      
+
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('📝')
         expect(message).to include('• ')
         expect(message).to include('日後まで')
         mock_message
       end
-      
+
       service.generate_response(:ingredients, 'test_user_formatting')
     end
   end

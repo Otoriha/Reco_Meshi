@@ -40,5 +40,3 @@ RSpec.describe 'RecipeGeneratorService' do
     expect { service.call }.to raise_error(/LLM/) # 実装詳細に合わせて調整
   end
 end
-
-

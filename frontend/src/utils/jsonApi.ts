@@ -3,15 +3,15 @@
 export interface JsonApiResource {
   id: string
   type: string
-  attributes: Record<string, any>
-  relationships?: Record<string, any>
+  attributes: Record<string, unknown>
+  relationships?: Record<string, unknown>
 }
 
 export interface JsonApiResponse<T = JsonApiResource> {
   data: T | T[]
   included?: JsonApiResource[]
-  meta?: Record<string, any>
-  links?: Record<string, any>
+  meta?: Record<string, unknown>
+  links?: Record<string, unknown>
 }
 
 /**
@@ -31,8 +31,8 @@ export function convertKeyToSnakeCase(key: string): string {
 /**
  * オブジェクトのキーをsnake_caseからcamelCaseに変換
  */
-export function convertKeysFromSnakeCase(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {}
+export function convertKeysFromSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
   Object.entries(obj).forEach(([key, value]) => {
     result[convertKeyFromSnakeCase(key)] = value
   })
@@ -42,8 +42,8 @@ export function convertKeysFromSnakeCase(obj: Record<string, any>): Record<strin
 /**
  * オブジェクトのキーをcamelCaseからsnake_caseに変換
  */
-export function convertKeysToSnakeCase(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {}
+export function convertKeysToSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
   Object.entries(obj).forEach(([key, value]) => {
     result[convertKeyToSnakeCase(key)] = value
   })
@@ -67,27 +67,28 @@ export function findIncludedResource(
 export function normalizeJsonApiResource(
   resource: JsonApiResource,
   included: JsonApiResource[] = []
-): Record<string, any> {
-  const normalized: Record<string, any> = {
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {
     id: Number(resource.id),
     ...convertKeysFromSnakeCase(resource.attributes)
   }
 
   // リレーションシップの処理
   if (resource.relationships) {
-    Object.entries(resource.relationships).forEach(([key, relationship]: [string, any]) => {
-      if (relationship.data) {
-        if (Array.isArray(relationship.data)) {
+    Object.entries(resource.relationships).forEach(([key, relationship]) => {
+      const rel = relationship as { data?: { type: string; id: string } | Array<{ type: string; id: string }> }
+      if (rel.data) {
+        if (Array.isArray(rel.data)) {
           // 複数のリレーション
-          normalized[convertKeyFromSnakeCase(key)] = relationship.data
-            .map((rel: any) => findIncludedResource(rel.type, rel.id, included))
+          normalized[convertKeyFromSnakeCase(key)] = rel.data
+            .map((relItem: { type: string; id: string }) => findIncludedResource(relItem.type, relItem.id, included))
             .filter(Boolean)
             .map((res: JsonApiResource) => normalizeJsonApiResource(res, included))
         } else {
           // 単一のリレーション
           const relatedResource = findIncludedResource(
-            relationship.data.type,
-            relationship.data.id,
+            rel.data.type,
+            rel.data.id,
             included
           )
           if (relatedResource) {
@@ -107,18 +108,18 @@ export function normalizeJsonApiResource(
 export interface ApiError {
   errors: Array<{
     detail: string
-    source?: Record<string, any>
+    source?: Record<string, unknown>
   }>
 }
 
 /**
  * エラーレスポンスのフォーマット
  */
-export function formatApiErrors(errors: any[]): ApiError {
+export function formatApiErrors(errors: Array<{ detail?: string; source?: Record<string, unknown> } | string>): ApiError {
   return {
     errors: errors.map(error => ({
       detail: typeof error === 'string' ? error : error.detail || 'An error occurred',
-      source: error.source
+      source: typeof error === 'string' ? undefined : error.source
     }))
   }
 }

@@ -6,10 +6,10 @@ class FridgeImage < ApplicationRecord
 
   # Enum定義
   enum :status, {
-    pending: 'pending',
-    processing: 'processing',
-    completed: 'completed',
-    failed: 'failed'
+    pending: "pending",
+    processing: "processing",
+    completed: "completed",
+    failed: "failed"
   }
 
   # バリデーション
@@ -17,7 +17,7 @@ class FridgeImage < ApplicationRecord
 
   # スコープ
   scope :recent, -> { order(created_at: :desc) }
-  scope :with_ingredients, -> { where(status: 'completed').where.not(recognized_ingredients: []) }
+  scope :with_ingredients, -> { where(status: "completed").where.not(recognized_ingredients: []) }
   scope :by_user, ->(user) { where(user: user) }
   scope :by_line_account, ->(line_account) { where(line_account: line_account) }
 
@@ -38,17 +38,17 @@ class FridgeImage < ApplicationRecord
 
   def ingredient_names
     return [] unless has_ingredients?
-    recognized_ingredients.map { |ingredient| ingredient['name'] }.compact
+    recognized_ingredients.map { |ingredient| ingredient["name"] }.compact
   end
 
   # ステータス管理メソッド
   def start_processing!
-    update!(status: 'processing', recognized_at: nil, error_message: nil)
+    update!(status: "processing", recognized_at: nil, error_message: nil)
   end
 
   def complete_with_result!(ingredients_data, metadata = {})
     update!(
-      status: 'completed',
+      status: "completed",
       recognized_ingredients: ingredients_data,
       image_metadata: metadata,
       recognized_at: Time.current,
@@ -58,7 +58,7 @@ class FridgeImage < ApplicationRecord
 
   def fail_with_error!(error_message)
     update!(
-      status: 'failed',
+      status: "failed",
       # 確実に配列型で保持するため明示的に空配列を保存
       recognized_ingredients: [],
       error_message: error_message,

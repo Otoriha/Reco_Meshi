@@ -140,7 +140,7 @@ class MessageResponseService
 
   def create_ingredients_list_message(line_user_id = nil)
     user = resolve_user_from_line_id(line_user_id)
-    
+
     unless user
       return @line_bot_service.create_text_message(
         "📝 食材リスト機能をご利用いただくには、まずアプリでアカウント登録を行ってください。\n\n" \
@@ -151,9 +151,9 @@ class MessageResponseService
     # ユーザーの食材リストを取得（利用可能なもののみ）
     user_ingredients = user.user_ingredients
                           .joins(:ingredient)
-                          .where(status: 'available')
+                          .where(status: "available")
                           .includes(:ingredient)
-                          .order('ingredients.name ASC')
+                          .order("ingredients.name ASC")
                           .limit(20) # 表示件数制限
 
     if user_ingredients.empty?
@@ -164,12 +164,12 @@ class MessageResponseService
     end
 
     message = "📝 現在の食材リスト\n\n"
-    
+
     user_ingredients.each do |user_ingredient|
       ingredient_name = user_ingredient.ingredient&.name || "不明な食材"
       quantity = user_ingredient.quantity.present? ? " #{format_quantity(user_ingredient.quantity)}" : ""
       unit = user_ingredient.ingredient&.unit.present? ? "#{user_ingredient.ingredient.unit}" : ""
-      
+
       # 消費期限の表示
       expiry_info = ""
       if user_ingredient.expiry_date
@@ -182,11 +182,11 @@ class MessageResponseService
           expiry_info = " - #{days_until_expiry}日後まで"
         end
       end
-      
+
       message += "• #{ingredient_name}#{quantity}#{unit}#{expiry_info}\n"
     end
 
-    if user.user_ingredients.where(status: 'available').count > 20
+    if user.user_ingredients.where(status: "available").count > 20
       message += "\n...他#{user.user_ingredients.where(status: 'available').count - 20}件\n"
     end
 
@@ -203,7 +203,7 @@ class MessageResponseService
 
   def create_shopping_list_message(line_user_id = nil)
     user = resolve_user_from_line_id(line_user_id)
-    
+
     unless user
       return @line_bot_service.create_text_message(
         "🛒 買い物リスト機能をご利用いただくには、まずアプリでアカウント登録を行ってください。\n\n" \
@@ -419,7 +419,7 @@ class MessageResponseService
 
   def format_quantity(quantity)
     return quantity.to_s if quantity.nil?
-    
+
     if quantity % 1 == 0
       quantity.to_i.to_s
     else

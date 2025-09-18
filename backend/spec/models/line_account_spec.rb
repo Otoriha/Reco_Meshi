@@ -7,7 +7,7 @@ RSpec.describe LineAccount, type: :model do
 
   describe 'validations' do
     subject { build(:line_account) }
-    
+
     it { should validate_presence_of(:line_user_id) }
     it { should validate_uniqueness_of(:line_user_id) }
     it { should validate_presence_of(:line_display_name) }
@@ -67,7 +67,7 @@ RSpec.describe LineAccount, type: :model do
       freeze_time = Time.current
       Timecop.freeze(freeze_time) do
         line_account.link_to_user!(user)
-        
+
         expect(line_account.reload.user).to eq(user)
         expect(line_account.linked_at).to be_within(1.second).of(freeze_time)
       end
@@ -79,7 +79,7 @@ RSpec.describe LineAccount, type: :model do
 
     it 'removes user association and linked_at' do
       line_account.unlink!
-      
+
       expect(line_account.reload.user).to be_nil
       expect(line_account.linked_at).to be_nil
     end

@@ -43,7 +43,7 @@ module App
 
     # Add session middleware for Sidekiq Web UI in development
     if Rails.env.development?
-      config.session_store :cookie_store, key: '_recomeshi_session'
+      config.session_store :cookie_store, key: "_recomeshi_session"
       config.middleware.use ActionDispatch::Cookies
       config.middleware.use ActionDispatch::Session::CookieStore, config.session_options
     end

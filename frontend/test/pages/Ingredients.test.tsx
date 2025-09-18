@@ -4,7 +4,7 @@ import Ingredients from '../../src/pages/Ingredients/Ingredients'
 import { BrowserRouter } from 'react-router-dom'
 
 vi.mock('../../src/api/userIngredients', () => ({
-  getUserIngredients: vi.fn((params: any = {}) => {
+  getUserIngredients: vi.fn((params: Record<string, unknown> = {}) => {
     if (params.group_by === 'category') {
       return Promise.resolve({
         status: { code: 200, message: 'OK' },

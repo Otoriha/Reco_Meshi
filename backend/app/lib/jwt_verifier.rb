@@ -1,6 +1,6 @@
-require 'jwt'
-require 'net/http'
-require 'json'
+require "jwt"
+require "net/http"
+require "json"
 
 class JwtVerifier
   class VerificationError < StandardError; end
@@ -9,11 +9,11 @@ class JwtVerifier
   class AudienceMismatchError < VerificationError; end
   class NonceMismatchError < VerificationError; end
 
-  JWKS_URI = 'https://api.line.me/oauth2/v2.1/certs'.freeze
-  JWKS_CACHE_KEY = 'line_jwks'.freeze
+  JWKS_URI = "https://api.line.me/oauth2/v2.1/certs".freeze
+  JWKS_CACHE_KEY = "line_jwks".freeze
   JWKS_CACHE_TTL = 24.hours.freeze
-  ISSUER = 'https://access.line.me'.freeze
-  ALGORITHMS = ['RS256', 'ES256'].freeze
+  ISSUER = "https://access.line.me".freeze
+  ALGORITHMS = [ "RS256", "ES256" ].freeze
   CLOCK_SKEW = 10.minutes.freeze
 
   def self.verify_id_token(id_token:, aud:, nonce: nil)
@@ -22,28 +22,28 @@ class JwtVerifier
 
   def verify_id_token(id_token:, aud:, nonce: nil)
     header = decode_header(id_token)
-    kid = header['kid']
-    
-    raise InvalidTokenError, 'Missing kid in token header' unless kid
+    kid = header["kid"]
+
+    raise InvalidTokenError, "Missing kid in token header" unless kid
 
     public_key = get_public_key(kid)
     payload = decode_and_verify_token(id_token, public_key, aud, nonce)
-    
+
     {
-      sub: payload['sub'],
-      name: payload['name'],
-      picture: payload['picture'],
-      aud: payload['aud'],
-      iss: payload['iss'],
-      exp: payload['exp'],
-      iat: payload['iat']
+      sub: payload["sub"],
+      name: payload["name"],
+      picture: payload["picture"],
+      aud: payload["aud"],
+      iss: payload["iss"],
+      exp: payload["exp"],
+      iat: payload["iat"]
     }
   rescue JWT::ExpiredSignature
-    raise ExpiredTokenError, 'Token has expired'
+    raise ExpiredTokenError, "Token has expired"
   rescue JWT::InvalidAudError
-    raise AudienceMismatchError, 'Invalid audience'
+    raise AudienceMismatchError, "Invalid audience"
   rescue JWT::InvalidIssuerError
-    raise InvalidTokenError, 'Invalid issuer'
+    raise InvalidTokenError, "Invalid issuer"
   rescue JWT::DecodeError => e
     raise InvalidTokenError, "Token decode error: #{e.message}"
   end
@@ -58,8 +58,8 @@ class JwtVerifier
 
   def get_public_key(kid)
     jwks = fetch_jwks
-    key_data = jwks['keys'].find { |key| key['kid'] == kid }
-    
+    key_data = jwks["keys"].find { |key| key["kid"] == kid }
+
     raise InvalidTokenError, "Public key not found for kid: #{kid}" unless key_data
 
     # Convert JWK to PEM format
@@ -77,14 +77,14 @@ class JwtVerifier
     # Fetch from LINE API
     uri = URI(JWKS_URI)
     response = Net::HTTP.get_response(uri)
-    
+
     raise InvalidTokenError, "Failed to fetch JWKS: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
 
     jwks_data = response.body
-    
+
     # Cache the result
     Rails.cache.write(JWKS_CACHE_KEY, jwks_data, expires_in: JWKS_CACHE_TTL)
-    
+
     JSON.parse(jwks_data)
   rescue => e
     raise InvalidTokenError, "Failed to fetch JWKS: #{e.message}"
@@ -104,13 +104,13 @@ class JwtVerifier
     }
 
     payload, _ = JWT.decode(token, public_key, true, options)
-    
+
     # Verify nonce only if both nonce is provided and token contains nonce
-    if nonce.present? && payload['nonce'].present?
-      if payload['nonce'] != nonce
-        raise NonceMismatchError, 'Nonce mismatch'
+    if nonce.present? && payload["nonce"].present?
+      if payload["nonce"] != nonce
+        raise NonceMismatchError, "Nonce mismatch"
       end
-    elsif nonce.present? && payload['nonce'].blank?
+    elsif nonce.present? && payload["nonce"].blank?
       # フロントエンドがnonceを送信したがIDトークンにnonceがない場合
       Rails.logger.warn "nonce検証スキップ: IDトークンにnonceが含まれていません"
     end

@@ -26,7 +26,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
     context "確認済みユーザーが正しい認証情報でログインする場合" do
       it "ログインに成功する（200）" do
         post "/api/v1/auth/login", params: valid_credentials, as: :json
-        
+
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('ログインしました。')
@@ -35,7 +35,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
 
       it "JWTトークンがAuthorizationヘッダーに含まれる" do
         post "/api/v1/auth/login", params: valid_credentials, as: :json
-        
+
         expect(response).to have_http_status(:ok)
         expect(response.headers['Authorization']).to be_present
         expect(response.headers['Authorization']).to match(/^Bearer /)
@@ -50,9 +50,9 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
             password: "password123"
           }
         }
-        
+
         post "/api/v1/auth/login", params: credentials, as: :json
-        
+
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('ログインしました。')
@@ -62,7 +62,7 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
     context "誤ったパスワードでログインする場合" do
       it "ログインに失敗する（401）" do
         post "/api/v1/auth/login", params: invalid_credentials, as: :json
-        
+
         expect(response).to have_http_status(:unauthorized)
         json = JSON.parse(response.body)
         expect(json['error']).to include("メールアドレスまたはパスワードが正しくありません")
@@ -77,9 +77,9 @@ RSpec.describe "Api::V1::Users::Sessions", type: :request do
             password: "password123"
           }
         }
-        
+
         post "/api/v1/auth/login", params: credentials, as: :json
-        
+
         expect(response).to have_http_status(:unauthorized)
         json = JSON.parse(response.body)
         expect(json['error']).to include("メールアドレスまたはパスワードが正しくありません")

@@ -22,7 +22,7 @@ RSpec.describe IngredientConverterService, type: :service do
 
     # Ingredientを作成
     tomato
-    chicken  
+    chicken
     milk
   end
 
@@ -33,7 +33,7 @@ RSpec.describe IngredientConverterService, type: :service do
 
         expect(result[:success]).to be true
         expect(result[:message]).to eq('Conversion completed successfully')
-        
+
         # UserIngredientが作成されているか確認
         user_ingredients = user.user_ingredients.available
         expect(user_ingredients.count).to eq(3) # トマト、鶏肉、牛乳
@@ -48,7 +48,7 @@ RSpec.describe IngredientConverterService, type: :service do
 
       it 'メトリクスを正しく記録する' do
         result = converter.convert_and_save
-        
+
         metrics = result[:metrics]
         expect(metrics[:total_recognized]).to eq(5)
         expect(metrics[:successful_conversions]).to eq(3)
@@ -62,10 +62,10 @@ RSpec.describe IngredientConverterService, type: :service do
     context '重複する食材がある場合' do
       before do
         # 既存の在庫を作成
-        create(:user_ingredient, 
-               user: user, 
-               ingredient: tomato, 
-               quantity: 2, 
+        create(:user_ingredient,
+               user: user,
+               ingredient: tomato,
+               quantity: 2,
                status: 'available')
       end
 
@@ -73,7 +73,7 @@ RSpec.describe IngredientConverterService, type: :service do
         result = converter.convert_and_save
 
         expect(result[:success]).to be true
-        
+
         # 重複更新のメトリクス
         expect(result[:metrics][:duplicate_updates]).to eq(1)
         expect(result[:metrics][:new_ingredients]).to eq(2) # 鶏肉、牛乳のみ新規
@@ -88,10 +88,10 @@ RSpec.describe IngredientConverterService, type: :service do
     context '使用済み/期限切れの食材がある場合' do
       before do
         # used状態の既存在庫
-        create(:user_ingredient, 
-               user: user, 
-               ingredient: tomato, 
-               quantity: 1, 
+        create(:user_ingredient,
+               user: user,
+               ingredient: tomato,
+               quantity: 1,
                status: 'used')
       end
 
@@ -99,7 +99,7 @@ RSpec.describe IngredientConverterService, type: :service do
         result = converter.convert_and_save
 
         expect(result[:success]).to be true
-        
+
         # 新規作成のメトリクス
         expect(result[:metrics][:duplicate_updates]).to eq(0)
         expect(result[:metrics][:new_ingredients]).to eq(3)
@@ -115,11 +115,11 @@ RSpec.describe IngredientConverterService, type: :service do
 
     context '特殊単位の食材の場合' do
       let(:egg) { create(:ingredient, name: '卵', category: 'dairy', unit: '個') }
-      
+
       before do
         egg
         fridge_image.update!(
-          recognized_ingredients: [{ 'name' => '卵', 'confidence' => 0.8 }]
+          recognized_ingredients: [ { 'name' => '卵', 'confidence' => 0.8 } ]
         )
       end
 
@@ -174,7 +174,7 @@ RSpec.describe IngredientConverterService, type: :service do
     context 'エラーハンドリング' do
       it '認識データがない場合はfalseを返す' do
         fridge_image.update!(recognized_ingredients: [])
-        
+
         result = converter.convert_and_save
         expect(result[:success]).to be false
         expect(result[:message]).to eq('Recognition data not available')
@@ -183,9 +183,9 @@ RSpec.describe IngredientConverterService, type: :service do
       it '個別の食材処理でエラーが発生しても継続する' do
         # 既存の食材を削除してエラーを発生させる
         tomato.destroy
-        
+
         result = converter.convert_and_save
-        
+
         # トマトがマッチしなくなるため、未マッチとしてカウント
         expect(result[:success]).to be true
         expect(result[:metrics][:successful_conversions]).to eq(2) # 鶏肉、牛乳
@@ -195,10 +195,10 @@ RSpec.describe IngredientConverterService, type: :service do
       it 'データベースエラーでトランザクションがロールバックされる' do
         # insert_allでエラーを発生させる
         allow(UserIngredient).to receive(:insert_all).and_raise(ActiveRecord::RecordInvalid.new(UserIngredient.new))
-        
+
         result = converter.convert_and_save
         expect(result[:success]).to be false
-        
+
         # ロールバックされているため、UserIngredientは作成されない
         expect(user.user_ingredients.count).to eq(0)
       end
@@ -208,10 +208,10 @@ RSpec.describe IngredientConverterService, type: :service do
   describe '#conversion_metrics' do
     it 'メトリクスのコピーを返す' do
       converter.convert_and_save
-      
+
       metrics = converter.conversion_metrics
       metrics[:total_recognized] = 999
-      
+
       # 元のメトリクスは変更されない
       original_metrics = converter.conversion_metrics
       expect(original_metrics[:total_recognized]).not_to eq(999)
@@ -224,7 +224,7 @@ RSpec.describe IngredientConverterService, type: :service do
         result = converter.send(:determine_quantity_and_unit, tomato, {})
         expect(result[:quantity]).to eq(3.0) # トマトの特殊設定値
         expect(result[:unit]).to eq('個')
-        
+
         result = converter.send(:determine_quantity_and_unit, chicken, {})
         expect(result[:quantity]).to eq(200.0) # meat
         expect(result[:unit]).to eq('g')
@@ -235,7 +235,7 @@ RSpec.describe IngredientConverterService, type: :service do
       it 'カテゴリ別のデフォルト期限を返す' do
         expiry_date = converter.send(:estimate_expiry_date, tomato)
         expect(expiry_date).to eq(Date.current + 7.days)
-        
+
         expiry_date = converter.send(:estimate_expiry_date, chicken)
         expect(expiry_date).to eq(Date.current + 3.days)
       end

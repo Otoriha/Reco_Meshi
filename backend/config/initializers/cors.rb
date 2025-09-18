@@ -22,7 +22,7 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
     else
       # Production environment - Allow specific domains
       allowed_origins = []
-      
+
       # Frontend URLs (Vercel or custom domain)
       if ENV["FRONTEND_URL"].present?
         allowed_origins += ENV["FRONTEND_URL"].split(",").map(&:strip)
@@ -30,25 +30,25 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
         # Fallback for direct domain specification
         allowed_origins << "https://reco-meshiweb.vercel.app"
       end
-      
+
       # LIFF URLs (Vercel or custom domain)
       if ENV["LIFF_URL"].present?
         allowed_origins += ENV["LIFF_URL"].split(",").map(&:strip)
       end
-      
+
       # Default Vercel preview URLs (optional - remove in production for security)
       if ENV["ALLOW_VERCEL_PREVIEW"] == "true"
         allowed_origins << /https:\/\/.*\.vercel\.app/
       end
-      
+
       # Apply origins
       origins *allowed_origins if allowed_origins.any?
     end
 
     resource "*",
       headers: :any,
-      methods: [:get, :post, :put, :patch, :delete, :options, :head],
+      methods: [ :get, :post, :put, :patch, :delete, :options, :head ],
       credentials: true,
-      expose: ["Authorization", "X-Total-Count", "X-Page", "X-Per-Page"] # フロントからAuthorizationヘッダーを参照可能に
+      expose: [ "Authorization", "X-Total-Count", "X-Page", "X-Per-Page" ] # フロントからAuthorizationヘッダーを参照可能に
   end
 end

@@ -2,7 +2,7 @@ FactoryBot.define do
   factory :user_ingredient do
     association :user
     association :ingredient
-    
+
     quantity { Faker::Number.between(from: 0.1, to: 10.0).round(2) }
     status { 'available' }
 

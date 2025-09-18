@@ -4,18 +4,18 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
   let(:user) { create(:user) }
   let(:recipe1) { create(:recipe, user: user, title: 'カレーライス') }
   let(:recipe2) { create(:recipe, user: user, title: 'ハンバーグ') }
-  let(:generator) { described_class.new(user, [recipe1, recipe2]) }
+  let(:generator) { described_class.new(user, [ recipe1, recipe2 ]) }
 
   describe '#initialize' do
     it 'sets user and recipes' do
       expect(generator.instance_variable_get(:@user)).to eq(user)
-      expect(generator.instance_variable_get(:@recipes)).to eq([recipe1, recipe2])
+      expect(generator.instance_variable_get(:@recipes)).to eq([ recipe1, recipe2 ])
       expect(generator.instance_variable_get(:@errors)).to eq([])
     end
 
     it 'converts single recipe to array' do
       single_generator = described_class.new(user, recipe1)
-      expect(single_generator.instance_variable_get(:@recipes)).to eq([recipe1])
+      expect(single_generator.instance_variable_get(:@recipes)).to eq([ recipe1 ])
     end
   end
 
@@ -174,8 +174,8 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
 
         flour_item = flour_items.first
         expect(flour_item.unit).to eq('g') # 最終単位は食材マスター単位
-        
-        # 1kg(1000g) + 2cup(2g) - 在庫500g = 502g 
+
+        # 1kg(1000g) + 2cup(2g) - 在庫500g = 502g
         expect(flour_item.quantity).to eq(602.0)
 
         # 変換不可警告とUn変換不可警告の両方が出ることを確認
@@ -201,7 +201,7 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
     context 'with category grouping' do
       let(:tomato) { create(:ingredient, name: 'トマト', unit: '個', category: 'vegetables') }
       let(:salt) { create(:ingredient, name: '塩', unit: 'g', category: 'seasonings') }
-      let(:category_generator) { described_class.new(user, [recipe1]) }
+      let(:category_generator) { described_class.new(user, [ recipe1 ]) }
 
       before do
         create(:recipe_ingredient, recipe: recipe1, ingredient: onion, amount: 1, unit: '個')
@@ -217,13 +217,13 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
         categories = items.map { |item| item.ingredient.category }
 
         # vegetables -> meat -> seasonings の順序
-        expect(categories).to eq(['vegetables', 'vegetables', 'meat', 'seasonings'])
+        expect(categories).to eq([ 'vegetables', 'vegetables', 'meat', 'seasonings' ])
       end
     end
 
     context 'with invalid inputs' do
       context 'when user is nil' do
-        let(:generator) { described_class.new(nil, [recipe1]) }
+        let(:generator) { described_class.new(nil, [ recipe1 ]) }
 
         it 'raises error with appropriate message' do
           expect { generator.generate }.to raise_error(StandardError, /ユーザーが指定されていません|undefined method `id' for nil:NilClass/)
@@ -240,7 +240,7 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
 
       context 'when recipe has no ingredients' do
         let(:empty_recipe) { create(:recipe, user: user, title: '空のレシピ') }
-        let(:generator) { described_class.new(user, [empty_recipe]) }
+        let(:generator) { described_class.new(user, [ empty_recipe ]) }
 
         it 'raises error with appropriate message' do
           expect { generator.generate }.to raise_error(StandardError, /レシピに材料が含まれていません|レシピ「空のレシピ」に材料が含まれていません/)
@@ -250,7 +250,7 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
       context 'when recipe belongs to different user' do
         let(:other_user) { create(:user) }
         let(:other_recipe) { create(:recipe, user: other_user, title: '他人のレシピ') }
-        let(:generator) { described_class.new(user, [other_recipe]) }
+        let(:generator) { described_class.new(user, [ other_recipe ]) }
 
         before do
           create(:recipe_ingredient, recipe: other_recipe, ingredient: onion, amount: 1, unit: '個')
@@ -264,7 +264,7 @@ RSpec.describe ShoppingListGeneratorService, type: :service do
 
     context 'with optional ingredients' do
       let(:optional_recipe) { create(:recipe, user: user, title: 'オプション食材テスト') }
-      let(:optional_generator) { described_class.new(user, [optional_recipe]) }
+      let(:optional_generator) { described_class.new(user, [ optional_recipe ]) }
 
       before do
         create(:recipe_ingredient, recipe: optional_recipe, ingredient: onion, amount: 2, unit: '個')
