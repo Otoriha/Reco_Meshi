@@ -25,7 +25,7 @@ RSpec.describe ShoppingList, type: :model do
 
     it 'allows valid status values' do
       shopping_list = build(:shopping_list)
-      
+
       expect { shopping_list.status = :pending }.not_to raise_error
       expect { shopping_list.status = :in_progress }.not_to raise_error
       expect { shopping_list.status = :completed }.not_to raise_error
@@ -42,9 +42,9 @@ RSpec.describe ShoppingList, type: :model do
     describe '.recent' do
       it 'orders by created_at desc' do
         # 特定のユーザーのリストだけをテスト
-        user_lists = [recent_list, old_list, pending_list, completed_list]
+        user_lists = [ recent_list, old_list, pending_list, completed_list ]
         results = ShoppingList.where(id: user_lists.map(&:id)).recent
-        
+
         # 時系列順（降順）でソートされているかを確認
         timestamps = results.map(&:created_at)
         expect(timestamps).to eq(timestamps.sort.reverse)

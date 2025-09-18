@@ -16,7 +16,7 @@ RSpec.describe Llm::GeminiService do
       temperature: 0.7,
       max_tokens: 1000
     }
-    
+
     allow(ENV).to receive(:[]).with('GEMINI_API_KEY').and_return('test-api-key')
     allow(ENV).to receive(:fetch).with('GEMINI_MODEL', 'gemini-1.5-flash').and_return('gemini-1.5-flash')
   end
@@ -72,7 +72,7 @@ RSpec.describe Llm::GeminiService do
     context 'with text response format' do
       it 'returns a Result with text content' do
         result = service.generate(messages: messages, response_format: :text)
-        
+
         expect(result).to be_a(Llm::Result)
         expect(result.text).to eq('{"title": "Test Recipe", "time": "15 minutes"}')
         expect(result.provider).to eq('gemini')
@@ -85,7 +85,7 @@ RSpec.describe Llm::GeminiService do
           contents: [
             {
               role: 'user',
-              parts: [{ text: "You are a chef\n\nCreate a recipe" }]
+              parts: [ { text: "You are a chef\n\nCreate a recipe" } ]
             }
           ],
           generationConfig: {
@@ -109,7 +109,7 @@ RSpec.describe Llm::GeminiService do
           contents: [
             {
               role: 'user',
-              parts: [{ text: "You are a chef\n\nCreate a recipe" }]
+              parts: [ { text: "You are a chef\n\nCreate a recipe" } ]
             }
           ],
           generationConfig: {
@@ -129,7 +129,7 @@ RSpec.describe Llm::GeminiService do
 
       it 'parses JSON response' do
         result = service.generate(messages: messages, response_format: :json)
-        
+
         expect(result.raw_json).to eq({ 'title' => 'Test Recipe', 'time' => '15 minutes' })
       end
 
@@ -161,7 +161,7 @@ RSpec.describe Llm::GeminiService do
 
         it 'leaves raw_json as nil' do
           result = service.generate(messages: messages, response_format: :json)
-          
+
           expect(result.text).to eq('Invalid JSON content')
           expect(result.raw_json).to be_nil
         end
@@ -202,9 +202,9 @@ RSpec.describe Llm::GeminiService do
     it 'combines system and user messages' do
       service_instance = described_class.new(connection: mock_connection)
       messages = { system: 'System prompt', user: 'User prompt' }
-      
+
       result = service_instance.send(:build_prompt, messages)
-      
+
       expect(result).to eq('System prompt
 
 User prompt')
@@ -213,9 +213,9 @@ User prompt')
     it 'handles missing system message' do
       service_instance = described_class.new(connection: mock_connection)
       messages = { user: 'User prompt' }
-      
+
       result = service_instance.send(:build_prompt, messages)
-      
+
       expect(result).to eq('User prompt')
     end
   end
@@ -255,7 +255,7 @@ User prompt')
           'candidates' => [
             {
               'content' => {
-                'parts' => [{}]
+                'parts' => [ {} ]
               }
             }
           ]

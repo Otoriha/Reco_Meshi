@@ -51,9 +51,9 @@ const mockDeleteRecipeHistory = vi.fn()
 
 vi.mock('../../src/api/recipes', () => ({
   recipesApi: {
-    fetchRecipeHistories: (...args: any[]) => mockFetchRecipeHistories(...args),
-    updateRecipeHistory: (...args: any[]) => mockUpdateRecipeHistory(...args),
-    deleteRecipeHistory: (...args: any[]) => mockDeleteRecipeHistory(...args),
+    fetchRecipeHistories: (...args: unknown[]) => mockFetchRecipeHistories(...args),
+    updateRecipeHistory: (...args: unknown[]) => mockUpdateRecipeHistory(...args),
+    deleteRecipeHistory: (...args: unknown[]) => mockDeleteRecipeHistory(...args),
   }
 }))
 

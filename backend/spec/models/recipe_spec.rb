@@ -2,19 +2,19 @@ require 'rails_helper'
 
 RSpec.describe Recipe, type: :model do
   let(:user) { create(:user) }
-  
+
   describe 'バリデーション' do
     subject { build(:recipe, user: user) }
-    
+
     it { is_expected.to validate_presence_of(:title) }
     it { is_expected.to validate_presence_of(:cooking_time) }
     it { is_expected.to validate_presence_of(:steps) }
     it { is_expected.to validate_presence_of(:ai_provider) }
-    
+
     it { is_expected.to validate_numericality_of(:cooking_time).is_greater_than(0).is_less_than_or_equal_to(480) }
     # shoulda-matchers のnumericalityは allow_blank を未サポートのため allow_nil を使用
     it { is_expected.to validate_numericality_of(:servings).is_greater_than(0).is_less_than_or_equal_to(20).allow_nil }
-    
+
     it { is_expected.to validate_length_of(:title).is_at_most(100) }
     it { is_expected.to validate_inclusion_of(:ai_provider).in_array(%w[openai gemini]) }
     # enum(文字列)に対する shoulda の allow_blank は未サポートのため allow_nil を使用
@@ -43,7 +43,7 @@ RSpec.describe Recipe, type: :model do
   describe 'スコープ' do
     let!(:older_recipe) { create(:recipe, user: user, created_at: 2.days.ago) }
     let!(:newer_recipe) { create(:recipe, user: user, created_at: 1.day.ago) }
-    
+
     describe '.recent' do
       it '作成日時の降順で並ぶ' do
         expect(Recipe.recent.first).to eq(newer_recipe)
@@ -55,7 +55,7 @@ RSpec.describe Recipe, type: :model do
       it '指定ユーザーのレシピのみ返す' do
         other_user = create(:user)
         other_recipe = create(:recipe, user: other_user)
-        
+
         expect(Recipe.by_user(user.id)).to contain_exactly(older_recipe, newer_recipe)
         expect(Recipe.by_user(user.id)).not_to include(other_recipe)
       end
@@ -132,12 +132,12 @@ RSpec.describe Recipe, type: :model do
 
     describe '#steps_as_array' do
       it '構造化されたstepsから手順文字列を抽出' do
-        expect(recipe.steps_as_array).to eq ['野菜を切る', '炒める']
+        expect(recipe.steps_as_array).to eq [ '野菜を切る', '炒める' ]
       end
 
       it 'シンプルな文字列配列の場合' do
-        recipe.steps = ['手順1', '手順2']
-        expect(recipe.steps_as_array).to eq ['手順1', '手順2']
+        recipe.steps = [ '手順1', '手順2' ]
+        expect(recipe.steps_as_array).to eq [ '手順1', '手順2' ]
       end
 
       it '空の場合' do

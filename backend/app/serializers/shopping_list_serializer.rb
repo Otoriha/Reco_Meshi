@@ -29,12 +29,12 @@ class ShoppingListSerializer
 
   attribute :status_display do |object|
     case object.status
-    when 'pending'
-      '作成済み'
-    when 'in_progress'
-      '買い物中'
-    when 'completed'
-      '完了'
+    when "pending"
+      "作成済み"
+    when "in_progress"
+      "買い物中"
+    when "completed"
+      "完了"
     else
       object.status
     end

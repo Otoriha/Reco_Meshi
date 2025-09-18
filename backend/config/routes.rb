@@ -1,4 +1,4 @@
-require 'sidekiq/web'
+require "sidekiq/web"
 
 Rails.application.routes.draw do
   # Sidekiq Web UI (mounted only in development)
@@ -16,51 +16,51 @@ Rails.application.routes.draw do
     namespace :v1 do
       devise_for :users,
         controllers: {
-          sessions: 'api/v1/users/sessions',
-          registrations: 'api/v1/users/registrations'
+          sessions: "api/v1/users/sessions",
+          registrations: "api/v1/users/registrations"
         },
-        path: 'auth',
+        path: "auth",
         path_names: {
-          sign_in: 'login',
-          sign_out: 'logout',
-          registration: 'signup'
+          sign_in: "login",
+          sign_out: "logout",
+          registration: "signup"
         }
 
       devise_scope :user do
-        post 'auth/refresh', to: 'users/refresh#create'
+        post "auth/refresh", to: "users/refresh#create"
       end
 
       # LINE Authentication
       namespace :auth do
-        post 'line_login', to: 'line_auth#line_login'
-        post 'line_link', to: 'line_auth#line_link'
-        get 'line_profile', to: 'line_auth#line_profile'
-        post 'generate_nonce', to: 'line_auth#generate_nonce'
+        post "line_login", to: "line_auth#line_login"
+        post "line_link", to: "line_auth#line_link"
+        get "line_profile", to: "line_auth#line_profile"
+        post "generate_nonce", to: "line_auth#generate_nonce"
       end
 
       # LINE Bot Webhook
-      post 'line/webhook', to: 'line#webhook'
+      post "line/webhook", to: "line#webhook"
 
       # Ingredients master and user inventory
-      resources :ingredients, only: [:index, :create, :update, :destroy]
+      resources :ingredients, only: [ :index, :create, :update, :destroy ]
       resources :user_ingredients
 
       # Recipes and recipe histories
-      resources :recipes, only: [:index, :show]
-      resources :recipe_histories, only: [:index, :show, :create, :update, :destroy]
+      resources :recipes, only: [ :index, :show ]
+      resources :recipe_histories, only: [ :index, :show, :create, :update, :destroy ]
 
       # Shopping lists and items
       # 明示的にHTTPメソッドとアクションをマッピングしてルーティングの曖昧さを排除
-      get    'shopping_lists',             to: 'shopping_lists#index'
-      post   'shopping_lists',             to: 'shopping_lists#create'
-      get    'shopping_lists/:id',         to: 'shopping_lists#show'
-      patch  'shopping_lists/:id',         to: 'shopping_lists#update'
-      put    'shopping_lists/:id',         to: 'shopping_lists#update'
-      delete 'shopping_lists/:id',         to: 'shopping_lists#destroy'
-      patch  'shopping_lists/:id/complete', to: 'shopping_lists#complete'
+      get    "shopping_lists",             to: "shopping_lists#index"
+      post   "shopping_lists",             to: "shopping_lists#create"
+      get    "shopping_lists/:id",         to: "shopping_lists#show"
+      patch  "shopping_lists/:id",         to: "shopping_lists#update"
+      put    "shopping_lists/:id",         to: "shopping_lists#update"
+      delete "shopping_lists/:id",         to: "shopping_lists#destroy"
+      patch  "shopping_lists/:id/complete", to: "shopping_lists#complete"
 
       resources :shopping_lists, only: [] do
-        resources :items, controller: 'shopping_list_items', only: [:update, :destroy] do
+        resources :items, controller: "shopping_list_items", only: [ :update, :destroy ] do
           collection do
             patch :bulk_update
           end

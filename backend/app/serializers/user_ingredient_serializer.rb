@@ -35,4 +35,3 @@ class UserIngredientSerializer
     object.expiring_soon?
   end
 end
-

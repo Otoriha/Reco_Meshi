@@ -10,4 +10,3 @@ class Hash
   def reasoning_effort; self[:reasoning_effort]; end
   def verbosity; self[:verbosity]; end
 end
-

@@ -1,11 +1,11 @@
 class Api::V1::Auth::LineAuthController < ApplicationController
-  before_action :authenticate_user!, only: [:line_link, :line_profile]
-  before_action :validate_line_auth_params, only: [:line_login, :line_link]
+  before_action :authenticate_user!, only: [ :line_link, :line_profile ]
+  before_action :validate_line_auth_params, only: [ :line_login, :line_link ]
 
   def line_login
     result = LineAuthService.authenticate_with_id_token(
       id_token: params[:idToken],
-      nonce: params[:nonce] || '' # nonceパラメータが未送信の場合は空文字列
+      nonce: params[:nonce] || "" # nonceパラメータが未送信の場合は空文字列
     )
 
     user = result[:user]
@@ -35,15 +35,15 @@ class Api::V1::Auth::LineAuthController < ApplicationController
     line_account = result[:line_account]
 
     render json: {
-      message: 'LINE account linked successfully',
+      message: "LINE account linked successfully",
       lineAccount: line_account_response(line_account)
     }, status: :ok
   rescue LineAuthService::AuthenticationError => e
-    if e.message.include?('already linked to another user')
+    if e.message.include?("already linked to another user")
       render json: {
         error: {
-          code: 'already_linked',
-          message: 'このLINEアカウントは既に他のユーザーに連携されています'
+          code: "already_linked",
+          message: "このLINEアカウントは既に他のユーザーに連携されています"
         }
       }, status: :conflict
     else
@@ -57,8 +57,8 @@ class Api::V1::Auth::LineAuthController < ApplicationController
     unless line_account
       return render json: {
         error: {
-          code: 'line_account_not_found',
-          message: 'LINEアカウントが連携されていません'
+          code: "line_account_not_found",
+          message: "LINEアカウントが連携されていません"
         }
       }, status: :not_found
     end
@@ -80,8 +80,8 @@ class Api::V1::Auth::LineAuthController < ApplicationController
     unless params[:idToken].present? && params[:nonce].present?
       render json: {
         error: {
-          code: 'invalid_request',
-          message: 'idTokenとnonceが必要です'
+          code: "invalid_request",
+          message: "idTokenとnonceが必要です"
         }
       }, status: :bad_request and return
     end
@@ -93,7 +93,7 @@ class Api::V1::Auth::LineAuthController < ApplicationController
     Warden::JWTAuth::UserEncoder.new.call(user, :user, nil).first
   rescue => e
     Rails.logger.error "JWT generation failed: #{e.message}"
-    raise LineAuthService::AuthenticationError, 'Failed to generate authentication token'
+    raise LineAuthService::AuthenticationError, "Failed to generate authentication token"
   end
 
   def user_response(user)
@@ -118,7 +118,7 @@ class Api::V1::Auth::LineAuthController < ApplicationController
   end
 
   def user_confirmed?(user)
-    if ENV['CONFIRMABLE_ENABLED'] == 'true'
+    if ENV["CONFIRMABLE_ENABLED"] == "true"
       user.confirmed_at.present?
     else
       true
@@ -127,15 +127,15 @@ class Api::V1::Auth::LineAuthController < ApplicationController
 
   def render_auth_error(message)
     error_code = case message
-                 when /expired/i
-                   'expired_token'
-                 when /nonce/i
-                   'nonce_mismatch'
-                 when /audience/i, /aud/i
-                   'aud_mismatch'
-                 else
-                   'invalid_token'
-                 end
+    when /expired/i
+                   "expired_token"
+    when /nonce/i
+                   "nonce_mismatch"
+    when /audience/i, /aud/i
+                   "aud_mismatch"
+    else
+                   "invalid_token"
+    end
 
     render json: {
       error: {

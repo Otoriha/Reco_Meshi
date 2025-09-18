@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe PromptTemplateService do
   describe '.recipe_generation' do
-    let(:ingredients) { ['玉ねぎ', '人参', 'じゃがいも', '豚肉'] }
+    let(:ingredients) { [ '玉ねぎ', '人参', 'じゃがいも', '豚肉' ] }
 
     it 'returns a hash with system and user prompts' do
       result = described_class.recipe_generation(ingredients: ingredients)
@@ -52,7 +52,7 @@ RSpec.describe PromptTemplateService do
     end
 
     context 'with single ingredient' do
-      let(:single_ingredient) { ['玉ねぎ'] }
+      let(:single_ingredient) { [ '玉ねぎ' ] }
 
       it 'formats single ingredient correctly' do
         result = described_class.recipe_generation(ingredients: single_ingredient)

@@ -13,5 +13,3 @@ FactoryBot.define do
     ai_response { { "source" => "spec" } }
   end
 end
-
-

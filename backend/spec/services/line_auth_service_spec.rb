@@ -16,7 +16,7 @@ RSpec.describe LineAuthService do
   before do
     # Mock NonceStore
     allow(NonceStore).to receive(:verify_and_consume).and_return(true)
-    
+
     # Mock JwtVerifier
     allow(JwtVerifier).to receive(:verify_id_token).and_return(line_user_info)
   end
@@ -51,7 +51,7 @@ RSpec.describe LineAuthService do
 
     context 'with existing unlinked LineAccount' do
       let!(:existing_line_account) do
-        create(:line_account, 
+        create(:line_account,
                line_user_id: 'U1234567890abcdef',
                line_display_name: 'Old Name',
                user: nil,
@@ -83,7 +83,7 @@ RSpec.describe LineAuthService do
     context 'with existing linked LineAccount' do
       let!(:existing_user) { create(:user, provider: 'line') }
       let!(:existing_line_account) do
-        create(:line_account, 
+        create(:line_account,
                line_user_id: 'U1234567890abcdef',
                user: existing_user,
                linked_at: 1.day.ago)
@@ -164,7 +164,7 @@ RSpec.describe LineAuthService do
 
     context 'with existing unlinked LineAccount' do
       let!(:existing_line_account) do
-        create(:line_account, 
+        create(:line_account,
                line_user_id: 'U1234567890abcdef',
                user: nil,
                linked_at: nil)
@@ -190,7 +190,7 @@ RSpec.describe LineAuthService do
     context 'with LineAccount linked to another user' do
       let(:other_user) { create(:user) }
       let!(:existing_line_account) do
-        create(:line_account, 
+        create(:line_account,
                line_user_id: 'U1234567890abcdef',
                user: other_user,
                linked_at: 1.day.ago)
@@ -209,7 +209,7 @@ RSpec.describe LineAuthService do
 
     context 'with LineAccount already linked to same user' do
       let!(:existing_line_account) do
-        create(:line_account, 
+        create(:line_account,
                line_user_id: 'U1234567890abcdef',
                user: user,
                linked_at: 1.day.ago)

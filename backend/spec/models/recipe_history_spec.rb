@@ -61,7 +61,7 @@ RSpec.describe RecipeHistory, type: :model do
 
     describe '.recent' do
       it 'orders by cooked_at desc' do
-        histories = [recent_history, old_history]
+        histories = [ recent_history, old_history ]
         recent_ordered = RecipeHistory.where(id: histories.map(&:id)).recent
         expect(recent_ordered.first).to eq(recent_history)
       end

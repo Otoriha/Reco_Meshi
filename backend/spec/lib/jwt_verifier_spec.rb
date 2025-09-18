@@ -3,12 +3,12 @@ require 'rails_helper'
 RSpec.describe JwtVerifier do
   let(:channel_id) { '2007895268' }
   let(:nonce) { 'test-nonce-123' }
-  
+
   # Mock JWK key for testing
   let(:test_private_key) { OpenSSL::PKey::RSA.new(2048) }
   let(:test_public_key) { test_private_key.public_key }
   let(:kid) { 'test-kid-123' }
-  
+
   let(:jwks_response) do
     {
       'keys' => [
@@ -47,7 +47,7 @@ RSpec.describe JwtVerifier do
       double('response', is_a?: true, body: jwks_response.to_json)
     )
     allow_any_instance_of(Net::HTTPResponse).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-    
+
     # Clear cache before each test
     Rails.cache.clear
   end
@@ -192,7 +192,7 @@ RSpec.describe JwtVerifier do
     it 'caches JWKS response' do
       # Clear cache first
       Rails.cache.clear
-      
+
       expect(Net::HTTP).to receive(:get_response).once.and_return(
         double('response', is_a?: true, body: jwks_response.to_json)
       )

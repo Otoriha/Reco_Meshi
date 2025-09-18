@@ -50,5 +50,3 @@ RSpec.describe 'RecipeConverterService' do
     expect { service.convert_and_save! }.to raise_error(/title/i)
   end
 end
-
-

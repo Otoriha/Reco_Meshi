@@ -1,15 +1,15 @@
 class User < ApplicationRecord
   # Include default devise modules. Others available are:
   # :lockable, :timeoutable, :trackable and :omniauthable
-  
+
   # Dynamically configure devise modules based on environment variable
   devise_modules = [
     :database_authenticatable, :registerable,
     :recoverable, :rememberable, :validatable,
     :jwt_authenticatable
   ]
-  devise_modules << :confirmable if ENV['CONFIRMABLE_ENABLED'] == 'true'
-  
+  devise_modules << :confirmable if ENV["CONFIRMABLE_ENABLED"] == "true"
+
   devise(*devise_modules, jwt_revocation_strategy: JwtDenylist)
 
   # Associations
@@ -23,17 +23,17 @@ class User < ApplicationRecord
 
   # Validations
   validates :name, presence: true, length: { maximum: 50 }
-  validates :email, presence: true, if: -> { provider == 'email' }
+  validates :email, presence: true, if: -> { provider == "email" }
   validates :provider, inclusion: { in: %w[email line] }
 
   # JWT payloadの追加クレームを定義（subはdevise-jwtが自動付与）
   def jwt_payload
-    is_confirmed = if ENV['CONFIRMABLE_ENABLED'] == 'true'
+    is_confirmed = if ENV["CONFIRMABLE_ENABLED"] == "true"
                      confirmed_at.present?
-                   else
+    else
                      true
-                   end
+    end
 
-    { 'email' => email, 'confirmed' => is_confirmed }
+    { "email" => email, "confirmed" => is_confirmed }
   end
 end

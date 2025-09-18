@@ -1,9 +1,9 @@
 class UserIngredient < ApplicationRecord
   # Enums
   enum :status, {
-    available: 'available',
-    used: 'used',
-    expired: 'expired'
+    available: "available",
+    used: "used",
+    expired: "expired"
   }
 
   # Associations
@@ -18,9 +18,9 @@ class UserIngredient < ApplicationRecord
   validate :expiry_date_not_in_past, if: -> { expiry_date.present? && available? }
 
   # Scopes
-  scope :available, -> { where(status: 'available') }
-  scope :expired, -> { where(status: 'expired') }
-  scope :expiring_soon, ->(days = 7) { 
+  scope :available, -> { where(status: "available") }
+  scope :expired, -> { where(status: "expired") }
+  scope :expiring_soon, ->(days = 7) {
     available.where.not(expiry_date: nil)
              .where(expiry_date: ..(Date.current + days.days))
   }
@@ -30,19 +30,19 @@ class UserIngredient < ApplicationRecord
   # Instance methods
   def expired?
     return false if expiry_date.blank?
-    
+
     expiry_date < Date.current
   end
 
   def expiring_soon?(days = 7)
     return false if expiry_date.blank?
-    
+
     expiry_date <= Date.current + days.days
   end
 
   def days_until_expiry
     return nil if expiry_date.blank?
-    
+
     (expiry_date - Date.current).to_i
   end
 
@@ -65,7 +65,7 @@ class UserIngredient < ApplicationRecord
 
   def expiry_date_not_in_past
     return unless expiry_date.present? && expiry_date < Date.current
-    
-    errors.add(:expiry_date, '過去の日付は設定できません')
+
+    errors.add(:expiry_date, "過去の日付は設定できません")
   end
 end

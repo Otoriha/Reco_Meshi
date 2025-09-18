@@ -19,7 +19,7 @@ RSpec.describe UserIngredient, type: :model do
       expect(subject).to allow_value('available').for(:status)
       expect(subject).to allow_value('used').for(:status)
       expect(subject).to allow_value('expired').for(:status)
-      
+
       expect {
         build(:user_ingredient, user: user, ingredient: ingredient).tap do |ui|
           ui.status = 'invalid'
@@ -57,7 +57,7 @@ RSpec.describe UserIngredient, type: :model do
 
     it 'allows setting status through enum' do
       user_ingredient = build(:user_ingredient)
-      
+
       expect { user_ingredient.used! }.not_to raise_error
       expect(user_ingredient.used?).to be true
       expect(user_ingredient.status).to eq('used')
@@ -93,7 +93,7 @@ RSpec.describe UserIngredient, type: :model do
         # 明確に期限の遠い食材を作成
         far_future_ingredient = create(:user_ingredient, :available,
                                      expiry_date: 10.days.from_now, user: user, ingredient: ingredient)
-        
+
         results = UserIngredient.expiring_soon
         expect(results).to include(expiring_soon_ingredient)
         expect(results).not_to include(far_future_ingredient, used_ingredient, expired_ingredient)
@@ -102,15 +102,15 @@ RSpec.describe UserIngredient, type: :model do
       it 'excludes ingredients with nil expiry_date' do
         no_expiry_ingredient = create(:user_ingredient, :available,
                                     expiry_date: nil, user: user, ingredient: ingredient)
-        
+
         results = UserIngredient.expiring_soon
         expect(results).not_to include(no_expiry_ingredient)
       end
 
       it 'accepts custom days parameter' do
-        far_future = create(:user_ingredient, :available, 
+        far_future = create(:user_ingredient, :available,
                            expiry_date: 10.days.from_now, user: user, ingredient: ingredient)
-        
+
         results = UserIngredient.expiring_soon(15)
         expect(results).to include(expiring_soon_ingredient, far_future)
       end
@@ -134,7 +134,7 @@ RSpec.describe UserIngredient, type: :model do
         old_ingredient = create(:user_ingredient, user: user, ingredient: ingredient)
         sleep 0.01  # 作成時間に差をつける
         new_ingredient = create(:user_ingredient, user: user, ingredient: ingredient)
-        
+
         results = UserIngredient.recent.limit(2)
         expect(results.first.id).to eq(new_ingredient.id)
         expect(results.last.id).to eq(old_ingredient.id)

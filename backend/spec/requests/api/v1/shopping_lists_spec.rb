@@ -22,14 +22,13 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
     end
 
     context 'with authentication' do
-
       it 'returns user shopping lists only' do
         get '/api/v1/shopping_lists', headers: { 'Authorization' => get_auth_token(user) }, as: :json
 
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
         expect(body['data'].length).to eq(3)
-        
+
         returned_ids = body['data'].map { |list| list['id'].to_i }
         expect(returned_ids).to match_array(shopping_lists.map(&:id))
         expect(returned_ids).not_to include(other_user_list.id)
@@ -37,10 +36,10 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
       it 'filters by status when provided' do
         completed_list = create(:shopping_list, :completed, user: user)
-        
-        get '/api/v1/shopping_lists', 
+
+        get '/api/v1/shopping_lists',
             params: { status: 'completed' },
-            headers: { 'Authorization' => get_auth_token(user) }, 
+            headers: { 'Authorization' => get_auth_token(user) },
             as: :json
 
         puts "Response status: #{response.status}"
@@ -54,16 +53,16 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
       it 'filters by recipe_id when provided' do
         recipe = create(:recipe, user: user)
         recipe_list = create(:shopping_list, :with_recipe, user: user, recipe: recipe)
-        
-        
-        get '/api/v1/shopping_lists', 
+
+
+        get '/api/v1/shopping_lists',
             params: { recipe_id: recipe.id },
-            headers: { 'Authorization' => get_auth_token(user) }, 
+            headers: { 'Authorization' => get_auth_token(user) },
             as: :json
 
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
-        
+
         # JSONAPIシリアライザーは1件の場合、配列ではなく単一オブジェクトを返す
         if body['data'].is_a?(Array)
           expect(body['data'].length).to eq(1)
@@ -76,10 +75,10 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
       it 'supports pagination' do
         create_list(:shopping_list, 25, user: user)
-        
-        get '/api/v1/shopping_lists', 
+
+        get '/api/v1/shopping_lists',
             params: { page: 1, per_page: 10 },
-            headers: { 'Authorization' => get_auth_token(user) }, 
+            headers: { 'Authorization' => get_auth_token(user) },
             as: :json
 
         expect(response).to have_http_status(:ok)
@@ -101,7 +100,6 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
     end
 
     context 'with authentication' do
-
       it 'returns shopping list with items' do
         get "/api/v1/shopping_lists/#{shopping_list.id}", headers: { 'Authorization' => get_auth_token(user) }, as: :json
 
@@ -135,7 +133,6 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
     end
 
     context 'with authentication' do
-
       context 'manual creation' do
         let(:valid_params) do
           {
@@ -160,9 +157,9 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
         it 'returns 422 with invalid params' do
           invalid_params = { shopping_list: { title: 'x' * 101 } }
-          
+
           post '/api/v1/shopping_lists', params: invalid_params, headers: { 'Authorization' => get_auth_token(user) }, as: :json
-          
+
           expect(response).to have_http_status(:unprocessable_entity)
           body = JSON.parse(response.body)
           expect(body['errors']).to be_present
@@ -176,95 +173,95 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
         it 'creates shopping list from recipe' do
           expect {
-            post '/api/v1/shopping_lists', 
-                 params: { recipe_id: recipe.id }, 
-                 headers: { 'Authorization' => get_auth_token(user) }, 
+            post '/api/v1/shopping_lists',
+                 params: { recipe_id: recipe.id },
+                 headers: { 'Authorization' => get_auth_token(user) },
                  as: :json
           }.to change(ShoppingList, :count).by(1)
 
           expect(response).to have_http_status(:created)
-          
+
           shopping_list = ShoppingList.last
           expect(shopping_list.recipe).to eq(recipe)
           expect(shopping_list.shopping_list_items.count).to eq(1)
         end
 
         it 'returns 404 for non-existent recipe' do
-          post '/api/v1/shopping_lists', 
-               params: { recipe_id: 999999 }, 
-               headers: { 'Authorization' => get_auth_token(user) }, 
+          post '/api/v1/shopping_lists',
+               params: { recipe_id: 999999 },
+               headers: { 'Authorization' => get_auth_token(user) },
                as: :json
-          
+
           expect(response).to have_http_status(:not_found)
         end
 
         it 'returns 404 for other user recipe' do
           other_recipe = create(:recipe, user: other_user)
-          
-          post '/api/v1/shopping_lists', 
-               params: { recipe_id: other_recipe.id }, 
-               headers: { 'Authorization' => get_auth_token(user) }, 
+
+          post '/api/v1/shopping_lists',
+               params: { recipe_id: other_recipe.id },
+               headers: { 'Authorization' => get_auth_token(user) },
                as: :json
-          
+
           expect(response).to have_http_status(:not_found)
         end
-        
+
         it 'returns existing pending list when recipe-based list already exists (idempotency)' do
           recipe = create(:recipe, user: user)
           existing_list = create(:shopping_list, :with_recipe, user: user, recipe: recipe, status: :pending)
           initial_count = ShoppingList.count
-          
-          post '/api/v1/shopping_lists', 
-               params: { recipe_id: recipe.id }, 
-               headers: { 'Authorization' => get_auth_token(user) }, 
+
+          post '/api/v1/shopping_lists',
+               params: { recipe_id: recipe.id },
+               headers: { 'Authorization' => get_auth_token(user) },
                as: :json
-          
+
           expect(response).to have_http_status(:ok) # 201ではなく200
           body = JSON.parse(response.body)
           expect(body['data']['id']).to eq(existing_list.id.to_s)
-          
+
           # 新しいリストは作成されていない
           expect(ShoppingList.count).to eq(initial_count)
         end
       end
-      
+
       context 'manual creation with other user recipe_id' do
         it 'returns 422 when specifying other user recipe_id in manual creation' do
           other_recipe = create(:recipe, user: other_user)
-          
-          post '/api/v1/shopping_lists', 
-               params: { 
-                 shopping_list: { 
+
+          post '/api/v1/shopping_lists',
+               params: {
+                 shopping_list: {
                    title: 'Manual List',
-                   recipe_id: other_recipe.id 
-                 } 
-               }, 
-               headers: { 'Authorization' => get_auth_token(user) }, 
+                   recipe_id: other_recipe.id
+                 }
+               },
+               headers: { 'Authorization' => get_auth_token(user) },
                as: :json
-          
+
           # 実際の動作では、存在しないrecipe_idを指定すると404が返される
           expect(response).to have_http_status(:not_found)
         end
       end
     end
   end
-  
+
   describe 'GET /api/v1/shopping_lists with complex filters' do
     let!(:recipe1) { create(:recipe, user: user) }
     let!(:recipe2) { create(:recipe, user: user) }
     let!(:pending_recipe1_list) { create(:shopping_list, user: user, recipe: recipe1, status: :pending) }
     let!(:completed_recipe1_list) { create(:shopping_list, user: user, recipe: recipe1, status: :completed) }
     let!(:pending_recipe2_list) { create(:shopping_list, user: user, recipe: recipe2, status: :pending) }
-    
+
     it 'filters by both recipe_id and status simultaneously' do
-      get '/api/v1/shopping_lists', 
+      get '/api/v1/shopping_lists',
           params: { recipe_id: recipe1.id, status: 'pending' },
-          headers: { 'Authorization' => get_auth_token(user) }, 
+          headers: { 'Authorization' => get_auth_token(user) },
           as: :json
 
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      
+
       # JSONAPIシリアライザーは1件の場合、配列ではなく単一オブジェクトを返す
       if body['data'].is_a?(Array)
         expect(body['data'].length).to eq(1)
@@ -282,19 +279,18 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
     context 'without authentication' do
       it 'returns 401' do
-        patch "/api/v1/shopping_lists/#{shopping_list.id}", 
-              params: { shopping_list: { title: 'New Title' } }, 
+        patch "/api/v1/shopping_lists/#{shopping_list.id}",
+              params: { shopping_list: { title: 'New Title' } },
               as: :json
         expect(response).to have_http_status(:unauthorized)
       end
     end
 
     context 'with authentication' do
-
       it 'updates shopping list with valid params' do
-        patch "/api/v1/shopping_lists/#{shopping_list.id}", 
-              params: { shopping_list: { title: 'Updated Title', status: 'completed' } }, 
-              headers: { 'Authorization' => get_auth_token(user) }, 
+        patch "/api/v1/shopping_lists/#{shopping_list.id}",
+              params: { shopping_list: { title: 'Updated Title', status: 'completed' } },
+              headers: { 'Authorization' => get_auth_token(user) },
               as: :json
 
         expect(response).to have_http_status(:ok)
@@ -304,26 +300,26 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
       end
 
       it 'returns 422 with invalid params' do
-        patch "/api/v1/shopping_lists/#{shopping_list.id}", 
-              params: { shopping_list: { title: 'x' * 101 } }, 
-              headers: { 'Authorization' => get_auth_token(user) }, 
+        patch "/api/v1/shopping_lists/#{shopping_list.id}",
+              params: { shopping_list: { title: 'x' * 101 } },
+              headers: { 'Authorization' => get_auth_token(user) },
               as: :json
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
       it 'returns 404 for non-existent list' do
-        patch "/api/v1/shopping_lists/999999", 
-              params: { shopping_list: { title: 'New Title' } }, 
-              headers: { 'Authorization' => get_auth_token(user) }, 
+        patch "/api/v1/shopping_lists/999999",
+              params: { shopping_list: { title: 'New Title' } },
+              headers: { 'Authorization' => get_auth_token(user) },
               as: :json
         expect(response).to have_http_status(:not_found)
       end
 
       it 'returns 403 for other user list' do
-        patch "/api/v1/shopping_lists/#{other_user_list.id}", 
-              params: { shopping_list: { title: 'New Title' } }, 
-              headers: { 'Authorization' => get_auth_token(user) }, 
+        patch "/api/v1/shopping_lists/#{other_user_list.id}",
+              params: { shopping_list: { title: 'New Title' } },
+              headers: { 'Authorization' => get_auth_token(user) },
               as: :json
         expect(response).to have_http_status(:forbidden)
       end
@@ -342,7 +338,6 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
     end
 
     context 'with authentication' do
-
       it 'deletes shopping list' do
         expect {
           delete "/api/v1/shopping_lists/#{shopping_list.id}", headers: { 'Authorization' => get_auth_token(user) }, as: :json

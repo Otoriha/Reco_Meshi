@@ -8,7 +8,7 @@ redis_config = {
 
 Sidekiq.configure_server do |config|
   config.redis = redis_config
-  
+
   # Production環境でのキュー設定
   if Rails.env.production?
     config.queues = %w[reco_meshi_production_default reco_meshi_production_mailers]
@@ -20,4 +20,3 @@ end
 Sidekiq.configure_client do |config|
   config.redis = redis_config
 end
-

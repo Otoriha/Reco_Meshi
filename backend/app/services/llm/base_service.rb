@@ -25,7 +25,7 @@ module Llm
     def with_retries(max_retries:, base_delay: 0.5)
       attempts = 0
       begin
-        return yield
+        yield
       rescue => e
         attempts += 1
         raise e if attempts > max_retries
@@ -36,4 +36,3 @@ module Llm
     end
   end
 end
-

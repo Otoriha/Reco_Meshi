@@ -5,14 +5,14 @@ class ShoppingListMessageService
 
   def generate_text_message(shopping_list)
     message = "🛒 #{shopping_list.display_title}\n\n"
-    
+
     if shopping_list.recipe
       message += "📖 レシピ: #{shopping_list.recipe.title}\n\n"
     end
-    
+
     unchecked_items = shopping_list.shopping_list_items.unchecked.includes(:ingredient)
     checked_items = shopping_list.shopping_list_items.checked.includes(:ingredient)
-    
+
     if unchecked_items.any?
       message += "📝 未購入の商品:\n"
       unchecked_items.each do |item|
@@ -23,7 +23,7 @@ class ShoppingListMessageService
       end
       message += "\n"
     end
-    
+
     if checked_items.any?
       message += "✅ 購入済み:\n"
       checked_items.each do |item|
@@ -34,22 +34,22 @@ class ShoppingListMessageService
       end
       message += "\n"
     end
-    
+
     progress = shopping_list.completion_percentage
     message += "進捗: #{progress}% (#{shopping_list.shopping_list_items.checked.count}/#{shopping_list.total_items_count})\n\n"
-    
+
     message += "詳細な管理はLIFFアプリをご利用ください！"
-    
+
     @line_bot_service.create_text_message(message)
   end
 
   def generate_flex_message(shopping_list)
     # Flexメッセージのバブルを生成
     bubble = generate_checklist_bubble(shopping_list)
-    
+
     # altTextを400文字以内に制限
     alt_text = generate_alt_text(shopping_list)
-    
+
     @line_bot_service.create_flex_message(alt_text, bubble)
   rescue => e
     Rails.logger.error "Flex shopping list message generation failed: #{e.message}"
@@ -60,9 +60,9 @@ class ShoppingListMessageService
   def generate_checklist_bubble(shopping_list)
     unchecked_items = shopping_list.shopping_list_items.unchecked.includes(:ingredient).limit(10)
     checked_items = shopping_list.shopping_list_items.checked.includes(:ingredient).limit(5)
-    
+
     contents = []
-    
+
     # ヘッダー
     contents << {
       type: "text",
@@ -71,7 +71,7 @@ class ShoppingListMessageService
       size: "lg",
       wrap: true
     }
-    
+
     # レシピ情報
     if shopping_list.recipe
       contents << {
@@ -83,7 +83,7 @@ class ShoppingListMessageService
         wrap: true
       }
     end
-    
+
     # 進捗情報
     progress = shopping_list.completion_percentage
     contents << {
@@ -93,7 +93,7 @@ class ShoppingListMessageService
       color: "#666666",
       margin: "md"
     }
-    
+
     # 未購入アイテム
     if unchecked_items.any?
       contents << {
@@ -103,12 +103,12 @@ class ShoppingListMessageService
         size: "md",
         margin: "lg"
       }
-      
+
       unchecked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
         quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
-        
+
         contents << create_checkable_item_box(
           "☐ #{ingredient_name}#{quantity}#{unit}",
           "check_item:#{shopping_list.id}:#{item.id}",
@@ -116,7 +116,7 @@ class ShoppingListMessageService
         )
       end
     end
-    
+
     # 購入済みアイテム（最大5件）
     if checked_items.any?
       contents << {
@@ -126,12 +126,12 @@ class ShoppingListMessageService
         size: "md",
         margin: "lg"
       }
-      
+
       checked_items.each do |item|
         ingredient_name = item.ingredient&.name || "不明な食材"
         quantity = item.quantity.present? ? " #{format_quantity(item.quantity)}" : ""
         unit = item.unit.present? ? "#{item.unit}" : ""
-        
+
         contents << create_checkable_item_box(
           "☑ #{ingredient_name}#{quantity}#{unit}",
           "check_item:#{shopping_list.id}:#{item.id}",
@@ -139,7 +139,7 @@ class ShoppingListMessageService
         )
       end
     end
-    
+
     # アイテム数制限の警告
     total_items = shopping_list.total_items_count
     displayed_items = unchecked_items.count + checked_items.count
@@ -152,7 +152,7 @@ class ShoppingListMessageService
         margin: "sm"
       }
     end
-    
+
     # バブル構造
     bubble = {
       type: "bubble",
@@ -168,7 +168,7 @@ class ShoppingListMessageService
         contents: create_footer_buttons(shopping_list)
       }
     }
-    
+
     bubble
   end
 
@@ -176,7 +176,7 @@ class ShoppingListMessageService
 
   def format_quantity(quantity)
     return quantity.to_s if quantity.nil?
-    
+
     if quantity % 1 == 0
       quantity.to_i.to_s
     else
@@ -211,7 +211,7 @@ class ShoppingListMessageService
 
   def create_footer_buttons(shopping_list)
     buttons = []
-    
+
     # LIFFで詳細を見るボタン
     buttons << {
       type: "button",
@@ -223,7 +223,7 @@ class ShoppingListMessageService
         uri: @line_bot_service.generate_liff_url("/shopping-lists/#{shopping_list.id}")
       }
     }
-    
+
     # リスト完了ボタン（未完了の場合のみ）
     if shopping_list.unchecked_items_count > 0
       buttons << {
@@ -238,24 +238,24 @@ class ShoppingListMessageService
         }
       }
     end
-    
+
     buttons
   end
 
   def generate_alt_text(shopping_list)
     base_text = "買い物リスト: #{shopping_list.display_title}"
-    
+
     if shopping_list.recipe
       base_text += " (#{shopping_list.recipe.title})"
     end
-    
+
     unchecked_count = shopping_list.unchecked_items_count
     if unchecked_count > 0
       base_text += " - 未購入#{unchecked_count}件"
     else
       base_text += " - 完了"
     end
-    
+
     # 400文字制限
     base_text.length > 400 ? base_text[0, 397] + "..." : base_text
   end

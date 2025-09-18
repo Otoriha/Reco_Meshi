@@ -18,7 +18,36 @@ interface PaginatedApiResponse<T> {
   errors?: string[]
 }
 
+export interface RecipeSuggestionRequest {
+  ingredients?: string[];
+  preferences?: {
+    cooking_time?: number;
+    difficulty_level?: 'easy' | 'medium' | 'hard';
+    cuisine_type?: string;
+    dietary_restrictions?: string[];
+  };
+}
+
+export interface RecipeSuggestionResponse {
+  success: boolean;
+  data: Recipe;
+  message?: string;
+  errors?: string[];
+}
+
 export const recipesApi = {
+  // AIレシピ提案取得
+  async suggestRecipe(params?: RecipeSuggestionRequest): Promise<Recipe> {
+    const response = await apiClient.post<RecipeSuggestionResponse>(
+      '/recipes/suggest',
+      { recipe_suggestion: params }
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'レシピ提案の取得に失敗しました');
+    }
+    return response.data.data;
+  },
+
   // レシピ一覧取得
   async listRecipes(): Promise<Recipe[]> {
     const response = await apiClient.get<ApiResponse<Recipe[]>>('/recipes')

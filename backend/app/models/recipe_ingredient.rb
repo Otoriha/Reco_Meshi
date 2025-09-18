@@ -19,23 +19,23 @@ class RecipeIngredient < ApplicationRecord
     if ingredient.present?
       ingredient.display_name_with_emoji
     else
-      ingredient_name || '不明な食材'
+      ingredient_name || "不明な食材"
     end
   end
 
   def formatted_amount
-    return '' if amount.blank? && unit.blank?
-    
-    amount_text = amount.present? ? amount.to_s.sub(/\.0$/, '') : ''
-    unit_text = unit.present? ? unit : ''
-    
+    return "" if amount.blank? && unit.blank?
+
+    amount_text = amount.present? ? amount.to_s.sub(/\.0$/, "") : ""
+    unit_text = unit.present? ? unit : ""
+
     "#{amount_text}#{unit_text}"
   end
 
   def full_display
     name = display_name
     amount_unit = formatted_amount
-    
+
     if amount_unit.present?
       "#{name} #{amount_unit}"
     else
@@ -52,17 +52,17 @@ class RecipeIngredient < ApplicationRecord
   end
 
   def optional_display
-    is_optional? ? '（お好みで）' : ''
+    is_optional? ? "（お好みで）" : ""
   end
 
   def category
     return ingredient.category if ingredient.present?
-    return 'unknown'
+    "unknown"
   end
 
   def category_display
     return ingredient.category.humanize if ingredient.present?
-    return '不明'
+    "不明"
   end
 
   # Class methods
@@ -92,7 +92,7 @@ class RecipeIngredient < ApplicationRecord
 
   def ingredient_id_or_name_present
     if ingredient_id.blank? && ingredient_name.blank?
-      errors.add(:base, '食材IDまたは食材名のいずれかを入力してください')
+      errors.add(:base, "食材IDまたは食材名のいずれかを入力してください")
     end
   end
 end

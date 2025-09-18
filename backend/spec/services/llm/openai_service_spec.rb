@@ -18,7 +18,7 @@ RSpec.describe Llm::OpenaiService do
       reasoning_effort: 'low',
       verbosity: 'low'
     }
-    
+
     allow(ENV).to receive(:[]).with('OPENAI_API_KEY').and_return('test-api-key')
     allow(ENV).to receive(:fetch).with('OPENAI_MODEL', 'gpt-4o-mini').and_return('gpt-4o-mini')
   end
@@ -66,7 +66,7 @@ RSpec.describe Llm::OpenaiService do
     context 'with text response format' do
       it 'returns a Result with text content' do
         result = service.generate(messages: messages, response_format: :text)
-        
+
         expect(result).to be_a(Llm::Result)
         expect(result.text).to eq('{"title": "Test Recipe", "time": "15 minutes"}')
         expect(result.provider).to eq('openai')
@@ -111,7 +111,7 @@ RSpec.describe Llm::OpenaiService do
 
       it 'parses JSON response' do
         result = service.generate(messages: messages, response_format: :json)
-        
+
         expect(result.raw_json).to eq({ 'title' => 'Test Recipe', 'time' => '15 minutes' })
       end
 
@@ -135,7 +135,7 @@ RSpec.describe Llm::OpenaiService do
 
         it 'leaves raw_json as nil' do
           result = service.generate(messages: messages, response_format: :json)
-          
+
           expect(result.text).to eq('Invalid JSON content')
           expect(result.raw_json).to be_nil
         end
@@ -198,9 +198,9 @@ RSpec.describe Llm::OpenaiService do
     it 'converts messages hash to OpenAI format' do
       service_instance = described_class.new(client: mock_client)
       messages = { system: 'System prompt', user: 'User prompt' }
-      
+
       result = service_instance.send(:to_openai_messages, messages)
-      
+
       expect(result).to eq([
         { role: 'system', content: 'System prompt' },
         { role: 'user', content: 'User prompt' }
@@ -210,9 +210,9 @@ RSpec.describe Llm::OpenaiService do
     it 'handles empty system message' do
       service_instance = described_class.new(client: mock_client)
       messages = { user: 'User prompt' }
-      
+
       result = service_instance.send(:to_openai_messages, messages)
-      
+
       expect(result).to eq([
         { role: 'user', content: 'User prompt' }
       ])

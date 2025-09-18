@@ -1,8 +1,7 @@
 class LineRichMenuService
-
   def initialize
     # V2 API対応: Rich Menu APIもV2クライアントを使用
-    @channel_token = Rails.application.credentials.line_channel_access_token || ENV['LINE_CHANNEL_ACCESS_TOKEN']
+    @channel_token = Rails.application.credentials.line_channel_access_token || ENV["LINE_CHANNEL_ACCESS_TOKEN"]
     @client = Line::Bot::V2::MessagingApi::ApiClient.new(
       channel_access_token: @channel_token
     )
@@ -15,7 +14,7 @@ class LineRichMenuService
   def create_rich_menu
     rich_menu_request = create_rich_menu_object
     response = @client.create_rich_menu(rich_menu_request: rich_menu_request)
-    
+
     if response.rich_menu_id
       Rails.logger.info "Rich menu created with ID: #{response.rich_menu_id}"
       response.rich_menu_id
@@ -29,7 +28,7 @@ class LineRichMenuService
   end
 
   def set_rich_menu_image(rich_menu_id, image_path)
-    File.open(image_path, 'rb') do |file|
+    File.open(image_path, "rb") do |file|
       # V2 API: Rich Menu Image設定はApiBlobClientで実行（content_typeは不要）
       @blob_client.set_rich_menu_image(rich_menu_id: rich_menu_id, body: file.read)
       Rails.logger.info "Rich menu image uploaded for ID: #{rich_menu_id}"
@@ -85,26 +84,26 @@ class LineRichMenuService
 
   def cleanup_all_rich_menus
     rich_menus = get_rich_menu_list
-    
+
     rich_menus.each do |menu|
       delete_rich_menu(menu.rich_menu_id)
     end
-    
+
     Rails.logger.info "Cleaned up #{rich_menus.count} rich menus"
   end
 
   def setup_default_rich_menu
     # 既存のリッチメニューをクリーンアップ
     cleanup_all_rich_menus
-    
+
     # 新しいリッチメニューを作成
     rich_menu_id = create_rich_menu
     return false unless rich_menu_id
-    
+
     # リッチメニュー画像を設定（将来的に実装）
     # image_path = Rails.root.join('app', 'assets', 'images', 'rich_menu.png')
     # return false unless set_rich_menu_image(rich_menu_id, image_path)
-    
+
     # デフォルトに設定
     set_default_rich_menu(rich_menu_id)
   end
@@ -112,8 +111,8 @@ class LineRichMenuService
   private
 
   def create_rich_menu_object
-    raise "LIFF_ID environment variable is required" unless ENV['LIFF_ID']
-    
+    raise "LIFF_ID environment variable is required" unless ENV["LIFF_ID"]
+
     # V2 API: RichMenuRequest オブジェクトを作成
     Line::Bot::V2::MessagingApi::RichMenuRequest.new(
       size: Line::Bot::V2::MessagingApi::RichMenuSize.new(width: 2500, height: 1686),
@@ -135,7 +134,7 @@ class LineRichMenuService
         ),
         Line::Bot::V2::MessagingApi::RichMenuArea.new(
           bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 0, y: 843, width: 1250, height: 843),
-          action: Line::Bot::V2::MessagingApi::URIAction.new(uri: ENV['FRONTEND_URL'] || "https://reco-meshiweb.vercel.app")
+          action: Line::Bot::V2::MessagingApi::URIAction.new(uri: ENV["FRONTEND_URL"] || "https://reco-meshiweb.vercel.app")
         ),
         Line::Bot::V2::MessagingApi::RichMenuArea.new(
           bounds: Line::Bot::V2::MessagingApi::RichMenuBounds.new(x: 1250, y: 843, width: 1250, height: 843),

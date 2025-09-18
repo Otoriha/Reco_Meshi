@@ -37,7 +37,7 @@ RSpec.describe Ingredient, type: :model do
 
     it 'allows setting category through enum' do
       ingredient = build(:ingredient)
-      
+
       expect { ingredient.vegetables! }.not_to raise_error
       expect(ingredient.vegetables?).to be true
       expect(ingredient.category).to eq('vegetables')

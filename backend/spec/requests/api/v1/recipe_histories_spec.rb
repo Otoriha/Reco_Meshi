@@ -40,7 +40,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       expect(cooked_times.first).to be >= cooked_times.last
       # 最低限の埋め込みレシピ情報
       expect(data.first['recipe']).to include('id', 'title')
-      
+
       # metaにページネーション情報が含まれていることを確認
       expect(body['meta']).to include('current_page', 'per_page', 'total_pages', 'total_count')
     end
@@ -289,7 +289,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
       expect {
         delete "/api/v1/recipe_histories/#{other_history.id}", headers: headers, as: :json
       }.not_to change(RecipeHistory, :count)
-      
+
       expect(response).to have_http_status(:not_found)
     end
   end
@@ -323,7 +323,7 @@ RSpec.describe 'Api::V1::RecipeHistories', type: :request do
   describe 'GET /api/v1/recipe_histories (境界値・バリデーションテスト)' do
     let(:headers) { auth_header_for(user) }
     let!(:recipe) { create(:recipe, user: user) }
-    
+
     before do
       create(:recipe_history, user: user, recipe: recipe, cooked_at: Time.current)
     end

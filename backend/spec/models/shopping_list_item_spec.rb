@@ -125,7 +125,7 @@ RSpec.describe ShoppingListItem, type: :model do
       it 'does not change checked_at when is_checked does not change' do
         shopping_list_item.update!(is_checked: true, checked_at: Time.current)
         original_checked_at = shopping_list_item.checked_at
-        
+
         shopping_list_item.update!(quantity: 2.0)
         expect(shopping_list_item.checked_at).to eq(original_checked_at)
       end

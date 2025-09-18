@@ -110,7 +110,7 @@ RSpec.describe MessageAnalyzerService do
       end
 
       it 'returns :unknown for empty or nil messages' do
-        ['', '   ', nil].each do |message|
+        [ '', '   ', nil ].each do |message|
           analyzer = described_class.new(message)
           expect(analyzer.analyze).to eq(:unknown)
         end

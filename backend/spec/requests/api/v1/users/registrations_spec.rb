@@ -28,7 +28,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
         expect {
           post "/api/v1/auth/signup", params: valid_params, as: :json
         }.to change(User, :count).by(1)
-        
+
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('新規登録が完了しました。')
@@ -57,7 +57,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
     context "nameが未入力の場合" do
       it "エラーが返される（422）" do
         post "/api/v1/auth/signup", params: invalid_params, as: :json
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
         expect(json['status']['message']).to include("Name can't be blank")
@@ -71,7 +71,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
       it "エラーが返される（422）" do
         post "/api/v1/auth/signup", params: valid_params, as: :json
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
         expect(json['status']['message']).to include("Email has already been taken")
@@ -107,7 +107,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
         post "/api/v1/auth/signup", params: valid_params, as: :json
 
         expect(response).to have_http_status(:ok)
-        
+
         # Check response message
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('新規登録が完了しました。')
@@ -147,7 +147,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
         post "/api/v1/auth/login", params: login_params, as: :json
         expect(response).to have_http_status(:ok)
-        
+
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('ログインしました。')
         expect(json['data']['email']).to eq('env_test@example.com')
@@ -169,7 +169,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
         post "/api/v1/auth/signup", params: valid_params, as: :json
 
         expect(response).to have_http_status(:ok)
-        
+
         # Check response message
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('確認メールを送信しました。メールをご確認ください。')
@@ -201,7 +201,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
         post "/api/v1/auth/login", params: login_params, as: :json
         expect(response).to have_http_status(:unauthorized)
-        
+
         json = JSON.parse(response.body)
         expect(json['error']).to eq('メールアドレスの確認が必要です')
       end
@@ -225,7 +225,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
         post "/api/v1/auth/login", params: login_params, as: :json
         expect(response).to have_http_status(:ok)
-        
+
         json = JSON.parse(response.body)
         expect(json['status']['message']).to eq('ログインしました。')
         expect(json['data']['email']).to eq('env_test@example.com')

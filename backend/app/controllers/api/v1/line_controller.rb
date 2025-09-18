@@ -270,7 +270,7 @@ end
 
     # 全アイテムをチェック済みに（コールバックを実行してchecked_atも更新）
     shopping_list.shopping_list_items.unchecked.find_each(&:mark_as_checked!)
-    
+
     # リストを完了状態に
     shopping_list.mark_as_completed!
     Rails.logger.info "Completed shopping list #{shopping_list_id} for user #{user.id}"
