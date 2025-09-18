@@ -32,8 +32,8 @@ export async function getShoppingLists(params: GetShoppingListsParams = {}): Pro
     }
 
     return response.data.data.map(resource => 
-      normalizeJsonApiResource(resource, response.data.included || [])
-    ) as ShoppingListSummary[]
+      normalizeJsonApiResource<ShoppingListSummary>(resource, response.data.included || [])
+    )
   } catch (error) {
     const err = error as { response?: { status?: number } }
     if (err.response?.status === 404) {
@@ -55,7 +55,7 @@ export async function getShoppingList(id: number): Promise<ShoppingList> {
     throw new Error('Expected single resource, got array')
   }
 
-  return normalizeJsonApiResource(response.data.data, response.data.included || []) as ShoppingList
+  return normalizeJsonApiResource<ShoppingList>(response.data.data, response.data.included || [])
 }
 
 /**
@@ -71,7 +71,7 @@ export async function createShoppingList(recipeId?: number): Promise<ShoppingLis
     throw new Error('Expected single resource, got array')
   }
 
-  return normalizeJsonApiResource(response.data.data, response.data.included || []) as ShoppingList
+  return normalizeJsonApiResource<ShoppingList>(response.data.data, response.data.included || [])
 }
 
 /**
@@ -102,7 +102,7 @@ export async function updateShoppingList(
     throw new Error('Expected single resource, got array')
   }
 
-  return normalizeJsonApiResource(response.data.data, response.data.included || []) as ShoppingList
+  return normalizeJsonApiResource<ShoppingList>(response.data.data, response.data.included || [])
 }
 
 /**
@@ -181,8 +181,8 @@ export async function bulkUpdateShoppingListItems(
   }
 
   return response.data.data.map(resource => 
-    normalizeJsonApiResource(resource, [])
-  ) as ShoppingListItem[]
+    normalizeJsonApiResource<ShoppingListItem>(resource, [])
+  )
 }
 
 /**

@@ -64,10 +64,10 @@ export function findIncludedResource(
 /**
  * JSON:APIリソースを正規化
  */
-export function normalizeJsonApiResource(
+export function normalizeJsonApiResource<T = Record<string, unknown>>(
   resource: JsonApiResource,
   included: JsonApiResource[] = []
-): Record<string, unknown> {
+): T {
   const normalized: Record<string, unknown> = {
     id: Number(resource.id),
     ...convertKeysFromSnakeCase(resource.attributes)
@@ -80,10 +80,11 @@ export function normalizeJsonApiResource(
       if (rel.data) {
         if (Array.isArray(rel.data)) {
           // 複数のリレーション
-          normalized[convertKeyFromSnakeCase(key)] = rel.data
+          const relatedList = rel.data
             .map((relItem: { type: string; id: string }) => findIncludedResource(relItem.type, relItem.id, included))
-            .filter(Boolean)
-            .map((res: JsonApiResource) => normalizeJsonApiResource(res, included))
+            .filter((res): res is JsonApiResource => res !== null)
+            .map((res) => normalizeJsonApiResource(res, included))
+          normalized[convertKeyFromSnakeCase(key)] = relatedList
         } else {
           // 単一のリレーション
           const relatedResource = findIncludedResource(
@@ -99,7 +100,7 @@ export function normalizeJsonApiResource(
     })
   }
 
-  return normalized
+  return normalized as unknown as T
 }
 
 /**
