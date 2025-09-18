@@ -6,10 +6,10 @@ type SettingsTab = 'basic' | 'profile' | 'allergies' | 'notifications' | 'accoun
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
   const [formData, setFormData] = useState({
-    familySize: '4',
-    preferredRecipes: '簡単なレシピ中心',
-    cookingFrequency: '2-3日に1回',
-    shoppingFrequency: '大型店舗',
+    familySize: '3人',
+    recipeDifficulty: '簡単なレシピ中心',
+    cookingTime: '30分以内',
+    shoppingFrequency: '2-3日に1回',
     name: '山田太郎',
     nickname: 'やまだ',
     email: 'yamada.taro@example.com',
@@ -74,52 +74,54 @@ const Settings: React.FC = () => {
             onChange={(e) => handleInputChange('familySize', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
-            <option value="1">1人</option>
-            <option value="2">2人</option>
-            <option value="3">3人</option>
-            <option value="4">4人</option>
-            <option value="5">5人以上</option>
+            <option value="1人">1人</option>
+            <option value="2人">2人</option>
+            <option value="3人">3人</option>
+            <option value="4人">4人</option>
+            <option value="5人以上">5人以上</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">レシピの分量計算に使用します</p>
+          <p className="text-xs text-gray-500 mt-1">レシピの分量計算に使用されます</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">レシピの傾向</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">レシピの難易度</label>
           <select
-            value={formData.preferredRecipes}
-            onChange={(e) => handleInputChange('preferredRecipes', e.target.value)}
+            value={formData.recipeDifficulty}
+            onChange={(e) => handleInputChange('recipeDifficulty', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="簡単なレシピ中心">簡単なレシピ中心</option>
             <option value="本格的なレシピ">本格的なレシピ</option>
             <option value="バランス重視">バランス重視</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">好みに合わせたレシピを提案します</p>
+          <p className="text-xs text-gray-500 mt-1">あなたの料理スキルに合わせて調整</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">調理頻度の目安</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">調理時間の目安</label>
           <select
-            value={formData.cookingFrequency}
-            onChange={(e) => handleInputChange('cookingFrequency', e.target.value)}
+            value={formData.cookingTime}
+            onChange={(e) => handleInputChange('cookingTime', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
-            <option value="毎日">毎日</option>
-            <option value="2-3日に1回">2-3日に1回</option>
-            <option value="週に1-2回">週に1-2回</option>
+            <option value="15分以内">15分以内</option>
+            <option value="30分以内">30分以内</option>
+            <option value="1時間以内">1時間以内</option>
+            <option value="時間制限なし">時間制限なし</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">買い物の傾向</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">買い物の頻度</label>
           <select
             value={formData.shoppingFrequency}
             onChange={(e) => handleInputChange('shoppingFrequency', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
-            <option value="大型店舗">大型店舗</option>
-            <option value="コンビニ中心">コンビニ中心</option>
-            <option value="ネットスーパー">ネットスーパー</option>
+            <option value="毎日">毎日</option>
+            <option value="2-3日に1回">2-3日に1回</option>
+            <option value="週に1回">週に1回</option>
+            <option value="まとめ買い">まとめ買い</option>
           </select>
         </div>
       </div>
@@ -181,7 +183,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">アレルギー・苦手な食材</h2>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <div className="flex items-center justify-between mb-3">
             <label className="block text-sm font-medium text-gray-700">アレルギー食材</label>
