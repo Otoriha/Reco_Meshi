@@ -1,9 +1,5 @@
 import apiClient from './client';
 
-export interface ImageRecognitionRequest {
-  image: File;
-}
-
 export interface ImageRecognitionResponse {
   success: boolean;
   recognized_ingredients: Array<{
@@ -11,48 +7,49 @@ export interface ImageRecognitionResponse {
     confidence: number;
   }>;
   message?: string;
+  errors?: string[];
 }
+
+const sendRecognitionRequest = async (formData: FormData): Promise<ImageRecognitionResponse> => {
+  const response = await apiClient.post<ImageRecognitionResponse>(
+    '/user_ingredients/recognize',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+
+  return response.data;
+};
 
 export const imageRecognitionApi = {
   /**
-   * 画像をアップロードして食材を認識する
+   * 単一画像で食材認識を実行する
    */
   async recognizeIngredients(image: File): Promise<ImageRecognitionResponse> {
     const formData = new FormData();
     formData.append('image', image);
-
-    const response = await apiClient.post<ImageRecognitionResponse>(
-      '/user_ingredients/recognize',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    return response.data;
+    return sendRecognitionRequest(formData);
   },
 
   /**
-   * 複数の画像をアップロードして食材を認識する
+   * 複数画像で食材認識を実行する
    */
   async recognizeMultipleIngredients(images: File[]): Promise<ImageRecognitionResponse> {
     const formData = new FormData();
-    images.forEach((image, index) => {
-      formData.append(`images[${index}]`, image);
-    });
 
-    const response = await apiClient.post<ImageRecognitionResponse>(
-      '/user_ingredients/recognize_multiple',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    if (images.length === 1) {
+      formData.append('image', images[0]);
+    } else {
+      images.forEach((image) => {
+        formData.append('images[]', image);
+      });
+    }
 
-    return response.data;
+    return sendRecognitionRequest(formData);
   },
 };
+
+export default imageRecognitionApi;

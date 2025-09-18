@@ -8,6 +8,15 @@ import { FaSearch, FaCamera, FaPlus } from 'react-icons/fa'
 import { HiSparkles } from 'react-icons/hi'
 import { CATEGORY_LABELS } from '../../constants/categories'
 
+const CATEGORY_EMOJI: Record<string, string> = {
+  vegetables: '🥬',
+  meat: '🥩',
+  fish: '🐟',
+  dairy: '🥛',
+  seasonings: '🧂',
+  others: '🍽️',
+}
+
 const Ingredients: React.FC = () => {
   const {
     loading,
@@ -30,7 +39,7 @@ const Ingredients: React.FC = () => {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     items.forEach(item => {
-      const category = item.ingredient?.category || 'other'
+      const category = item.ingredient?.category || 'others'
       counts[category] = (counts[category] || 0) + 1
     })
     return counts
@@ -38,12 +47,18 @@ const Ingredients: React.FC = () => {
 
   // フィルタリングされた食材
   const filteredItems = useMemo(() => {
-    return items.filter(item => {
-      const matchesSearch = !searchTerm ||
-        (item.ingredient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         item.display_name?.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesCategory = selectedCategory === 'すべて' ||
-        (item.ingredient?.category === selectedCategory)
+    const normalizedTerm = searchTerm.trim().toLowerCase()
+
+    return items.filter((item) => {
+      const ingredientName = item.ingredient?.name?.toLowerCase() ?? ''
+      const displayName = item.display_name?.toLowerCase() ?? ''
+
+      const matchesSearch = !normalizedTerm ||
+        ingredientName.includes(normalizedTerm) ||
+        displayName.includes(normalizedTerm)
+
+      const matchesCategory = selectedCategory === 'すべて' || item.ingredient?.category === selectedCategory
+
       return matchesSearch && matchesCategory
     })
   }, [items, searchTerm, selectedCategory])
@@ -112,6 +127,7 @@ const Ingredients: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">カテゴリー</h3>
               <div className="space-y-2">
                 <button
+                  type="button"
                   onClick={() => setSelectedCategory('すべて')}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left ${
                     selectedCategory === 'すべて'
@@ -130,16 +146,12 @@ const Ingredients: React.FC = () => {
 
                 {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
                   const count = categoryCounts[key] || 0
-                  if (count === 0) return null
-
-                  const emoji = key === 'vegetables' ? '🥬' :
-                               key === 'meat_fish' ? '🥩' :
-                               key === 'dairy' ? '🥛' :
-                               key === 'condiments' ? '🧂' : '🍽️'
+                  const emoji = CATEGORY_EMOJI[key] ?? '🍽️'
 
                   return (
                     <button
                       key={key}
+                      type="button"
                       onClick={() => setSelectedCategory(key)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left ${
                         selectedCategory === key
@@ -249,21 +261,8 @@ const Ingredients: React.FC = () => {
                     ))}
                   </div>
 
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-600 text-sm">
-                      全{totalCount}件中 1-{Math.min(12, filteredItems.length)}件を表示
-                    </p>
-                    {filteredItems.length > 12 && (
-                      <div className="flex justify-center mt-4">
-                        <nav className="flex items-center space-x-2">
-                          <button className="px-3 py-1 text-gray-500 hover:text-gray-700">‹</button>
-                          <button className="px-3 py-1 bg-green-600 text-white rounded">1</button>
-                          <button className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded">2</button>
-                          <button className="px-3 py-1 text-gray-700 hover:bg-gray-100 rounded">3</button>
-                          <button className="px-3 py-1 text-gray-500 hover:text-gray-700">›</button>
-                        </nav>
-                      </div>
-                    )}
+                  <div className="mt-6 text-center text-sm text-gray-600">
+                    {`該当件数: ${filteredItems.length}件`}
                   </div>
                 </div>
               )}

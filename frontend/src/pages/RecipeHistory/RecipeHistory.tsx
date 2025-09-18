@@ -1,14 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useRecipeHistory } from '../../hooks/useRecipeHistory'
-import { useFilters } from '../../hooks/useFilters'
-import RecipeHistoryFilters from './RecipeHistoryFilters'
+import { useFilters, type FilterPeriod } from '../../hooks/useFilters'
 import RecipeHistoryItem from './RecipeHistoryItem'
 import RecipeHistoryModal from './RecipeHistoryModal'
 import { RecipeHistorySkeletonList } from './RecipeHistorySkeleton'
 import Pagination from '../../components/Pagination'
 import type { RecipeHistory as RecipeHistoryType, UpdateRecipeHistoryParams } from '../../types/recipe'
-import { FaSearch, FaStar } from 'react-icons/fa'
+import { FaSearch } from 'react-icons/fa'
+
+const PERIOD_OPTIONS: Array<{ value: FilterPeriod; label: string }> = [
+  { value: 'all', label: 'すべて' },
+  { value: 'this-week', label: '今週' },
+  { value: 'this-month', label: '今月' },
+]
+
+const RATING_OPTIONS: Array<{ value: boolean | null; label: string }> = [
+  { value: null, label: 'すべて' },
+  { value: true, label: 'お気に入り' },
+  { value: false, label: '未評価' },
+]
 
 const RecipeHistory: React.FC = () => {
   const {
@@ -120,44 +131,63 @@ const RecipeHistory: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">レシピ履歴</h1>
 
-        {/* 検索バーとフィルターボタン */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="レシピを検索..."
-              value={filters.searchQuery || ''}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+        {/* 検索とフィルタ */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="レシピを検索..."
+                value={filters.searchQuery || ''}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                フィルタをリセット
+              </button>
+            )}
           </div>
-          <button
-            onClick={() => setRatedOnly(!filters.ratedOnly)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filters.ratedOnly
-                ? 'bg-green-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            すべて
-          </button>
-          <button
-            onClick={() => setRatedOnly(true)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filters.ratedOnly
-                ? 'bg-green-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            お気に入り
-          </button>
-          <button className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
-            簡単
-          </button>
-          <button className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
-            買い物なし
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setPeriod(option.value)}
+                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  filters.period === option.value
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {RATING_OPTIONS.map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => setRatedOnly(option.value)}
+                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  filters.ratedOnly === option.value
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {filteredHistories.length === 0 && !loading ? (
@@ -201,41 +231,12 @@ const RecipeHistory: React.FC = () => {
             </div>
 
             {/* ページネーション */}
-            <div className="flex justify-center mt-8">
-              <nav className="flex items-center space-x-2">
-                <button
-                  onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || loading}
-                  className="px-3 py-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                >
-                  ‹
-                </button>
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  const page = i + 1
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      disabled={loading}
-                      className={`px-3 py-1 rounded ${
-                        currentPage === page
-                          ? 'bg-green-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-                <button
-                  onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages || loading}
-                  className="px-3 py-1 text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                >
-                  ›
-                </button>
-              </nav>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
           </>
         )}
 

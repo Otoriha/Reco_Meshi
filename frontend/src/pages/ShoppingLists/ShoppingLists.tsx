@@ -10,20 +10,20 @@ const ShoppingLists: React.FC = () => {
   const [shoppingLists, setShoppingLists] = useState<ShoppingListSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isPolling, setIsPolling] = useState(false)
   const [activeTab, setActiveTab] = useState<'in_progress' | 'completed'>('in_progress')
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
+  const isFetchingRef = useRef(false)
 
   const fetchShoppingLists = useCallback(async (showLoading = true) => {
     // ポーリング中の重複リクエストを防ぐ
-    if (isPolling && !showLoading) return
+    if (isFetchingRef.current && !showLoading) return
 
     if (showLoading) {
       setLoading(true)
     }
     setError(null)
-    setIsPolling(true)
+    isFetchingRef.current = true
 
     try {
       let lists: ShoppingListSummary[] = []
@@ -56,10 +56,10 @@ const ShoppingLists: React.FC = () => {
     } finally {
       if (isMountedRef.current) {
         setLoading(false)
-        setIsPolling(false)
       }
+      isFetchingRef.current = false
     }
-  }, [isPolling, activeTab])
+  }, [activeTab])
 
   // ポーリングの設定
   const startPolling = useCallback(() => {
@@ -86,17 +86,11 @@ const ShoppingLists: React.FC = () => {
     fetchShoppingLists()
     startPolling()
 
-    // クリーンアップ
     return () => {
       isMountedRef.current = false
       stopPolling()
     }
-  }, [])
-
-  // タブ変更時にデータを再取得
-  useEffect(() => {
-    fetchShoppingLists()
-  }, [activeTab, fetchShoppingLists])
+  }, [fetchShoppingLists, startPolling, stopPolling])
 
 
   const formatDate = (dateString: string) => {

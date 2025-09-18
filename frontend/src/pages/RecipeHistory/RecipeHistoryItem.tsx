@@ -1,6 +1,4 @@
 import React from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { ja } from 'date-fns/locale'
 import type { RecipeHistory } from '../../types/recipe'
 import { FaStar, FaRegStar, FaClock } from 'react-icons/fa'
 
@@ -26,18 +24,22 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({ history, onClick 
     }
   }
 
-  const renderStars = (rating?: number) => {
-    if (!rating) return null
-
-    const stars = []
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span key={i} className="text-yellow-400">
-          {i <= rating ? <FaStar className="w-4 h-4" /> : <FaRegStar className="w-4 h-4" />}
-        </span>
-      )
+  const renderStars = (rating?: number | null) => {
+    if (rating === null || rating === undefined) {
+      return null
     }
-    return <div className="flex items-center gap-1">{stars}</div>
+
+    const normalized = Math.max(0, Math.min(5, Math.round(rating)))
+
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }, (_, index) => (
+          <span key={index} className="text-yellow-400">
+            {index < normalized ? <FaStar className="w-4 h-4" /> : <FaRegStar className="w-4 h-4" />}
+          </span>
+        ))}
+      </div>
+    )
   }
 
   // レシピのタイトルに基づいて絵文字を選択（簡易版）
@@ -100,7 +102,7 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({ history, onClick 
         <div className="flex flex-col items-end gap-2">
           {/* 星評価 */}
           <div className="flex items-center gap-2">
-            {renderStars(history.rating || undefined)}
+            {renderStars(history.rating)}
           </div>
 
           {/* 詳細を見るボタン */}
