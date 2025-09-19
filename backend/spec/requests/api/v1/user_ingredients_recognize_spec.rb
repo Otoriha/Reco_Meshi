@@ -1,9 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
-  let(:user) { create(:user) }
-  let(:headers) { jwt_auth_headers(user) }
+  let(:user) { create(:user, :confirmed) }
   let(:base_url) { "/api/v1/user_ingredients/recognize" }
+
+  def auth_header_for(user)
+    post "/api/v1/auth/login", params: { user: { email: user.email, password: "password123" } }, as: :json
+    { "Authorization" => response.headers["Authorization"] }
+  end
 
   # テスト用の画像ファイル
   let(:test_image_path) { Rails.root.join("spec/fixtures/files/test_fridge.png") }
@@ -39,6 +43,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
         end
 
         it "画像認識が成功し、結果を返す" do
+          headers = auth_header_for(user)
           post base_url, params: { image: valid_image_file }, headers: headers
 
           expect(response).to have_http_status(:ok)
@@ -57,6 +62,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
             image_source: kind_of(ActionDispatch::Http::UploadedFile)
           )
 
+          headers = auth_header_for(user)
           post base_url, params: { image: valid_image_file }, headers: headers
         end
       end
@@ -81,6 +87,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
           image1 = fixture_file_upload(test_image_path, "image/png")
           image2 = fixture_file_upload(test_image_path, "image/png")
 
+          headers = auth_header_for(user)
           post base_url, params: { images: [ image1, image2 ] }, headers: headers
 
           expect(response).to have_http_status(:ok)
@@ -106,6 +113,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
         end
 
         it "エラーレスポンスを返す" do
+          headers = auth_header_for(user)
           post base_url, params: { image: valid_image_file }, headers: headers
 
           expect(response).to have_http_status(:unprocessable_entity)
@@ -125,6 +133,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
         end
 
         it "500エラーを返す" do
+          headers = auth_header_for(user)
           post base_url, params: { image: valid_image_file }, headers: headers
 
           expect(response).to have_http_status(:internal_server_error)
@@ -138,6 +147,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
 
     context "バリデーションエラーの場合" do
       it "画像ファイルが提供されていない場合、400エラーを返す" do
+        headers = auth_header_for(user)
         post base_url, params: {}, headers: headers
 
         expect(response).to have_http_status(:bad_request)
@@ -150,6 +160,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
       it "対応していないファイル形式の場合、400エラーを返す" do
         text_file = fixture_file_upload(Rails.root.join("spec/spec_helper.rb"), "text/plain")
 
+        headers = auth_header_for(user)
         post base_url, params: { image: text_file }, headers: headers
 
         expect(response).to have_http_status(:bad_request)
@@ -160,10 +171,16 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
       end
 
       it "ファイルサイズが大きすぎる場合、400エラーを返す" do
-        large_file = fixture_file_upload(test_image_path, "image/png")
-        allow(large_file).to receive(:size).and_return(25.megabytes)
+        Tempfile.create([ "large_image", ".png" ]) do |tempfile|
+          tempfile.binmode
+          tempfile.write("0" * (21 * 1024 * 1024)) # 21MB
+          tempfile.rewind
 
-        post base_url, params: { image: large_file }, headers: headers
+          large_file = fixture_file_upload(tempfile.path, "image/png")
+
+          headers = auth_header_for(user)
+          post base_url, params: { image: large_file }, headers: headers
+        end
 
         expect(response).to have_http_status(:bad_request)
 
@@ -173,10 +190,15 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
       end
 
       it "空のファイルの場合、400エラーを返す" do
-        empty_file = fixture_file_upload(test_image_path, "image/png")
-        allow(empty_file).to receive(:size).and_return(0)
+        Tempfile.create([ "empty_image", ".png" ]) do |tempfile|
+          tempfile.binmode
+          tempfile.rewind
 
-        post base_url, params: { image: empty_file }, headers: headers
+          empty_file = fixture_file_upload(tempfile.path, "image/png")
+
+          headers = auth_header_for(user)
+          post base_url, params: { image: empty_file }, headers: headers
+        end
 
         expect(response).to have_http_status(:bad_request)
 

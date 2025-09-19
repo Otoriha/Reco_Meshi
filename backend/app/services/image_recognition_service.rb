@@ -61,14 +61,10 @@ class ImageRecognitionService
   private
 
   def image_source_type
-    case @image_source
-    when String
-      "content_string"
-    when ActionDispatch::Http::UploadedFile
-      "uploaded_file"
-    else
-      "unknown"
-    end
+    return "content_string" if @image_source.is_a?(String)
+    return "uploaded_file" if uploaded_file?(@image_source)
+
+    "unknown"
   end
 
   def create_fridge_image
@@ -85,11 +81,10 @@ class ImageRecognitionService
   end
 
   def extract_image_content
-    case @image_source
-    when String
+    if @image_source.is_a?(String)
       # LINEからの画像コンテンツ（すでに取得済み）
       validate_image_content(@image_source)
-    when ActionDispatch::Http::UploadedFile
+    elsif uploaded_file?(@image_source)
       # アップロードファイルから読み取り
       content = @image_source.read
       validate_image_content(content)
@@ -196,6 +191,9 @@ class ImageRecognitionService
   end
 
   def success_result(vision_result, conversion_result)
+    conversion_metrics = (conversion_result[:metrics] || {}).dup
+    conversion_metrics[:success] = conversion_result[:success] if conversion_result.key?(:success)
+
     {
       success: true,
       recognized_ingredients: vision_result.ingredients.map do |ingredient|
@@ -204,7 +202,7 @@ class ImageRecognitionService
           confidence: ingredient[:confidence]
         }
       end,
-      conversion_metrics: conversion_result[:metrics] || {},
+      conversion_metrics: conversion_metrics,
       message: "画像認識が完了しました",
       fridge_image_id: @fridge_image&.id
     }
@@ -218,5 +216,10 @@ class ImageRecognitionService
       conversion_metrics: {},
       fridge_image_id: @fridge_image&.id
     }
+  end
+
+  def uploaded_file?(source)
+    source.is_a?(ActionDispatch::Http::UploadedFile) ||
+      (defined?(Rack::Test::UploadedFile) && source.is_a?(Rack::Test::UploadedFile))
   end
 end

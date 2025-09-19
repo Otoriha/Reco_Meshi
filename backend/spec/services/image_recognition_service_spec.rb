@@ -35,20 +35,19 @@ RSpec.describe ImageRecognitionService, type: :service do
   describe "#recognize_and_convert" do
     context "文字列形式の画像コンテンツを使用する場合" do
       let(:service) { described_class.new(user: user, image_source: image_content) }
+      let(:mock_vision_service) { instance_double(GoogleCloudVisionService) }
+      let(:mock_converter) { instance_double(IngredientConverterService) }
+      let(:mock_fridge_image) do
+        instance_double(FridgeImage, id: 123, user: user, user_id: user.id, created_at: Time.current, image_metadata: {})
+      end
 
       before do
-        # Vision APIサービスをモック化
-        mock_vision_service = instance_double(GoogleCloudVisionService)
         allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
         allow(mock_vision_service).to receive(:analyze_image).and_return(mock_vision_result)
 
-        # IngredientConverterServiceをモック化
-        mock_converter = instance_double(IngredientConverterService)
         allow(IngredientConverterService).to receive(:new).and_return(mock_converter)
         allow(mock_converter).to receive(:convert_and_save).and_return(mock_conversion_result)
 
-        # FridgeImageの作成をモック化
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, created_at: Time.current)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:complete_with_result!)
         allow(mock_fridge_image).to receive(:update!)
@@ -67,36 +66,35 @@ RSpec.describe ImageRecognitionService, type: :service do
       end
 
       it "GoogleCloudVisionServiceが正しく呼び出される" do
-        expect_any_instance_of(GoogleCloudVisionService).to receive(:analyze_image)
-          .with(image_content, features: %i[label object text])
-
         service.recognize_and_convert
+
+        expect(mock_vision_service).to have_received(:analyze_image)
+          .with(image_content, features: %i[label object text])
       end
 
       it "IngredientConverterServiceが正しく呼び出される" do
-        expect(IngredientConverterService).to receive(:new)
-          .with(kind_of(FridgeImage))
-
         service.recognize_and_convert
+
+        expect(IngredientConverterService).to have_received(:new)
+          .with(mock_fridge_image)
       end
     end
 
     context "アップロードファイルを使用する場合" do
       let(:service) { described_class.new(user: user, image_source: uploaded_file) }
+      let(:mock_vision_service) { instance_double(GoogleCloudVisionService) }
+      let(:mock_converter) { instance_double(IngredientConverterService) }
+      let(:mock_fridge_image) do
+        instance_double(FridgeImage, id: 123, user: user, user_id: user.id, created_at: Time.current, image_metadata: {})
+      end
 
       before do
-        # Vision APIサービスをモック化
-        mock_vision_service = instance_double(GoogleCloudVisionService)
         allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
         allow(mock_vision_service).to receive(:analyze_image).and_return(mock_vision_result)
 
-        # IngredientConverterServiceをモック化
-        mock_converter = instance_double(IngredientConverterService)
         allow(IngredientConverterService).to receive(:new).and_return(mock_converter)
         allow(mock_converter).to receive(:convert_and_save).and_return(mock_conversion_result)
 
-        # FridgeImageの作成をモック化
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, created_at: Time.current)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:complete_with_result!)
         allow(mock_fridge_image).to receive(:update!)
@@ -111,10 +109,10 @@ RSpec.describe ImageRecognitionService, type: :service do
       end
 
       it "ファイルの内容がVision APIに渡される" do
-        expect_any_instance_of(GoogleCloudVisionService).to receive(:analyze_image)
-          .with(kind_of(String), features: %i[label object text])
-
         service.recognize_and_convert
+
+        expect(mock_vision_service).to have_received(:analyze_image)
+          .with(kind_of(String), features: %i[label object text])
       end
     end
 
@@ -132,7 +130,7 @@ RSpec.describe ImageRecognitionService, type: :service do
         allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
         allow(mock_vision_service).to receive(:analyze_image).and_return(error_vision_result)
 
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user)
+        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
       end
@@ -151,7 +149,7 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: large_content) }
 
       before do
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user)
+        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
       end
@@ -168,7 +166,7 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: "") }
 
       before do
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user)
+        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
       end
@@ -203,7 +201,12 @@ RSpec.describe ImageRecognitionService, type: :service do
         allow(mock_converter).to receive(:convert_and_save).and_return(error_conversion_result)
 
         # FridgeImageの作成をモック化
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, created_at: Time.current)
+        mock_fridge_image = instance_double(FridgeImage,
+                                            id: 123,
+                                            user: user,
+                                            user_id: user.id,
+                                            created_at: Time.current,
+                                            image_metadata: {})
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:complete_with_result!)
         allow(mock_fridge_image).to receive(:update!)
@@ -222,11 +225,13 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: image_content) }
 
       before do
-        allow(GoogleCloudVisionService).to receive(:new).and_raise(StandardError, "Unexpected error")
-
-        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user)
+        # initializeでGoogleCloudVisionService.newが呼ばれる前にFridgeImageをモック化
+        mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
+
+        # recognize_and_convertメソッド内でエラーが発生するようにモック化
+        allow_any_instance_of(GoogleCloudVisionService).to receive(:analyze_image).and_raise(StandardError, "Unexpected error")
       end
 
       it "一般的なエラーメッセージを返す" do
