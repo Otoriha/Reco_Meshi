@@ -157,11 +157,42 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
         expect(json["message"]).to eq "画像ファイルが提供されていません"
       end
 
+      it "空の画像配列が提供された場合、400エラーを返す" do
+        headers = auth_header_for(user)
+        post base_url, params: { images: [] }, headers: headers
+
+        expect(response).to have_http_status(:bad_request)
+
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be false
+        expect(json["message"]).to eq "画像ファイルが提供されていません"
+      end
+
       it "対応していないファイル形式の場合、400エラーを返す" do
         text_file = fixture_file_upload(Rails.root.join("spec/spec_helper.rb"), "text/plain")
 
         headers = auth_header_for(user)
         post base_url, params: { image: text_file }, headers: headers
+
+        expect(response).to have_http_status(:bad_request)
+
+        json = JSON.parse(response.body)
+        expect(json["success"]).to be false
+        expect(json["message"]).to include "対応していないファイル形式"
+      end
+
+      it "動画ファイル形式の場合、400エラーを返す" do
+        # 動画ファイルのようなサポートされていない形式をテスト
+        Tempfile.create([ "video_file", ".mp4" ]) do |tempfile|
+          tempfile.binmode
+          tempfile.write("fake_video_content")
+          tempfile.rewind
+
+          video_file = fixture_file_upload(tempfile.path, "video/mp4")
+
+          headers = auth_header_for(user)
+          post base_url, params: { image: video_file }, headers: headers
+        end
 
         expect(response).to have_http_status(:bad_request)
 

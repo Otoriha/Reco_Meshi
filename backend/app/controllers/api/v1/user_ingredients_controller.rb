@@ -158,22 +158,23 @@ class Api::V1::UserIngredientsController < ApplicationController
       files << params[:image]
     end
 
-    # 複数画像の場合
-    if params[:images].present? && params[:images].is_a?(Array)
-      files.concat(params[:images])
+    # 複数画像の場合（配列以外のケースも安全に正規化）
+    if params[:images].present?
+      # Array()で安全に配列化（ハッシュや単一要素も配列に変換）
+      files.concat(Array(params[:images]))
     end
 
-    files.compact
+    files.compact.reject(&:blank?)  # nilと空文字列の両方を除去
   end
 
   def validate_image_file(file)
     # ファイルが存在するかチェック
     return "無効なファイルです" unless file.respond_to?(:read)
 
-    # ファイル形式チェック
-    allowed_types = %w[image/jpeg image/jpg image/png image/gif image/bmp]
+    # ファイル形式チェック（iOS/Android端末由来の画像も対応）
+    allowed_types = %w[image/jpeg image/jpg image/png image/gif image/bmp image/webp image/heic]
     unless allowed_types.include?(file.content_type)
-      return "対応していないファイル形式です。JPEG、PNG、GIF、BMPのみ対応しています。"
+      return "対応していないファイル形式です。JPEG、PNG、GIF、BMP、WebP、HEICに対応しています。"
     end
 
     # ファイルサイズチェック（20MB制限）

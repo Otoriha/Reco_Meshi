@@ -23,8 +23,10 @@ class ImageRecognitionService
         return error_result("画像の取得に失敗しました")
       end
 
-      # Vision APIで画像解析
-      vision_result = @vision_service.analyze_image(image_content, features: %i[label object text])
+      # Vision APIで画像解析（30秒タイムアウト）
+      vision_result = Timeout.timeout(30) do
+        @vision_service.analyze_image(image_content, features: %i[label object text])
+      end
 
       # エラーチェック
       if vision_result.ingredients.any? { |ingredient| ingredient[:error] }
@@ -70,7 +72,7 @@ class ImageRecognitionService
   def create_fridge_image
     fridge_image = FridgeImage.create!(
       user: @user,
-      line_account: @user.line_account,
+      line_account: @user.line_account, # Web経由の場合はnilが多い（将来のユーザー連携要件に応じて調整）
       line_message_id: nil, # Web APIの場合はnil
       status: "processing",
       captured_at: Time.current
