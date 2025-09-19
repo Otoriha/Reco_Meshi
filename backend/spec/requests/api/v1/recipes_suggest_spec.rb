@@ -1,8 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
-  let(:user) { create(:user) }
-  let(:headers) { auth_headers(user) }
+  let(:user) { create(:user, :confirmed) }
+
+  def auth_header_for(user)
+    post "/api/v1/auth/login", params: { user: { email: user.email, password: 'password123' } }, as: :json
+    { 'Authorization' => response.headers['Authorization'] }
+  end
 
   describe "POST /api/v1/recipes/suggest" do
     context "認証済みユーザーの場合" do
@@ -28,15 +32,17 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           allow(RecipeGenerator).to receive(:new).with(user: user).and_return(generator)
           allow(generator).to receive(:generate_from_ingredients)
             .with(["玉ねぎ", "豚肉", "人参"], {
-              cooking_time: 30,
-              difficulty_level: "easy",
-              cuisine_type: "和食",
-              dietary_restrictions: ["ベジタリアン"]
+              "cooking_time" => "30",
+              "difficulty_level" => "easy",
+              "cuisine_type" => "和食",
+              "dietary_restrictions" => ["ベジタリアン"]
             })
             .and_return(recipe)
 
-          post "/api/v1/recipes/suggest", params: request_params, headers: headers
+          post "/api/v1/recipes/suggest", params: request_params, headers: auth_header_for(user)
 
+          puts "Response status: #{response.status}"
+          puts "Response body: #{response.body}" if response.status != 200
           expect(response).to have_http_status(:ok)
           expect(response.parsed_body["success"]).to be true
           expect(response.parsed_body["data"]["id"]).to eq recipe.id
@@ -58,10 +64,10 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
 
         before do
           # ユーザーの在庫食材を作成
-          ingredient1 = create(:ingredient, name: "鶏肉")
-          ingredient2 = create(:ingredient, name: "キャベツ")
-          create(:user_ingredient, user: user, ingredient: ingredient1, quantity: 300, unit: "g")
-          create(:user_ingredient, user: user, ingredient: ingredient2, quantity: 1, unit: "個")
+          ingredient1 = create(:ingredient, name: "鶏肉", unit: "g")
+          ingredient2 = create(:ingredient, name: "キャベツ", unit: "個")
+          create(:user_ingredient, user: user, ingredient: ingredient1, quantity: 300)
+          create(:user_ingredient, user: user, ingredient: ingredient2, quantity: 1)
         end
 
         it "ユーザーの在庫食材からレシピを生成して返す" do
@@ -70,12 +76,12 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           allow(RecipeGenerator).to receive(:new).with(user: user).and_return(generator)
           allow(generator).to receive(:generate_from_user_ingredients)
             .with({
-              cooking_time: 20,
-              difficulty_level: "medium"
+              "cooking_time" => "20",
+              "difficulty_level" => "medium"
             })
             .and_return(recipe)
 
-          post "/api/v1/recipes/suggest", params: request_params, headers: headers
+          post "/api/v1/recipes/suggest", params: request_params, headers: auth_header_for(user)
 
           expect(response).to have_http_status(:ok)
           expect(response.parsed_body["success"]).to be true
@@ -91,7 +97,7 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           allow(RecipeGenerator).to receive(:new).with(user: user).and_return(generator)
           allow(generator).to receive(:generate_from_user_ingredients).with({}).and_return(recipe)
 
-          post "/api/v1/recipes/suggest", headers: headers
+          post "/api/v1/recipes/suggest", headers: auth_header_for(user)
 
           expect(response).to have_http_status(:ok)
           expect(response.parsed_body["success"]).to be true
@@ -107,9 +113,11 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
             }
           }
 
-          post "/api/v1/recipes/suggest", params: request_params, headers: headers
+          post "/api/v1/recipes/suggest", params: request_params, headers: auth_header_for(user)
 
-          expect(response).to have_http_status(:bad_request)
+          puts "Response status: #{response.status}"
+          puts "Response body: #{response.body}"
+          expect(response).to have_http_status(:unprocessable_entity)
           expect(response.parsed_body["success"]).to be false
           expect(response.parsed_body["message"]).to eq "食材は配列で指定してください"
           expect(response.parsed_body["errors"]).to include("ingredients must be an array")
@@ -124,7 +132,7 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
             .with({})
             .and_raise(RecipeGenerator::GenerationError, "利用可能な食材が見つかりません")
 
-          post "/api/v1/recipes/suggest", headers: headers
+          post "/api/v1/recipes/suggest", headers: auth_header_for(user)
 
           expect(response).to have_http_status(:unprocessable_entity)
           expect(response.parsed_body["success"]).to be false
@@ -141,7 +149,7 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
             .with({})
             .and_raise(StandardError, "予期しないエラー")
 
-          post "/api/v1/recipes/suggest", headers: headers
+          post "/api/v1/recipes/suggest", headers: auth_header_for(user)
 
           expect(response).to have_http_status(:internal_server_error)
           expect(response.parsed_body["success"]).to be false

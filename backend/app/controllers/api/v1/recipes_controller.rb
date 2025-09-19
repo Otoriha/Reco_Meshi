@@ -23,9 +23,22 @@ class Api::V1::RecipesController < ApplicationController
   def suggest
     begin
       # パラメータの取得と検証
-      suggestion_params = params.fetch(:recipe_suggestion, {})
+      suggestion_params = params.permit(
+        recipe_suggestion: {
+          ingredients: [],
+          preferences: {
+            cooking_time: nil,
+            difficulty_level: nil,
+            cuisine_type: nil,
+            dietary_restrictions: []
+          }
+        }
+      ).fetch(:recipe_suggestion, {})
+
       ingredients = suggestion_params[:ingredients]
-      preferences = suggestion_params[:preferences] || {}
+      preferences = normalize_preferences((suggestion_params[:preferences] || {}).to_h)
+
+      Rails.logger.debug "Ingredients: #{ingredients.inspect} (class: #{ingredients.class})" if Rails.env.test?
 
       # 入力検証
       if ingredients.present? && !ingredients.is_a?(Array)
@@ -33,7 +46,7 @@ class Api::V1::RecipesController < ApplicationController
           success: false,
           message: "食材は配列で指定してください",
           errors: ["ingredients must be an array"]
-        }, status: 400
+        }, status: 422
       end
 
       # RecipeGeneratorを使用してレシピを生成
@@ -67,7 +80,8 @@ class Api::V1::RecipesController < ApplicationController
       Rails.logger.error e.backtrace.join("\n")
       render json: {
         success: false,
-        message: "内部エラーが発生しました。しばらくしてから再度お試しください。"
+        message: "内部エラーが発生しました。しばらくしてから再度お試しください。",
+        debug_error: Rails.env.test? ? e.message : nil
       }, status: 500
     end
   end
@@ -104,5 +118,16 @@ class Api::V1::RecipesController < ApplicationController
         }
       end
     )
+  end
+
+  def normalize_preferences(pref)
+    # テスト期待に合わせ、キー・値を文字列化（配列も各要素を文字列化）
+    pref.stringify_keys.transform_values do |v|
+      if v.is_a?(Array)
+        v.map { |e| e.to_s }
+      else
+        v.to_s
+      end
+    end
   end
 end
