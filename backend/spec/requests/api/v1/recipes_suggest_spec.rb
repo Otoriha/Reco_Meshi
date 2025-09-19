@@ -41,8 +41,6 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
 
           post "/api/v1/recipes/suggest", params: request_params, headers: auth_header_for(user)
 
-          puts "Response status: #{response.status}"
-          puts "Response body: #{response.body}" if response.status != 200
           expect(response).to have_http_status(:ok)
           expect(response.parsed_body["success"]).to be true
           expect(response.parsed_body["data"]["id"]).to eq recipe.id
@@ -115,8 +113,6 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
 
           post "/api/v1/recipes/suggest", params: request_params, headers: auth_header_for(user)
 
-          puts "Response status: #{response.status}"
-          puts "Response body: #{response.body}"
           expect(response).to have_http_status(:unprocessable_entity)
           expect(response.parsed_body["success"]).to be false
           expect(response.parsed_body["message"]).to eq "食材は配列で指定してください"

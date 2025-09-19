@@ -22,32 +22,38 @@ class Api::V1::RecipesController < ApplicationController
   # POST /api/v1/recipes/suggest
   def suggest
     begin
+      raw_suggestion_params = params[:recipe_suggestion]
+
+      if raw_suggestion_params.present? && raw_suggestion_params.respond_to?(:key?) && raw_suggestion_params.key?(:ingredients)
+        raw_ingredients = raw_suggestion_params[:ingredients]
+
+        if raw_ingredients.present? && !raw_ingredients.is_a?(Array)
+          return render json: {
+            success: false,
+            message: "食材は配列で指定してください",
+            errors: ["ingredients must be an array"]
+          }, status: 422
+        end
+      end
+
       # パラメータの取得と検証
-      suggestion_params = params.permit(
-        recipe_suggestion: {
-          ingredients: [],
-          preferences: {
-            cooking_time: nil,
-            difficulty_level: nil,
-            cuisine_type: nil,
-            dietary_restrictions: []
-          }
-        }
-      ).fetch(:recipe_suggestion, {})
+      suggestion_params = params
+        .permit(
+          recipe_suggestion: [
+            { ingredients: [] },
+            { preferences: [
+              :cooking_time,
+              :difficulty_level,
+              :cuisine_type,
+              { dietary_restrictions: [] }
+            ] }
+          ]
+        )
+        .fetch(:recipe_suggestion, {})
 
       ingredients = suggestion_params[:ingredients]
       preferences = normalize_preferences((suggestion_params[:preferences] || {}).to_h)
 
-      Rails.logger.debug "Ingredients: #{ingredients.inspect} (class: #{ingredients.class})" if Rails.env.test?
-
-      # 入力検証
-      if ingredients.present? && !ingredients.is_a?(Array)
-        return render json: {
-          success: false,
-          message: "食材は配列で指定してください",
-          errors: ["ingredients must be an array"]
-        }, status: 422
-      end
 
       # RecipeGeneratorを使用してレシピを生成
       generator = RecipeGenerator.new(user: current_user)
@@ -80,8 +86,7 @@ class Api::V1::RecipesController < ApplicationController
       Rails.logger.error e.backtrace.join("\n")
       render json: {
         success: false,
-        message: "内部エラーが発生しました。しばらくしてから再度お試しください。",
-        debug_error: Rails.env.test? ? e.message : nil
+        message: "内部エラーが発生しました。しばらくしてから再度お試しください。"
       }, status: 500
     end
   end
