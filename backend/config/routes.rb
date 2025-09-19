@@ -50,7 +50,11 @@ Rails.application.routes.draw do
       end
 
       # Recipes and recipe histories
-      resources :recipes, only: [ :index, :show ]
+      resources :recipes, only: [ :index, :show ] do
+        collection do
+          post :suggest
+        end
+      end
       resources :recipe_histories, only: [ :index, :show, :create, :update, :destroy ]
 
       # Shopping lists and items
