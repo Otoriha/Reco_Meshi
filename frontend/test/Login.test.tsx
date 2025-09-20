@@ -18,18 +18,23 @@ vi.mock('../src/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }))
 
+const mockNavigate = vi.fn()
+let mockSearchParams = new URLSearchParams()
+const mockSetSearchParams = vi.fn()
+const { useNavigateMock, useSearchParamsMock } = vi.hoisted(() => ({
+  useNavigateMock: vi.fn(),
+  useSearchParamsMock: vi.fn(),
+}))
+
 // React Routerのモック
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
   return {
     ...actual,
-    useNavigate: vi.fn(),
-    useSearchParams: vi.fn(),
+    useNavigate: useNavigateMock,
+    useSearchParams: useSearchParamsMock,
   }
 })
-
-const mockNavigate = vi.fn()
-const mockSearchParams = new URLSearchParams()
 
 const mockLogin = vi.fn()
 const mockUseAuth = {
@@ -48,10 +53,14 @@ describe('Login', () => {
 
     // React Routerのモックを初期化
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const routerModule = require('react-router-dom')
-    vi.mocked(routerModule.useNavigate).mockReturnValue(mockNavigate)
-    vi.mocked(routerModule.useSearchParams).mockReturnValue([mockSearchParams, vi.fn()])
-    mockSearchParams.clear()
+    mockNavigate.mockReset()
+    mockSetSearchParams.mockReset()
+    useNavigateMock.mockReset()
+    useSearchParamsMock.mockReset()
+    mockSearchParams = new URLSearchParams()
+
+    useNavigateMock.mockReturnValue(mockNavigate)
+    useSearchParamsMock.mockReturnValue([mockSearchParams, mockSetSearchParams])
   })
 
   const renderLogin = (props = {}) => {

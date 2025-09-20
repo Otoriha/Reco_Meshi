@@ -23,6 +23,7 @@ const TestComponent = () => <div data-testid="protected-content">保護された
 describe('ProtectedRoute', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.history.pushState({}, '', '/')
   })
 
   it('ログイン済みの場合は子コンポーネントが表示される', () => {
@@ -57,6 +58,8 @@ describe('ProtectedRoute', () => {
       logout: vi.fn(),
       setAuthState: vi.fn(),
     })
+
+    window.history.pushState({}, '', '/ingredients')
 
     render(
       <BrowserRouter>
