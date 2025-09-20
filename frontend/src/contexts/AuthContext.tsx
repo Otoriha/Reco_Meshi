@@ -5,6 +5,7 @@ import type { UserData } from '../api/auth';
 
 interface AuthContextType {
   isLoggedIn: boolean;
+  isAuthResolved: boolean;
   user: UserData | null;
   login: (userData: UserData) => void;
   logout: () => Promise<void>;
@@ -19,10 +20,12 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthResolved, setIsAuthResolved] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     setIsLoggedIn(isAuthenticated());
+    setIsAuthResolved(true);
   }, []);
 
   const login = (userData: UserData) => {
@@ -48,6 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     isLoggedIn,
+    isAuthResolved,
     user,
     login,
     logout,

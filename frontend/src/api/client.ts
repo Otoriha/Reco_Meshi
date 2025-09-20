@@ -22,19 +22,35 @@ apiClient.interceptors.request.use(
   }
 );
 
+// 多重リダイレクト防止フラグ
+let isRedirectingToLogin = false;
+
 // Response interceptor to handle 401 errors
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear invalid token on 401 error
-      localStorage.removeItem('authToken');
-      
-      // Optional: Redirect to login or trigger logout
-      // This can be customized based on app requirements
-      console.warn('Authentication failed. Token cleared.');
+    if (error.response?.status === 401 && !isRedirectingToLogin) {
+      const { pathname } = window.location;
+      // /loginページ上での401はリダイレクトしない
+      if (!pathname.startsWith('/login')) {
+        isRedirectingToLogin = true;
+        localStorage.removeItem('authToken');
+
+        const { pathname, search, hash } = window.location;
+        const next = encodeURIComponent(`${pathname}${search}${hash}`);
+        window.location.replace(`/login?next=${next}`);
+
+        // フラグリセット（タイマーで安全に）
+        setTimeout(() => {
+          isRedirectingToLogin = false;
+        }, 1000);
+      } else {
+        // /loginページ上ではトークンのクリアのみ
+        localStorage.removeItem('authToken');
+        console.warn('Authentication failed on login page. Token cleared.');
+      }
     }
     return Promise.reject(error);
   }

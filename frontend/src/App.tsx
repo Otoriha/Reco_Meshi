@@ -13,6 +13,8 @@ import RecipeList from './pages/Recipes/RecipeList'
 import RecipeDetail from './pages/Recipes/RecipeDetail'
 import ShoppingLists from './pages/ShoppingLists/ShoppingLists'
 import ShoppingListDetail from './pages/ShoppingLists/ShoppingListDetail'
+import ProtectedRoute from './components/ProtectedRoute'
+import NotFound from './components/NotFound'
 
 type AuthMode = 'login' | 'signup';
 
@@ -20,11 +22,11 @@ const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true'
 
 function AppContent() {
   const [authMode, setAuthMode] = useState<AuthMode>('login')
-  const { isLoggedIn, setAuthState } = useAuth();
+  const { setAuthState } = useAuth();
 
   const handleSwitchToLogin = () => setAuthMode('login')
   const handleSwitchToSignup = () => setAuthMode('signup')
-  
+
   const handleSignupSuccess = () => {
     // 確認メール無効時は自動ログイン状態に
     if (!isConfirmableEnabled) {
@@ -42,8 +44,24 @@ function AppContent() {
       <BrowserRouter>
         <Header onAuthModeChange={handleAuthModeChange} />
         <main>
-          {isLoggedIn ? (
-            <Routes>
+          <Routes>
+            {/* パブリックルート */}
+            <Route
+              path="/login"
+              element={<Login onSwitchToSignup={handleSwitchToSignup} />}
+            />
+            <Route
+              path="/signup"
+              element={
+                <Signup
+                  onSwitchToLogin={handleSwitchToLogin}
+                  onSignupSuccess={handleSignupSuccess}
+                />
+              }
+            />
+
+            {/* 保護ルート */}
+            <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/ingredients" element={<Ingredients />} />
               <Route path="/recipes" element={<RecipeList />} />
@@ -52,16 +70,11 @@ function AppContent() {
               <Route path="/shopping-lists/:id" element={<ShoppingListDetail />} />
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          ) : authMode === 'login' ? (
-            <Login onSwitchToSignup={handleSwitchToSignup} />
-          ) : (
-            <Signup 
-              onSwitchToLogin={handleSwitchToLogin}
-              onSignupSuccess={handleSignupSuccess}
-            />
-          )}
+            </Route>
+
+            {/* 404ルート */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </main>
       </BrowserRouter>
     </div>
