@@ -47,9 +47,10 @@ describe('Login', () => {
     vi.mocked(useAuthHook.useAuth).mockReturnValue(mockUseAuth)
 
     // React Routerのモックを初期化
-    const { useNavigate, useSearchParams } = require('react-router-dom')
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate)
-    vi.mocked(useSearchParams).mockReturnValue([mockSearchParams])
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const routerModule = require('react-router-dom')
+    vi.mocked(routerModule.useNavigate).mockReturnValue(mockNavigate)
+    vi.mocked(routerModule.useSearchParams).mockReturnValue([mockSearchParams, vi.fn()])
     mockSearchParams.clear()
   })
 

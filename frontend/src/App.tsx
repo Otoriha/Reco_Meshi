@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import React from 'react'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './hooks/useAuth'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
@@ -21,11 +21,15 @@ type AuthMode = 'login' | 'signup';
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
 function AppContent() {
-  const [authMode, setAuthMode] = useState<AuthMode>('login')
   const { setAuthState } = useAuth();
 
-  const handleSwitchToLogin = () => setAuthMode('login')
-  const handleSwitchToSignup = () => setAuthMode('signup')
+  const handleSwitchToLogin = () => {
+    // 今はルーティングベースなので何もしない
+  }
+
+  const handleSwitchToSignup = () => {
+    // 今はルーティングベースなので何もしない
+  }
 
   const handleSignupSuccess = () => {
     // 確認メール無効時は自動ログイン状態に
@@ -35,8 +39,9 @@ function AppContent() {
     console.log('Sign up successful')
   }
 
-  const handleAuthModeChange = (mode: AuthMode) => {
-    setAuthMode(mode);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAuthModeChange = (_mode: AuthMode) => {
+    // 今はルーティングベースなので何もしない
   }
 
   return (
