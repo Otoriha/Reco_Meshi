@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { dispatchAuthTokenChanged } from './authEvents';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
@@ -38,6 +39,9 @@ apiClient.interceptors.response.use(
         isRedirectingToLogin = true;
         localStorage.removeItem('authToken');
 
+        // AuthContextに認証状態の変更を通知
+        dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
+
         const { pathname, search, hash } = window.location;
         const next = encodeURIComponent(`${pathname}${search}${hash}`);
         window.location.replace(`/login?next=${next}`);
@@ -49,6 +53,10 @@ apiClient.interceptors.response.use(
       } else {
         // /loginページ上ではトークンのクリアのみ
         localStorage.removeItem('authToken');
+
+        // AuthContextに認証状態の変更を通知
+        dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
+
         console.warn('Authentication failed on login page. Token cleared.');
       }
     }

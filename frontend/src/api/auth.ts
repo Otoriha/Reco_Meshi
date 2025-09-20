@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import axios from 'axios';
+import { dispatchAuthTokenChanged } from './authEvents';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
@@ -55,6 +56,12 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       // 確認メール無効時のみトークンを保存（自動ログイン）
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
+
+      // AuthContextに認証状態の変更を通知
+      dispatchAuthTokenChanged({
+        isLoggedIn: true,
+        user: response.data.data ?? null,
+      });
     }
     // 確認メール有効時はトークンを保存せず、メール確認後にログインしてもらう
 
@@ -91,6 +98,12 @@ export const login = async (data: LoginData): Promise<UserData> => {
       // "Bearer "を除去してlocalStorageに保存
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
+
+      // AuthContextに認証状態の変更を通知
+      dispatchAuthTokenChanged({
+        isLoggedIn: true,
+        user: response.data.data ?? null,
+      });
     }
 
     if (!response.data.data) {
@@ -122,6 +135,9 @@ export const logout = async (): Promise<void> => {
   } finally {
     // 必ずlocalStorageをクリア
     localStorage.removeItem('authToken');
+
+    // AuthContextに認証状態の変更を通知
+    dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
   }
 };
 
@@ -133,4 +149,7 @@ export const isAuthenticated = (): boolean => {
 // 認証状態をクリア
 export const clearAuth = (): void => {
   localStorage.removeItem('authToken');
+
+  // AuthContextに認証状態の変更を通知
+  dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
 };

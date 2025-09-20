@@ -2,6 +2,10 @@ import React, { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { isAuthenticated, logout as logoutApi } from '../api/auth';
 import type { UserData } from '../api/auth';
+import {
+  AUTH_TOKEN_CHANGED_EVENT,
+  type AuthChangeDetail,
+} from '../api/authEvents';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -24,8 +28,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
 
   useEffect(() => {
+    // 初回マウント時の認証状態チェック
     setIsLoggedIn(isAuthenticated());
     setIsAuthResolved(true);
+
+    // localStorageの変更を監視（他のタブでの操作や401インターセプタからの変更を検知）
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken') {
+        const hasToken = !!e.newValue;
+        setIsLoggedIn(hasToken);
+        if (!hasToken) {
+          setUser(null);
+        }
+      }
+    };
+
+    // storage イベントは同一タブでは発火しないため、カスタムイベントも監視
+    const handleAuthChange = (event: Event) => {
+      const detail = (event as CustomEvent<AuthChangeDetail>).detail;
+      const authStatus = isAuthenticated();
+
+      if (detail?.isLoggedIn !== undefined) {
+        setIsLoggedIn(detail.isLoggedIn);
+      } else {
+        setIsLoggedIn(authStatus);
+      }
+
+      if (detail?.user !== undefined) {
+        setUser(detail.user ?? null);
+      } else if (!authStatus) {
+        setUser(null); // ログアウト時はユーザー情報をクリア
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleAuthChange as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleAuthChange as EventListener);
+    };
   }, []);
 
   const login = (userData: UserData) => {
@@ -41,6 +83,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoggedIn(false);
       setUser(null);
+      // ログアウト後は認証状態を強制的に同期
+      setTimeout(() => {
+        setIsLoggedIn(isAuthenticated());
+      }, 100);
     }
   };
 
