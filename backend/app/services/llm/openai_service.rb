@@ -22,16 +22,20 @@ module Llm
       params = {
         model: model,
         messages: to_openai_messages(messages),
-        temperature: temperature,
-        max_tokens: max_tokens,
         response_format: rfmt
       }.compact
 
-      # GPT-5系モデルには推論関連パラメータを付与
+      # GPT-5系モデルの場合はmax_completion_tokensを使用し、推論関連パラメータを付与
+      # temperatureは1（デフォルト）のみサポートのため除外
       if model.start_with?("gpt-5")
+        params[:max_completion_tokens] = max_tokens
         params[:reasoning_effort] = config_value(:reasoning_effort)
         params[:verbosity] = config_value(:verbosity)
         Rails.logger.warn("[LLM] Using GPT-5 model; applying reasoning_effort/verbosity") if defined?(Rails)
+      else
+        # 従来のモデルはmax_tokensとtemperatureを使用
+        params[:max_tokens] = max_tokens
+        params[:temperature] = temperature
       end
 
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)

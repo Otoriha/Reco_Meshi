@@ -4,12 +4,23 @@ import { useAuth } from '../../hooks/useAuth';
 import { imageRecognitionApi } from '../../api/imageRecognition';
 import { FaCamera, FaClipboardList, FaHistory, FaCog } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
+import RecipeSuggestModal from '../../components/recipes/RecipeSuggestModal';
+import Toast from '../../components/Toast';
+import type { Recipe } from '../../types/recipe';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  // レシピ提案モーダル関連の状態
+  const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false);
+
+  // トースト通知関連の状態
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
   const today = new Date();
   const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 (${['日', '月', '火', '水', '木', '金', '土'][today.getDay()]})`;
@@ -54,9 +65,22 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastMessage(message);
+    setToastType(type);
+    setIsToastVisible(true);
+  };
+
   const handleRecipeSuggest = () => {
-    // TODO: レシピ提案機能の実装
-    console.log('レシピ提案機能');
+    setIsRecipeModalOpen(true);
+  };
+
+  const handleRecipeGenerated = (recipe: Recipe) => {
+    showToast(`「${recipe.title}」のレシピを生成しました！`, 'success');
+  };
+
+  const handleModalClose = () => {
+    setIsRecipeModalOpen(false);
   };
 
   return (
@@ -167,6 +191,21 @@ const Dashboard: React.FC = () => {
             </div>
           </Link>
         </div>
+
+        {/* レシピ提案モーダル */}
+        <RecipeSuggestModal
+          isOpen={isRecipeModalOpen}
+          onClose={handleModalClose}
+          onRecipeGenerated={handleRecipeGenerated}
+        />
+
+        {/* トースト通知 */}
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          isVisible={isToastVisible}
+          onClose={() => setIsToastVisible(false)}
+        />
       </div>
     </div>
   );
