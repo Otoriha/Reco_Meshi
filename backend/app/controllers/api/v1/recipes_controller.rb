@@ -126,8 +126,16 @@ class Api::V1::RecipesController < ApplicationController
   end
 
   def normalize_preferences(pref)
-    # テスト期待に合わせ、キー・値を文字列化（配列も各要素を文字列化）
-    pref.stringify_keys.transform_values do |v|
+    # フロントエンドのキー名をRecipeGeneratorの期待する形式に変換
+    normalized = pref.stringify_keys
+
+    # difficulty_level → difficulty にマッピング
+    if normalized.key?('difficulty_level')
+      normalized['difficulty'] = normalized.delete('difficulty_level')
+    end
+
+    # テスト期待に合わせ、値を文字列化（配列も各要素を文字列化）
+    normalized.transform_values do |v|
       if v.is_a?(Array)
         v.map { |e| e.to_s }
       else

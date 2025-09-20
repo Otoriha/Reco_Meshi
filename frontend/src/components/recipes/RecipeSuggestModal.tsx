@@ -238,9 +238,20 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
       {generatedRecipe && (
         <RecipeDetailView
           recipe={generatedRecipe}
-          onSaveToHistory={() => {
-            // TODO: レシピ履歴保存機能の実装
-            console.log('レシピ履歴に保存')
+          onSaveToHistory={async () => {
+            if (!generatedRecipe) return
+            try {
+              await recipesApi.createRecipeHistory({
+                recipe_id: generatedRecipe.id,
+                memo: `${generatedRecipe.title}を作りました`,
+                cooked_at: new Date().toISOString()
+              })
+              // 成功時は親コンポーネントに通知
+              onRecipeGenerated?.(generatedRecipe)
+            } catch (error) {
+              console.error('調理履歴保存エラー:', error)
+              setError('調理履歴の保存に失敗しました')
+            }
           }}
         />
       )}
