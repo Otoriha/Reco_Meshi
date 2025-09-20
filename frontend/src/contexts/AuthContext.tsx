@@ -46,17 +46,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // storage イベントは同一タブでは発火しないため、カスタムイベントも監視
     const handleAuthChange = (event: Event) => {
       const detail = (event as CustomEvent<AuthChangeDetail>).detail;
-      const authStatus = isAuthenticated();
+      const currentAuthStatus = isAuthenticated();
 
+      // detailが明示的にisLoggedInを指定している場合はそれを使用
+      // そうでなければ現在のトークンの状態を確認
+      let newIsLoggedIn: boolean;
       if (detail?.isLoggedIn !== undefined) {
-        setIsLoggedIn(detail.isLoggedIn);
+        newIsLoggedIn = detail.isLoggedIn;
       } else {
-        setIsLoggedIn(authStatus);
+        newIsLoggedIn = currentAuthStatus;
       }
 
+      setIsLoggedIn(newIsLoggedIn);
+
+      // ユーザー情報の処理
       if (detail?.user !== undefined) {
         setUser(detail.user ?? null);
-      } else if (!authStatus) {
+      } else if (!newIsLoggedIn) {
         setUser(null); // ログアウト時はユーザー情報をクリア
       }
     };

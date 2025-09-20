@@ -16,6 +16,15 @@ const RecipeList: React.FC = () => {
         setRecipes(data)
         setError(null)
       } catch (err) {
+        // 401エラーの場合は、axios interceptorがリダイレクトを処理する
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosError = err as { response?: { status?: number } };
+          if (axiosError.response?.status === 401) {
+            // 401エラーの場合はinterceptorがリダイレクトするので何もしない
+            setError(null);
+            return;
+          }
+        }
         setError(err instanceof Error ? err.message : 'レシピの取得に失敗しました')
       } finally {
         setLoading(false)

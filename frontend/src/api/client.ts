@@ -42,14 +42,17 @@ apiClient.interceptors.response.use(
         // AuthContextに認証状態の変更を通知
         dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
 
-        const { pathname, search, hash } = window.location;
-        const next = encodeURIComponent(`${pathname}${search}${hash}`);
-        window.location.replace(`/login?next=${next}`);
+        // React Routerでのナビゲーションのために少し待つ
+        setTimeout(() => {
+          const { pathname, search, hash } = window.location;
+          const next = encodeURIComponent(`${pathname}${search}${hash}`);
+          window.location.replace(`/login?next=${next}`);
+        }, 100);
 
         // フラグリセット（タイマーで安全に）
         setTimeout(() => {
           isRedirectingToLogin = false;
-        }, 1000);
+        }, 1500);
       } else {
         // /loginページ上ではトークンのクリアのみ
         localStorage.removeItem('authToken');

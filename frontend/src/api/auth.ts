@@ -50,6 +50,8 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       },
     });
 
+    const userData = response.data.data;
+
     // AuthorizationヘッダーからJWTトークンを取得
     const authHeader = response.headers['authorization'];
     if (authHeader && !isConfirmableEnabled) {
@@ -57,16 +59,22 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
 
+      if (!userData) {
+        localStorage.removeItem('authToken');
+        dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
+        throw new Error('ユーザー情報の取得に失敗しました。');
+      }
+
       // AuthContextに認証状態の変更を通知
       dispatchAuthTokenChanged({
         isLoggedIn: true,
-        user: response.data.data ?? null,
+        user: userData,
       });
     }
     // 確認メール有効時はトークンを保存せず、メール確認後にログインしてもらう
 
     // Return user data if available, otherwise void for confirmable enabled case
-    return response.data.data;
+    return userData;
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
@@ -92,6 +100,12 @@ export const login = async (data: LoginData): Promise<UserData> => {
       },
     });
 
+    const userData = response.data.data;
+
+    if (!userData) {
+      throw new Error('ログイン情報の取得に失敗しました。');
+    }
+
     // AuthorizationヘッダーからJWTトークンを取得
     const authHeader = response.headers['authorization'];
     if (authHeader) {
@@ -102,15 +116,11 @@ export const login = async (data: LoginData): Promise<UserData> => {
       // AuthContextに認証状態の変更を通知
       dispatchAuthTokenChanged({
         isLoggedIn: true,
-        user: response.data.data ?? null,
+        user: userData,
       });
     }
 
-    if (!response.data.data) {
-      throw new Error('ログイン情報の取得に失敗しました。');
-    }
-
-    return response.data.data;
+    return userData;
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
