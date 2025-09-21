@@ -4,7 +4,6 @@ import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
-import { useAuth } from './hooks/useAuth'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
@@ -18,10 +17,7 @@ import NotFound from './components/NotFound'
 
 type AuthMode = 'login' | 'signup';
 
-const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
-
 function AppContent() {
-  const { setAuthState } = useAuth();
 
   const handleSwitchToLogin = () => {
     // 今はルーティングベースなので何もしない
@@ -32,10 +28,8 @@ function AppContent() {
   }
 
   const handleSignupSuccess = () => {
-    // 確認メール無効時は自動ログイン状態に
-    if (!isConfirmableEnabled) {
-      setAuthState(true);
-    }
+    // サインアップ成功時の処理は既にauth.tsで実行済み
+    // ここでは特に何もしない（認証状態はイベント経由で更新される）
     console.log('Sign up successful')
   }
 

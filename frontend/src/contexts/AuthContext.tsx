@@ -22,14 +22,22 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const getUserFromStorage = (): UserData | null => {
+  try {
+    const userData = localStorage.getItem('userData');
+    return userData ? JSON.parse(userData) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => isAuthenticated());
   const [isAuthResolved, setIsAuthResolved] = useState(false);
-  const [user, setUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<UserData | null>(() => getUserFromStorage());
 
   useEffect(() => {
-    // 初回マウント時の認証状態チェック
-    setIsLoggedIn(isAuthenticated());
+    // 認証状態を解決済みにマーク
     setIsAuthResolved(true);
 
     // localStorageの変更を監視（他のタブでの操作や401インターセプタからの変更を検知）

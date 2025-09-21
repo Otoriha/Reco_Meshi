@@ -1,38 +1,21 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
-import { recipesApi } from '../../api/recipes'
-import type { Recipe } from '../../types/recipe'
+import { useRecipes } from '../../hooks/useRecipes'
+import { useAuth } from '../../hooks/useAuth'
 
 const RecipeList: React.FC = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { recipes, loading, error } = useRecipes()
+  const { isLoggedIn, user } = useAuth()
 
-  useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        setLoading(true)
-        const data = await recipesApi.listRecipes()
-        setRecipes(data)
-        setError(null)
-      } catch (err) {
-        // 401エラーの場合は、axios interceptorがリダイレクトを処理する
-        if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as { response?: { status?: number } };
-          if (axiosError.response?.status === 401) {
-            // 401エラーの場合はinterceptorがリダイレクトするので何もしない
-            setError(null);
-            return;
-          }
-        }
-        setError(err instanceof Error ? err.message : 'レシピの取得に失敗しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRecipes()
-  }, [])
+  // デバッグ情報を表示
+  console.log('[RecipeList] レンダリング状態:', {
+    isLoggedIn,
+    user: user?.name,
+    token: localStorage.getItem('authToken'),
+    recipes: recipes.length,
+    loading,
+    error
+  })
 
   if (loading) {
     return (

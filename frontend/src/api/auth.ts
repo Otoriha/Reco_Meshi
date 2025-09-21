@@ -113,6 +113,9 @@ export const login = async (data: LoginData): Promise<UserData> => {
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
 
+      // ユーザー情報もlocalStorageに保存
+      localStorage.setItem('userData', JSON.stringify(userData));
+
       // AuthContextに認証状態の変更を通知
       dispatchAuthTokenChanged({
         isLoggedIn: true,
@@ -145,6 +148,7 @@ export const logout = async (): Promise<void> => {
   } finally {
     // 必ずlocalStorageをクリア
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
 
     // AuthContextに認証状態の変更を通知
     dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
@@ -159,6 +163,7 @@ export const isAuthenticated = (): boolean => {
 // 認証状態をクリア
 export const clearAuth = (): void => {
   localStorage.removeItem('authToken');
+  localStorage.removeItem('userData');
 
   // AuthContextに認証状態の変更を通知
   dispatchAuthTokenChanged({ isLoggedIn: false, user: null });

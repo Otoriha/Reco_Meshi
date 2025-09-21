@@ -38,6 +38,7 @@ apiClient.interceptors.response.use(
       if (!pathname.startsWith('/login')) {
         isRedirectingToLogin = true;
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
 
         // AuthContextに認証状態の変更を通知
         dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
@@ -56,6 +57,7 @@ apiClient.interceptors.response.use(
       } else {
         // /loginページ上ではトークンのクリアのみ
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
 
         // AuthContextに認証状態の変更を通知
         dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
