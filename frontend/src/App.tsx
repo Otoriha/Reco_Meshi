@@ -1,4 +1,3 @@
-import React from 'react'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
