@@ -1,21 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useRecipes } from '../../hooks/useRecipes'
-import { useAuth } from '../../hooks/useAuth'
 
 const RecipeList: React.FC = () => {
   const { recipes, loading, error } = useRecipes()
-  const { isLoggedIn, user } = useAuth()
-
-  // デバッグ情報を表示
-  console.log('[RecipeList] レンダリング状態:', {
-    isLoggedIn,
-    user: user?.name,
-    token: localStorage.getItem('authToken'),
-    recipes: recipes.length,
-    loading,
-    error
-  })
 
   if (loading) {
     return (

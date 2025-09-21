@@ -15,6 +15,9 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // トークンがない場合はAuthorizationヘッダーを削除
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -40,6 +43,9 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
 
+        // Authorizationヘッダーもクリア
+        delete apiClient.defaults.headers.common.Authorization;
+
         // AuthContextに認証状態の変更を通知
         dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
 
@@ -58,6 +64,9 @@ apiClient.interceptors.response.use(
         // /loginページ上ではトークンのクリアのみ
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+
+        // Authorizationヘッダーもクリア
+        delete apiClient.defaults.headers.common.Authorization;
 
         // AuthContextに認証状態の変更を通知
         dispatchAuthTokenChanged({ isLoggedIn: false, user: null });

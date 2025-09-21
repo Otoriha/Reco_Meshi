@@ -150,6 +150,9 @@ export const logout = async (): Promise<void> => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
 
+    // Authorizationヘッダーもクリア
+    delete apiClient.defaults.headers.common.Authorization;
+
     // AuthContextに認証状態の変更を通知
     dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
   }
@@ -164,6 +167,9 @@ export const isAuthenticated = (): boolean => {
 export const clearAuth = (): void => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('userData');
+
+  // Authorizationヘッダーもクリア
+  delete apiClient.defaults.headers.common.Authorization;
 
   // AuthContextに認証状態の変更を通知
   dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
