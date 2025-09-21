@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { login as loginApi } from '../../api/auth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { isSafeNextPath } from '../../utils/validation';
 
 type LoginProps = {
   onSwitchToSignup?: () => void;
@@ -12,8 +14,19 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { login } = useAuth();
+
+  const { login, isLoggedIn, isAuthResolved } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // すでにログイン済みの場合はリダイレクト
+  useEffect(() => {
+    if (isAuthResolved && isLoggedIn) {
+      const next = searchParams.get('next');
+      const dest = isSafeNextPath(next) ? next! : '/';
+      navigate(dest, { replace: true });
+    }
+  }, [isLoggedIn, isAuthResolved, searchParams, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,12 +36,22 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
     try {
       const userData = await loginApi({ email, password });
       login(userData);
+
+      // ログイン成功後のリダイレクト
+      const next = searchParams.get('next');
+      const dest = isSafeNextPath(next) ? next! : '/';
+      navigate(dest, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // 認証判定中またはすでにログイン済みの場合は何も表示しない
+  if (!isAuthResolved || isLoggedIn) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signup } from '../../api/auth';
+import { isSafeNextPath } from '../../utils/validation';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
@@ -24,6 +27,10 @@ interface FormErrors {
 }
 
 const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => {
+  const { isLoggedIn, isAuthResolved } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -34,6 +41,15 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // すでにログイン済みの場合はリダイレクト
+  useEffect(() => {
+    if (isAuthResolved && isLoggedIn) {
+      const next = searchParams.get('next');
+      const dest = isSafeNextPath(next) ? next! : '/';
+      navigate(dest, { replace: true });
+    }
+  }, [isLoggedIn, isAuthResolved, searchParams, navigate]);
 
   // バリデーション関数
   const validateField = (name: keyof FormData, value: string): string | undefined => {
@@ -138,7 +154,10 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
         // 1秒後に自動ログイン状態へ遷移
         setTimeout(() => {
           onSignupSuccess?.();
-          // 親コンポーネントでログイン状態が更新される
+          // next対応でのリダイレクト
+          const next = searchParams.get('next');
+          const dest = isSafeNextPath(next) ? next! : '/';
+          navigate(dest, { replace: true });
         }, 1000);
       }
 
@@ -149,6 +168,11 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
       setIsLoading(false);
     }
   };
+
+  // 認証判定中またはすでにログイン済みの場合は何も表示しない
+  if (!isAuthResolved || isLoggedIn) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

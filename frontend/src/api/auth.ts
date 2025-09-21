@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import axios from 'axios';
+import { dispatchAuthTokenChanged } from './authEvents';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
@@ -49,17 +50,31 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       },
     });
 
+    const userData = response.data.data;
+
     // AuthorizationヘッダーからJWTトークンを取得
     const authHeader = response.headers['authorization'];
     if (authHeader && !isConfirmableEnabled) {
       // 確認メール無効時のみトークンを保存（自動ログイン）
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
+
+      if (!userData) {
+        localStorage.removeItem('authToken');
+        dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
+        throw new Error('ユーザー情報の取得に失敗しました。');
+      }
+
+      // AuthContextに認証状態の変更を通知
+      dispatchAuthTokenChanged({
+        isLoggedIn: true,
+        user: userData,
+      });
     }
     // 確認メール有効時はトークンを保存せず、メール確認後にログインしてもらう
 
     // Return user data if available, otherwise void for confirmable enabled case
-    return response.data.data;
+    return userData;
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
@@ -85,19 +100,30 @@ export const login = async (data: LoginData): Promise<UserData> => {
       },
     });
 
+    const userData = response.data.data;
+
+    if (!userData) {
+      throw new Error('ログイン情報の取得に失敗しました。');
+    }
+
     // AuthorizationヘッダーからJWTトークンを取得
     const authHeader = response.headers['authorization'];
     if (authHeader) {
       // "Bearer "を除去してlocalStorageに保存
       const token = authHeader.replace('Bearer ', '');
       localStorage.setItem('authToken', token);
+
+      // ユーザー情報もlocalStorageに保存
+      localStorage.setItem('userData', JSON.stringify(userData));
+
+      // AuthContextに認証状態の変更を通知
+      dispatchAuthTokenChanged({
+        isLoggedIn: true,
+        user: userData,
+      });
     }
 
-    if (!response.data.data) {
-      throw new Error('ログイン情報の取得に失敗しました。');
-    }
-
-    return response.data.data;
+    return userData;
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response?.data) {
       const errorData = error.response.data as AuthError;
@@ -122,6 +148,13 @@ export const logout = async (): Promise<void> => {
   } finally {
     // 必ずlocalStorageをクリア
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+
+    // Authorizationヘッダーもクリア
+    delete apiClient.defaults.headers.common.Authorization;
+
+    // AuthContextに認証状態の変更を通知
+    dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
   }
 };
 
@@ -133,4 +166,11 @@ export const isAuthenticated = (): boolean => {
 // 認証状態をクリア
 export const clearAuth = (): void => {
   localStorage.removeItem('authToken');
+  localStorage.removeItem('userData');
+
+  // Authorizationヘッダーもクリア
+  delete apiClient.defaults.headers.common.Authorization;
+
+  // AuthContextに認証状態の変更を通知
+  dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
 };

@@ -1,29 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
-import { recipesApi } from '../../api/recipes'
-import type { Recipe } from '../../types/recipe'
+import { useRecipes } from '../../hooks/useRecipes'
 
 const RecipeList: React.FC = () => {
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        setLoading(true)
-        const data = await recipesApi.listRecipes()
-        setRecipes(data)
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'レシピの取得に失敗しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRecipes()
-  }, [])
+  const { recipes, loading, error } = useRecipes()
 
   if (loading) {
     return (

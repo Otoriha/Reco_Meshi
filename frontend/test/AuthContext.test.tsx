@@ -12,21 +12,22 @@ vi.mock('../src/api/auth', () => ({
 
 // テスト用コンポーネント
 const TestComponent = () => {
-  const { isLoggedIn, user, login, logout, setAuthState } = useAuth()
-  
+  const { isLoggedIn, isAuthResolved, user, login, logout, setAuthState } = useAuth()
+
   return (
     <div>
       <div data-testid="login-status">{isLoggedIn ? 'logged-in' : 'logged-out'}</div>
+      <div data-testid="auth-resolved">{isAuthResolved ? 'resolved' : 'pending'}</div>
       <div data-testid="user-name">{user?.name || 'no-user'}</div>
-      <button 
-        data-testid="login-btn" 
+      <button
+        data-testid="login-btn"
         onClick={() => login({ id: 1, name: 'Test User', email: 'test@example.com', created_at: '', updated_at: '' })}
       >
         Login
       </button>
       <button data-testid="logout-btn" onClick={logout}>Logout</button>
-      <button 
-        data-testid="set-auth-btn" 
+      <button
+        data-testid="set-auth-btn"
         onClick={() => setAuthState(true, { id: 2, name: 'Auth User', email: 'auth@example.com', created_at: '', updated_at: '' })}
       >
         Set Auth
@@ -41,7 +42,7 @@ describe('AuthContext', () => {
     localStorage.clear()
   })
 
-  it('初期状態ではログアウト状態である', () => {
+  it('初期状態ではログアウト状態である', async () => {
     vi.mocked(authApi.isAuthenticated).mockReturnValue(false)
 
     render(
@@ -49,6 +50,11 @@ describe('AuthContext', () => {
         <TestComponent />
       </AuthProvider>
     )
+
+    // 認証判定が完了するまで待つ
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-resolved')).toHaveTextContent('resolved')
+    })
 
     expect(screen.getByTestId('login-status')).toHaveTextContent('logged-out')
     expect(screen.getByTestId('user-name')).toHaveTextContent('no-user')
@@ -101,6 +107,22 @@ describe('AuthContext', () => {
     })
 
     expect(mockLogout).toHaveBeenCalled()
+  })
+
+  it('認証判定が完了後にisAuthResolvedがtrueになる', async () => {
+    vi.mocked(authApi.isAuthenticated).mockReturnValue(true)
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-resolved')).toHaveTextContent('resolved')
+    })
+
+    expect(screen.getByTestId('login-status')).toHaveTextContent('logged-in')
   })
 
   it('setAuthState関数で認証状態を設定できる', async () => {

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { BrowserRouter } from 'react-router-dom'
 import Login from '../src/pages/Auth/Login'
 import { AuthProvider } from '../src/contexts/AuthContext'
 import * as authApi from '../src/api/auth'
@@ -17,9 +18,28 @@ vi.mock('../src/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }))
 
+const mockNavigate = vi.fn()
+let mockSearchParams = new URLSearchParams()
+const mockSetSearchParams = vi.fn()
+const { useNavigateMock, useSearchParamsMock } = vi.hoisted(() => ({
+  useNavigateMock: vi.fn(),
+  useSearchParamsMock: vi.fn(),
+}))
+
+// React Routerのモック
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: useNavigateMock,
+    useSearchParams: useSearchParamsMock,
+  }
+})
+
 const mockLogin = vi.fn()
 const mockUseAuth = {
   isLoggedIn: false,
+  isAuthResolved: true,
   user: null,
   login: mockLogin,
   logout: vi.fn(),
@@ -30,14 +50,31 @@ describe('Login', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(useAuthHook.useAuth).mockReturnValue(mockUseAuth)
+
+    // React Routerのモックを初期化
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mockNavigate.mockReset()
+    mockSetSearchParams.mockReset()
+    useNavigateMock.mockReset()
+    useSearchParamsMock.mockReset()
+    mockSearchParams = new URLSearchParams()
+
+    useNavigateMock.mockReturnValue(mockNavigate)
+    useSearchParamsMock.mockReturnValue([mockSearchParams, mockSetSearchParams])
   })
 
-  it('ログインフォームが正しく表示される', () => {
-    render(
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
+  const renderLogin = (props = {}) => {
+    return render(
+      <BrowserRouter>
+        <AuthProvider>
+          <Login {...props} />
+        </AuthProvider>
+      </BrowserRouter>
     )
+  }
+
+  it('ログインフォームが正しく表示される', () => {
+    renderLogin()
 
     expect(screen.getByRole('heading', { name: 'ログイン' })).toBeInTheDocument()
     expect(screen.getByLabelText('メールアドレス')).toBeInTheDocument()
@@ -47,12 +84,8 @@ describe('Login', () => {
 
   it('メールアドレスとパスワードを入力できる', async () => {
     const user = userEvent.setup()
-    
-    render(
-      <AuthProvider>
-        <Login />
-      </AuthProvider>
-    )
+
+    renderLogin()
 
     const emailInput = screen.getByLabelText('メールアドレス')
     const passwordInput = screen.getByLabelText('パスワード')
@@ -208,5 +241,71 @@ describe('Login', () => {
 
     // API呼び出しがされないことを確認
     expect(mockLoginApi).not.toHaveBeenCalled()
+  })
+
+  it('nextパラメータがある場合、ログイン成功後に指定されたページに遷移する', async () => {
+    const user = userEvent.setup()
+    mockSearchParams.set('next', '/ingredients')
+
+    const mockLoginApi = vi.fn().mockResolvedValue({
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      created_at: '',
+      updated_at: ''
+    })
+
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
+
+    renderLogin()
+
+    // フォームに入力
+    await user.type(screen.getByLabelText('メールアドレス'), 'test@example.com')
+    await user.type(screen.getByLabelText('パスワード'), 'password123')
+
+    // ログインボタンをクリック
+    await user.click(screen.getByRole('button', { name: 'ログイン' }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/ingredients', { replace: true })
+    })
+  })
+
+  it('すでにログイン済みの場合はリダイレクトされる', async () => {
+    const loggedInUseAuth = { ...mockUseAuth, isLoggedIn: true }
+    vi.mocked(useAuthHook.useAuth).mockReturnValue(loggedInUseAuth)
+
+    renderLogin()
+
+    // ログイン済みの場合は何も表示されない
+    expect(screen.queryByRole('heading', { name: 'ログイン' })).not.toBeInTheDocument()
+  })
+
+  it('不正なnextパラメータの場合はデフォルトページに遷移する', async () => {
+    const user = userEvent.setup()
+    mockSearchParams.set('next', 'http://evil.com')
+
+    const mockLoginApi = vi.fn().mockResolvedValue({
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      created_at: '',
+      updated_at: ''
+    })
+
+    vi.mocked(authApi.login).mockImplementation(mockLoginApi)
+
+    renderLogin()
+
+    // フォームに入力
+    await user.type(screen.getByLabelText('メールアドレス'), 'test@example.com')
+    await user.type(screen.getByLabelText('パスワード'), 'password123')
+
+    // ログインボタンをクリック
+    await user.click(screen.getByRole('button', { name: 'ログイン' }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
+    })
   })
 })
