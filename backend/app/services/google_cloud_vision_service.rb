@@ -247,10 +247,12 @@ class GoogleCloudVisionService
     x_coords = vertices.map(&:x)
     y_coords = vertices.map(&:y)
 
-    [
-      x_coords.min, y_coords.min,
-      x_coords.max - x_coords.min, y_coords.max - y_coords.min
-    ]
+    {
+      x: x_coords.min,
+      y: y_coords.min,
+      width: x_coords.max - x_coords.min,
+      height: y_coords.max - y_coords.min
+    }
   end
 
   def extract_text_bounding_box(vertices)

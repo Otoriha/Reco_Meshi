@@ -66,14 +66,18 @@ module App
     config.x.vision.max_crops = ENV.fetch('VISION_MAX_CROPS', '10').to_i.clamp(0, 20)
     config.x.vision.api_max_calls = ENV.fetch('VISION_API_MAX_CALLS_PER_IMAGE', '15').to_i.clamp(1, 30)
 
-    # 起動時に設定値をログ出力
-    Rails.logger.info "Vision API Configuration: " +
-      "label_min=#{config.x.vision.label_min_score}, " +
-      "object_min=#{config.x.vision.object_min_score}, " +
-      "ingredient_threshold=#{config.x.vision.ingredient_threshold}, " +
-      "max_results=#{config.x.vision.max_results}, " +
-      "crop_reeval=#{config.x.vision.enable_crop_reeval}, " +
-      "max_crops=#{config.x.vision.max_crops}, " +
-      "api_max_calls=#{config.x.vision.api_max_calls}"
+    # 起動時に設定値をログ出力（ログが利用可能な場合のみ）
+    config.after_initialize do
+      if Rails.logger
+        Rails.logger.info "Vision API Configuration: " +
+          "label_min=#{config.x.vision.label_min_score}, " +
+          "object_min=#{config.x.vision.object_min_score}, " +
+          "ingredient_threshold=#{config.x.vision.ingredient_threshold}, " +
+          "max_results=#{config.x.vision.max_results}, " +
+          "crop_reeval=#{config.x.vision.enable_crop_reeval}, " +
+          "max_crops=#{config.x.vision.max_crops}, " +
+          "api_max_calls=#{config.x.vision.api_max_calls}"
+      end
+    end
   end
 end
