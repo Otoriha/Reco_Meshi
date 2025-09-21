@@ -42,6 +42,8 @@ class GoogleCloudVisionService
 
   def initialize(client: nil)
     @client = client || create_vision_client
+    @config = Rails.configuration.x.vision
+    @api_call_count = 0
   end
 
   # メインの解析メソッド
@@ -124,8 +126,8 @@ class GoogleCloudVisionService
 
   def build_feature_requests(features)
     feature_mapping = {
-      label: { type: :LABEL_DETECTION, max_results: 20 },
-      object: { type: :OBJECT_LOCALIZATION, max_results: 20 },
+      label: { type: :LABEL_DETECTION, max_results: @config.max_results },
+      object: { type: :OBJECT_LOCALIZATION, max_results: @config.max_results },
       text: { type: :TEXT_DETECTION, max_results: 1 }
     }
 
@@ -148,7 +150,7 @@ class GoogleCloudVisionService
           score: label.score.round(3),
           locale: label.locale
         }
-      end.select { |label| label[:score] >= 0.6 } # 信頼度0.6以上のみ
+      end.select { |label| label[:score] >= @config.label_min_score }
     end
 
     # オブジェクト検出結果の処理
@@ -162,7 +164,7 @@ class GoogleCloudVisionService
           score: obj.score.round(3),
           box: box
         }
-      end.select { |obj| obj[:score] >= 0.6 }
+      end.select { |obj| obj[:score] >= @config.object_min_score }
     end
 
     # テキスト検出結果の処理
@@ -187,7 +189,8 @@ class GoogleCloudVisionService
     # 食材候補の抽出と正規化
     result.ingredients = extract_ingredients(result.labels, result.objects)
 
-    Rails.logger.info "Vision API Response: labels=#{result.labels.size}, objects=#{result.objects.size}, ingredients=#{result.ingredients.size}"
+    Rails.logger.info "Vision API Response: labels=#{result.labels.size}, objects=#{result.objects.size}, ingredients=#{result.ingredients.size}, " +
+      "config: label_min=#{@config.label_min_score}, object_min=#{@config.object_min_score}, max_results=#{@config.max_results}"
 
     result
   end
@@ -241,7 +244,7 @@ class GoogleCloudVisionService
 
     # スコア順にソートして上位食材を返す
     ingredients
-      .select { |_, score| score >= 0.5 } # 閾値0.5以上
+      .select { |_, score| score >= @config.ingredient_threshold }
       .sort_by { |_, score| -score }
       .map { |name, score| { name: name, confidence: score.round(3) } }
       .first(10) # 上位10件
