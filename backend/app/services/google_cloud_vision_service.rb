@@ -295,7 +295,7 @@ class GoogleCloudVisionService
       .select { |_, score| score >= @config.ingredient_threshold }
       .sort_by { |_, score| -score }
       .map { |name, score| { name: name, confidence: score.round(3) } }
-      .first(10) # 上位10件
+      .first(15) # 上位15件
   end
 
   def find_ingredient_name(detected_name)
