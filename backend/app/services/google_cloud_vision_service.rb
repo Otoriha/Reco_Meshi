@@ -59,7 +59,7 @@ class GoogleCloudVisionService
     begin
       start_time = Time.current
       @api_call_count = 0
-      
+
       # Google Cloud Vision APIに送信
       image = { content: image_bytes }
       feature_requests = build_feature_requests(features)
@@ -106,10 +106,10 @@ class GoogleCloudVisionService
           ingredient_threshold: @config.ingredient_threshold,
           max_results: @config.max_results,
           num_objects: result.objects.size,
-          num_crops_analyzed: @config.enable_crop_reeval ? [@config.max_crops, result.objects.size].min : 0,
+          num_crops_analyzed: @config.enable_crop_reeval ? [ @config.max_crops, result.objects.size ].min : 0,
           api_calls: @api_call_count,
           processing_ms: processing_ms,
-          vision_config_version: '2.0',
+          vision_config_version: "2.0",
           crop_reeval_enabled: @config.enable_crop_reeval,
           image_size_bytes: image_bytes.size
         }
@@ -369,7 +369,7 @@ class GoogleCloudVisionService
 
     begin
       image = MiniMagick::Image.read(image_bytes)
-      
+
       # 正規化座標をピクセル座標に変換
       x = (bbox[:x] * image.width).to_i
       y = (bbox[:y] * image.height).to_i
@@ -377,10 +377,10 @@ class GoogleCloudVisionService
       height = (bbox[:height] * image.height).to_i
 
       # 範囲チェック
-      x = [[x, 0].max, image.width - 1].min
-      y = [[y, 0].max, image.height - 1].min
-      width = [width, image.width - x].min
-      height = [height, image.height - y].min
+      x = [ [ x, 0 ].max, image.width - 1 ].min
+      y = [ [ y, 0 ].max, image.height - 1 ].min
+      width = [ width, image.width - x ].min
+      height = [ height, image.height - y ].min
 
       # 最小サイズチェック
       return nil if width < 10 || height < 10
@@ -401,13 +401,13 @@ class GoogleCloudVisionService
 
     begin
       image = { content: crop_bytes }
-      features = [{ type: :LABEL_DETECTION, max_results: 10 }]
+      features = [ { type: :LABEL_DETECTION, max_results: 10 } ]
 
       response = @client.batch_annotate_images(
-        requests: [{
+        requests: [ {
           image: image,
           features: features
-        }]
+        } ]
       )
       @api_call_count += 1
 
@@ -436,10 +436,10 @@ class GoogleCloudVisionService
     crop_labels.each do |crop_label|
       # 既存のラベルを探す
       existing_label = result.labels.find { |l| l[:name] == crop_label[:name] }
-      
+
       if existing_label
         # スコアを加重平均で更新（最大1.0まで）
-        existing_label[:score] = [existing_label[:score] + (crop_label[:score] * weight), 1.0].min
+        existing_label[:score] = [ existing_label[:score] + (crop_label[:score] * weight), 1.0 ].min
       else
         # 新しいラベルとして追加
         result.labels << {

@@ -71,7 +71,7 @@ RSpec.describe "Api::V1::UserIngredients::Recognize", type: :request do
         let(:mock_recognition_result) do
           {
             success: true,
-            recognized_ingredients: [{ name: "キャベツ", confidence: 0.92 }],
+            recognized_ingredients: [ { name: "キャベツ", confidence: 0.92 } ],
             conversion_metrics: { successful_conversions: 1, new_ingredients: 1 },
             message: "画像認識が完了しました"
           }

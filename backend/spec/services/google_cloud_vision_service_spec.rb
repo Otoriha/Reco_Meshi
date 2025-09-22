@@ -243,13 +243,13 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
       mock_annotation_low = double('AnnotateImageResponse').tap do |annotation|
         allow(annotation).to receive(:error).and_return(nil)
-        allow(annotation).to receive(:label_annotations).and_return([low_score_label])
+        allow(annotation).to receive(:label_annotations).and_return([ low_score_label ])
         allow(annotation).to receive(:localized_object_annotations).and_return([])
         allow(annotation).to receive(:text_annotations).and_return([])
       end
 
       mock_response_low = double('BatchAnnotateImagesResponse').tap do |response|
-        allow(response).to receive(:responses).and_return([mock_annotation_low])
+        allow(response).to receive(:responses).and_return([ mock_annotation_low ])
       end
 
       allow(mock_client).to receive(:batch_annotate_images).and_return(mock_response_low)
@@ -300,14 +300,14 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
     let(:mock_crop_response) do
       double('BatchAnnotateImagesResponse').tap do |response|
-        allow(response).to receive(:responses).and_return([mock_crop_annotation])
+        allow(response).to receive(:responses).and_return([ mock_crop_annotation ])
       end
     end
 
     let(:mock_crop_annotation) do
       double('AnnotateImageResponse').tap do |annotation|
         allow(annotation).to receive(:error).and_return(nil)
-        allow(annotation).to receive(:label_annotations).and_return([mock_crop_label])
+        allow(annotation).to receive(:label_annotations).and_return([ mock_crop_label ])
       end
     end
 
@@ -322,15 +322,15 @@ RSpec.describe GoogleCloudVisionService, type: :service do
     let(:mock_bbox_annotation) do
       double('AnnotateImageResponse').tap do |annotation|
         allow(annotation).to receive(:error).and_return(nil)
-        allow(annotation).to receive(:label_annotations).and_return([mock_label])
-        allow(annotation).to receive(:localized_object_annotations).and_return([mock_object_with_bbox])
+        allow(annotation).to receive(:label_annotations).and_return([ mock_label ])
+        allow(annotation).to receive(:localized_object_annotations).and_return([ mock_object_with_bbox ])
         allow(annotation).to receive(:text_annotations).and_return([])
       end
     end
 
     let(:mock_bbox_response) do
       double('BatchAnnotateImagesResponse').tap do |response|
-        allow(response).to receive(:responses).and_return([mock_bbox_annotation])
+        allow(response).to receive(:responses).and_return([ mock_bbox_annotation ])
       end
     end
 
@@ -342,7 +342,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
       # クロップ解析のVision API呼び出し
       allow(mock_client).to receive(:batch_annotate_images)
-        .with(hash_including(requests: array_including(hash_including(features: [{ type: :LABEL_DETECTION, max_results: 10 }]))))
+        .with(hash_including(requests: array_including(hash_including(features: [ { type: :LABEL_DETECTION, max_results: 10 } ]))))
         .and_return(mock_crop_response)
 
       # MiniMagickのモック
@@ -419,12 +419,12 @@ RSpec.describe GoogleCloudVisionService, type: :service do
       mock_error_annotation = double('AnnotateImageResponse').tap do |annotation|
         allow(annotation).to receive(:error).and_return(nil)
         allow(annotation).to receive(:label_annotations).and_return([])
-        allow(annotation).to receive(:localized_object_annotations).and_return([mock_object_with_bbox])
+        allow(annotation).to receive(:localized_object_annotations).and_return([ mock_object_with_bbox ])
         allow(annotation).to receive(:text_annotations).and_return([])
       end
 
       mock_error_response = double('BatchAnnotateImagesResponse').tap do |response|
-        allow(response).to receive(:responses).and_return([mock_error_annotation])
+        allow(response).to receive(:responses).and_return([ mock_error_annotation ])
       end
 
       allow(mock_client).to receive(:batch_annotate_images).and_return(mock_error_response)
@@ -437,7 +437,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
     it 'handles crop analysis API errors gracefully' do
       # クロップ解析でエラーを発生させる
       allow(mock_client).to receive(:batch_annotate_images)
-        .with(hash_including(requests: array_including(hash_including(features: [{ type: :LABEL_DETECTION, max_results: 10 }]))))
+        .with(hash_including(requests: array_including(hash_including(features: [ { type: :LABEL_DETECTION, max_results: 10 } ]))))
         .and_raise(StandardError.new('Crop analysis failed'))
 
       mock_image = double('MiniMagick::Image')
@@ -450,12 +450,12 @@ RSpec.describe GoogleCloudVisionService, type: :service do
       mock_error2_annotation = double('AnnotateImageResponse').tap do |annotation|
         allow(annotation).to receive(:error).and_return(nil)
         allow(annotation).to receive(:label_annotations).and_return([])
-        allow(annotation).to receive(:localized_object_annotations).and_return([mock_object_with_bbox])
+        allow(annotation).to receive(:localized_object_annotations).and_return([ mock_object_with_bbox ])
         allow(annotation).to receive(:text_annotations).and_return([])
       end
 
       mock_error2_response = double('BatchAnnotateImagesResponse').tap do |response|
-        allow(response).to receive(:responses).and_return([mock_error2_annotation])
+        allow(response).to receive(:responses).and_return([ mock_error2_annotation ])
       end
 
       allow(mock_client).to receive(:batch_annotate_images)

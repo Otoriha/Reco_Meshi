@@ -102,7 +102,7 @@ describe('ShoppingLists Component', () => {
 
     // 進捗の表示確認
     expect(screen.getByText('進捗: 5 / 10 項目')).toBeInTheDocument()
-    expect(screen.getByText('50%')).toBeInTheDocument()
+    expect(screen.getByText('50% 完了')).toBeInTheDocument()
   })
 
   it('エラー時にエラーメッセージを表示する', async () => {
