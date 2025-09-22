@@ -9,7 +9,7 @@ console_command = '/rails/bin/rails console'
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = './bin/rails db:prepare'
+  release_command = './bin/rails db:prepare && ./bin/rails db:seed'
 
 [env]
   PORT = '3000'
