@@ -48,6 +48,9 @@ gem "line-bot-api", "~> 2.1", require: "line/bot"
 # Google Cloud Vision API
 gem "google-cloud-vision", "~> 2.0"
 
+# Image processing for Vision API
+gem "mini_magick", "~> 4.12"
+
 
 
 # AI API clients
