@@ -82,6 +82,11 @@ export interface ShoppingListResponse extends JsonApiResponse<JsonApiResource> {
   data: JsonApiResource
 }
 
+// アイテム単体のレスポンス型
+export interface ShoppingListItemResponse extends JsonApiResponse<JsonApiResource> {
+  data: JsonApiResource
+}
+
 // API リクエスト/レスポンス型
 export interface GetShoppingListsParams {
   page?: number

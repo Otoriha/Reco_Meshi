@@ -9,6 +9,7 @@ import type {
   ShoppingListSummary,
   ShoppingListsResponse,
   ShoppingListResponse,
+  ShoppingListItemResponse,
   GetShoppingListsParams,
   UpdateShoppingListRequest,
   UpdateShoppingListItemRequest,
@@ -131,7 +132,7 @@ export async function updateShoppingListItem(
     }
   }
 
-  const response = await apiClient.patch<ShoppingListResponse>(
+  const response = await apiClient.patch<ShoppingListItemResponse>(
     `/shopping_lists/${shoppingListId}/items/${itemId}`,
     requestBody
   )
