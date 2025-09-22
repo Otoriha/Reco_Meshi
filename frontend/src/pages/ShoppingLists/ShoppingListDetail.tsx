@@ -402,6 +402,22 @@ const ShoppingListDetail: React.FC = () => {
           {/* アイテムリスト */}
           <div className="space-y-3">
             {shoppingList.shoppingListItems?.map((item) => (
+              (() => {
+                const ingredientLabel =
+                  item.ingredient?.displayNameWithEmoji ||
+                  item.ingredient?.displayName ||
+                  item.ingredient?.name ||
+                  item.ingredientDisplayName ||
+                  item.ingredientDisplayNameText ||
+                  item.ingredientName ||
+                  '不明な食材'
+
+                const ingredientCategory =
+                  item.ingredient?.category ||
+                  item.ingredientCategory ||
+                  null
+
+                return (
               <div
                 key={item.id}
                 className={`flex items-center p-4 border rounded-lg transition-colors ${
@@ -418,7 +434,7 @@ const ShoppingListDetail: React.FC = () => {
                       onChange={(e) => handleItemCheck(item, e.target.checked)}
                       disabled={updatingItems.has(item.id) || shoppingList.status === 'completed'}
                       className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 mr-3 cursor-pointer"
-                      aria-label={`${item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}をチェック`}
+                      aria-label={`${ingredientLabel}をチェック`}
                     />
                     <div className="flex-1">
                       <span
@@ -428,13 +444,13 @@ const ShoppingListDetail: React.FC = () => {
                             : 'text-gray-900'
                         }`}
                       >
-                        {item.ingredient?.displayNameWithEmoji || item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}
+                        {ingredientLabel}
                       </span>
                       <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                         <span>{item.displayQuantityWithUnit}</span>
-                        {item.ingredient?.category && (
+                        {ingredientCategory && (
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
-                            {item.ingredient.category}
+                            {ingredientCategory}
                           </span>
                         )}
                       </div>
@@ -454,6 +470,8 @@ const ShoppingListDetail: React.FC = () => {
                   </div>
                 )}
               </div>
+                )
+              })()
             ))}
           </div>
 

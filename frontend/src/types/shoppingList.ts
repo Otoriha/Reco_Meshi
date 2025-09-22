@@ -27,6 +27,12 @@ export interface ShoppingListItem {
   id: number
   shoppingListId?: number
   ingredientId?: number
+  ingredientName?: string | null
+  ingredientDisplayName?: string | null
+  ingredientDisplayNameText?: string | null
+  ingredientCategory?: string | null
+  ingredientEmoji?: string | null
+  statusDisplay?: string
   quantity: number
   unit: string | null
   isChecked: boolean
