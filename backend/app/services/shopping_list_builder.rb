@@ -1,3 +1,5 @@
+require 'set'
+
 class ShoppingListBuilder
   def initialize(user, recipe)
     @user = user
@@ -51,6 +53,11 @@ class ShoppingListBuilder
       # ingredient_idがnullの場合はingredient_nameを設定
       if ingredient_data[:ingredient_id].nil? && ingredient_data[:ingredient_name].present?
         item_params[:ingredient_name] = ingredient_data[:ingredient_name]
+      end
+
+      if should_mark_as_checked?(ingredient_data)
+        item_params[:is_checked] = true
+        item_params[:checked_at] = Time.current
       end
 
       list.shopping_list_items.create!(item_params)
@@ -133,6 +140,9 @@ class ShoppingListBuilder
 
   def build_user_inventory
     inventory = {}
+    @inventory_name_index = Set.new
+
+    @inventory_ingredient_ids = Set.new
 
     @user.user_ingredients
          .joins(:ingredient)
@@ -142,7 +152,12 @@ class ShoppingListBuilder
       ingredient_id = user_ingredient.ingredient_id
       quantity = user_ingredient.quantity || 0
 
+      @inventory_ingredient_ids << ingredient_id if ingredient_id.present?
+
       inventory[ingredient_id] = (inventory[ingredient_id] || 0) + quantity
+
+      normalized_name = normalize_name(user_ingredient.ingredient&.name)
+      @inventory_name_index << normalized_name if normalized_name.present?
     end
 
     inventory
@@ -220,5 +235,38 @@ class ShoppingListBuilder
     return ingredient_unit if ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
 
     "個"
+  end
+
+  def should_mark_as_checked?(ingredient_data)
+    ingredient_id = ingredient_data[:ingredient_id]
+    ingredient_name = ingredient_data[:ingredient_name]
+
+    return false if ingredient_name.blank?
+    return false if ingredient_id.present? # 不足量がありリストに追加されているため
+
+    @inventory_name_index ||= Set.new
+    return false if @inventory_name_index.empty?
+
+    normalized_name = normalize_name(ingredient_name)
+    return true if normalized_name.present? && @inventory_name_index.include?(normalized_name)
+
+    matcher_result = ingredient_matcher.find_ingredient(ingredient_name)
+    ingredient = matcher_result&.dig(:ingredient)
+    return false unless ingredient
+
+    return true if @inventory_ingredient_ids.include?(ingredient.id)
+
+    matched_normalized_name = normalize_name(ingredient.name)
+    matched_normalized_name.present? && @inventory_name_index.include?(matched_normalized_name)
+  end
+
+  def normalize_name(name)
+    return "" if name.blank?
+
+    ingredient_matcher.send(:normalize_ingredient_name, name)
+  end
+
+  def ingredient_matcher
+    @ingredient_matcher ||= IngredientMatcher.new
   end
 end
