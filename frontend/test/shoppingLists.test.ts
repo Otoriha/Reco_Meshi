@@ -205,8 +205,8 @@ describe('ShoppingLists Component', () => {
       recipe: null
     }]
 
-    let resolveComplete: (value: any) => void
-    const completePromise = new Promise(resolve => {
+    let resolveComplete: (value: ShoppingList) => void
+    const completePromise = new Promise<ShoppingList>(resolve => {
       resolveComplete = resolve
     })
 
