@@ -402,6 +402,24 @@ const ShoppingListDetail: React.FC = () => {
           {/* アイテムリスト */}
           <div className="space-y-3">
             {shoppingList.shoppingListItems?.map((item) => (
+              (() => {
+                const ingredientLabel =
+                  item.ingredient?.displayNameWithEmoji ||
+                  item.ingredient?.displayName ||
+                  item.ingredient?.name ||
+                  item.ingredientDisplayName ||
+                  item.ingredientDisplayNameText ||
+                  item.ingredientName ||
+                  '不明な食材'
+
+                const ingredientEmoji =
+                  item.ingredient?.emoji ||
+                  item.ingredientEmoji ||
+                  null
+
+                const quantityLabel = (item.displayQuantityWithUnit || '').trim()
+
+                return (
               <div
                 key={item.id}
                 className={`flex items-center p-4 border rounded-lg transition-colors ${
@@ -418,8 +436,13 @@ const ShoppingListDetail: React.FC = () => {
                       onChange={(e) => handleItemCheck(item, e.target.checked)}
                       disabled={updatingItems.has(item.id) || shoppingList.status === 'completed'}
                       className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 mr-3 cursor-pointer"
-                      aria-label={`${item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}をチェック`}
+                      aria-label={`${ingredientLabel}をチェック`}
                     />
+                    {ingredientEmoji && (
+                      <span className="mr-3 text-xl" aria-hidden="true">
+                        {ingredientEmoji}
+                      </span>
+                    )}
                     <div className="flex-1">
                       <span
                         className={`font-medium ${
@@ -428,15 +451,10 @@ const ShoppingListDetail: React.FC = () => {
                             : 'text-gray-900'
                         }`}
                       >
-                        {item.ingredient?.displayNameWithEmoji || item.ingredient?.displayName || item.ingredient?.name || '不明な食材'}
+                        {ingredientLabel}
                       </span>
                       <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
-                        <span>{item.displayQuantityWithUnit}</span>
-                        {item.ingredient?.category && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
-                            {item.ingredient.category}
-                          </span>
-                        )}
+                        {quantityLabel && <span>{quantityLabel}</span>}
                       </div>
                     </div>
                   </label>
@@ -454,6 +472,8 @@ const ShoppingListDetail: React.FC = () => {
                   </div>
                 )}
               </div>
+                )
+              })()
             ))}
           </div>
 
@@ -495,13 +515,6 @@ const ShoppingListDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* 自動更新インジケーター */}
-        <div className="mt-4 text-center text-xs text-gray-500">
-          自動更新: 15秒ごと
-          {isPolling && (
-            <span className="ml-2 inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          )}
-        </div>
       </div>
     </div>
   )

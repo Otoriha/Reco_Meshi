@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import type { ShoppingListSummary } from '../../types/shoppingList'
-import { getShoppingLists, getShoppingListErrorMessage } from '../../api/shoppingLists'
+import { getShoppingLists, getShoppingListErrorMessage, completeShoppingList } from '../../api/shoppingLists'
 import { FaEye } from 'react-icons/fa'
 
 const POLLING_INTERVAL = 30000 // 30秒
@@ -11,6 +11,7 @@ const ShoppingLists: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'in_progress' | 'completed'>('in_progress')
+  const [completingId, setCompletingId] = useState<number | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
   const isFetchingRef = useRef(false)
@@ -114,9 +115,18 @@ const ShoppingLists: React.FC = () => {
     // TODO: LINEに送る機能の実装
   }
 
-  const handleCompleteList = (listId: number) => {
-    console.log('買い物完了:', listId)
-    // TODO: 買い物完了機能の実装
+  const handleCompleteList = async (listId: number) => {
+    if (completingId) return
+    setCompletingId(listId)
+    try {
+      await completeShoppingList(listId)
+      await fetchShoppingLists(false)
+    } catch (e) {
+      console.error('買い物完了エラー:', e)
+      setError(getShoppingListErrorMessage(e))
+    } finally {
+      setCompletingId(null)
+    }
   }
 
   return (
@@ -208,9 +218,17 @@ const ShoppingLists: React.FC = () => {
                         {list.displayTitle}
                       </h3>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {formatDate(list.createdAt)} 作成
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        {formatDate(list.createdAt)} 作成
+                      </p>
+                      <div className="flex gap-2 text-sm">
+                        <span className="text-gray-600">{list.statusDisplay}</span>
+                        {list.recipe && (
+                          <span className="text-gray-600">レシピ: {list.recipe.title}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={() => handleSendToLine(list.id)}
@@ -220,43 +238,11 @@ const ShoppingLists: React.FC = () => {
                   </button>
                 </div>
 
-                {/* 必須の材料 */}
-                {list.recipe && (
-                  <div className="mb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">必須の材料</h4>
-                    <div className="space-y-2">
-                      {/* サンプルアイテム - 実際はAPIからのデータを使用 */}
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" className="w-4 h-4 text-green-600 rounded" />
-                        <span className="text-gray-900">カレールー（中辛）1箱</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" className="w-4 h-4 text-green-600 rounded" />
-                        <span className="text-gray-900">豚肉（カレー用）300g</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* お好みで追加 */}
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">お好みで追加</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" className="w-4 h-4 text-green-600 rounded" />
-                      <span className="text-gray-900">福神漬け</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" className="w-4 h-4 text-green-600 rounded" />
-                      <span className="text-gray-900">らっきょう</span>
-                    </div>
-                  </div>
-                </div>
 
                 {/* 進捗状況 */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                    <span>進捗状況</span>
+                    <span>進捗: {list.totalItemsCount - list.uncheckedItemsCount} / {list.totalItemsCount} 項目</span>
                     <span className="font-medium text-green-600">{list.completionPercentage}% 完了</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -272,9 +258,23 @@ const ShoppingLists: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleCompleteList(list.id)}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center gap-2"
+                      disabled={completingId === list.id}
+                      className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+                        completingId === list.id
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
                     >
-                      ✓ 買い物完了
+                      {completingId === list.id ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          処理中...
+                        </>
+                      ) : (
+                        <>
+                          ✓ 買い物完了
+                        </>
+                      )}
                     </button>
                     <Link
                       to={`/shopping-lists/${list.id}`}

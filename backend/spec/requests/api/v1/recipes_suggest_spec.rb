@@ -14,12 +14,12 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
         let(:request_params) do
           {
             recipe_suggestion: {
-              ingredients: ["玉ねぎ", "豚肉", "人参"],
+              ingredients: [ "玉ねぎ", "豚肉", "人参" ],
               preferences: {
                 cooking_time: 30,
                 difficulty_level: "easy",
                 cuisine_type: "和食",
-                dietary_restrictions: ["ベジタリアン"]
+                dietary_restrictions: [ "ベジタリアン" ]
               }
             }
           }
@@ -31,11 +31,11 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           generator = instance_double(RecipeGenerator)
           allow(RecipeGenerator).to receive(:new).with(user: user).and_return(generator)
           allow(generator).to receive(:generate_from_ingredients)
-            .with(["玉ねぎ", "豚肉", "人参"], {
+            .with([ "玉ねぎ", "豚肉", "人参" ], {
               "cooking_time" => "30",
               "difficulty_level" => "easy",
               "cuisine_type" => "和食",
-              "dietary_restrictions" => ["ベジタリアン"]
+              "dietary_restrictions" => [ "ベジタリアン" ]
             })
             .and_return(recipe)
 

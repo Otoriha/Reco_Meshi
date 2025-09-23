@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { recipesApi } from '../../api/recipes'
+import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 
 const RecipeDetail: React.FC = () => {
@@ -11,6 +12,7 @@ const RecipeDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [checkedIngredients, setCheckedIngredients] = useState<IngredientCheckState>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
   const [memo, setMemo] = useState('')
 
   useEffect(() => {
@@ -48,17 +50,35 @@ const RecipeDetail: React.FC = () => {
     }))
   }
 
+  const handleCreateShoppingList = async () => {
+    if (!recipe) return
+
+    try {
+      setIsCreatingShoppingList(true)
+
+      const shoppingList = await createShoppingList(recipe.id)
+
+      // 成功した場合、作成された買い物リストの詳細ページに遷移
+      alert('買い物リストを作成しました！')
+      navigate(`/shopping-lists/${shoppingList.id}`)
+    } catch (err) {
+      alert(getShoppingListErrorMessage(err))
+    } finally {
+      setIsCreatingShoppingList(false)
+    }
+  }
+
   const handleCookedSubmit = async () => {
     if (!recipe) return
-    
+
     try {
       setIsSubmitting(true)
-      
+
       await recipesApi.createRecipeHistory({
         recipe_id: recipe.id,
         memo: memo.trim() || undefined
       })
-      
+
       // 成功した場合、履歴ページに遷移
       alert('調理記録を保存しました！')
       navigate('/recipe-history')
@@ -143,7 +163,7 @@ const RecipeDetail: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">材料</h2>
           {recipe.ingredients && recipe.ingredients.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 mb-6">
               {recipe.ingredients.map((ingredient) => (
                 <label
                   key={ingredient.id}
@@ -173,8 +193,28 @@ const RecipeDetail: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">材料情報がありません</p>
+            <p className="text-gray-500 mb-6">材料情報がありません</p>
           )}
+
+          {/* 買い物リスト作成ボタン */}
+          <div className="border-t pt-4">
+            <button
+              onClick={handleCreateShoppingList}
+              disabled={isCreatingShoppingList}
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {isCreatingShoppingList ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  作成中...
+                </>
+              ) : (
+                <>
+                  🛒 買い物リストを作成
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* 調理手順 */}

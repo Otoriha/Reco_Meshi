@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_11_080314) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_22_141000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -111,7 +111,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_11_080314) do
 
   create_table "shopping_list_items", force: :cascade do |t|
     t.bigint "shopping_list_id", null: false, comment: "所属する買い物リスト"
-    t.bigint "ingredient_id", null: false, comment: "購入する食材"
+    t.bigint "ingredient_id", comment: "購入する食材"
     t.decimal "quantity", precision: 10, scale: 2, null: false, comment: "購入量"
     t.string "unit", limit: 20, null: false, comment: "単位"
     t.boolean "is_checked", default: false, null: false, comment: "購入済みチェック"
@@ -119,10 +119,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_11_080314) do
     t.integer "lock_version", default: 0, null: false, comment: "楽観ロック用バージョン"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "ingredient_name"
     t.index ["ingredient_id"], name: "index_shopping_list_items_on_ingredient_id"
     t.index ["is_checked"], name: "index_shopping_list_items_on_is_checked"
     t.index ["shopping_list_id", "ingredient_id"], name: "idx_on_shopping_list_id_ingredient_id_f6963fd74f", unique: true
     t.index ["shopping_list_id"], name: "index_shopping_list_items_on_shopping_list_id"
+    t.check_constraint "ingredient_id IS NOT NULL OR ingredient_name IS NOT NULL", name: "chk_shopping_list_items_ingredient_presence"
   end
 
   create_table "shopping_lists", force: :cascade do |t|

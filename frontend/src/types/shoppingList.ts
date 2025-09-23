@@ -27,6 +27,12 @@ export interface ShoppingListItem {
   id: number
   shoppingListId?: number
   ingredientId?: number
+  ingredientName?: string | null
+  ingredientDisplayName?: string | null
+  ingredientDisplayNameText?: string | null
+  ingredientCategory?: string | null
+  ingredientEmoji?: string | null
+  statusDisplay?: string
   quantity: number
   unit: string | null
   isChecked: boolean
@@ -51,6 +57,7 @@ export interface Ingredient {
   id: number
   name: string
   category: string
+  emoji?: string
   displayName?: string
   displayNameWithEmoji?: string
 }
@@ -79,6 +86,11 @@ export interface ShoppingListsResponse extends JsonApiResponse<JsonApiResource[]
 
 // 詳細取得時のレスポンス型
 export interface ShoppingListResponse extends JsonApiResponse<JsonApiResource> {
+  data: JsonApiResource
+}
+
+// アイテム単体のレスポンス型
+export interface ShoppingListItemResponse extends JsonApiResponse<JsonApiResource> {
   data: JsonApiResource
 }
 

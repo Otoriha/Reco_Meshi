@@ -31,7 +31,7 @@ class Api::V1::RecipesController < ApplicationController
           return render json: {
             success: false,
             message: "食材は配列で指定してください",
-            errors: ["ingredients must be an array"]
+            errors: [ "ingredients must be an array" ]
           }, status: 422
         end
       end
@@ -61,10 +61,10 @@ class Api::V1::RecipesController < ApplicationController
       recipe = if ingredients.present?
                  # 指定された食材からレシピ生成
                  generator.generate_from_ingredients(ingredients, preferences)
-               else
+      else
                  # ユーザーの在庫食材からレシピ生成
                  generator.generate_from_user_ingredients(preferences)
-               end
+      end
 
       Rails.logger.info "Recipe suggested successfully: #{recipe.title} (ID: #{recipe.id}) for user #{current_user.id}"
 
@@ -78,7 +78,7 @@ class Api::V1::RecipesController < ApplicationController
       render json: {
         success: false,
         message: "レシピ生成に失敗しました",
-        errors: [e.message]
+        errors: [ e.message ]
       }, status: 422
 
     rescue => e
@@ -130,8 +130,8 @@ class Api::V1::RecipesController < ApplicationController
     normalized = pref.stringify_keys
 
     # difficulty_level → difficulty にマッピング
-    if normalized.key?('difficulty_level')
-      normalized['difficulty'] = normalized.delete('difficulty_level')
+    if normalized.key?("difficulty_level")
+      normalized["difficulty"] = normalized.delete("difficulty_level")
     end
 
     # テスト期待に合わせ、値を文字列化（配列も各要素を文字列化）

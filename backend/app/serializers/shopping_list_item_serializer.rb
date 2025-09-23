@@ -1,17 +1,17 @@
 class ShoppingListItemSerializer
   include JSONAPI::Serializer
 
-  attributes :id, :quantity, :unit, :is_checked, :checked_at, :created_at, :updated_at, :lock_version
+  attributes :id, :quantity, :unit, :is_checked, :checked_at, :created_at, :updated_at, :lock_version, :ingredient_name
 
   belongs_to :shopping_list
-  belongs_to :ingredient
+  belongs_to :ingredient, optional: true
 
   attribute :display_quantity_with_unit do |object|
     object.display_quantity_with_unit
   end
 
-  attribute :ingredient_name do |object|
-    object.ingredient_name
+  attribute :ingredient_display_name_text do |object|
+    object.ingredient_display_name
   end
 
   attribute :ingredient_category do |object|
@@ -19,11 +19,11 @@ class ShoppingListItemSerializer
   end
 
   attribute :ingredient_emoji do |object|
-    object.ingredient&.emoji
+    object.ingredient_emoji
   end
 
   attribute :ingredient_display_name do |object|
-    object.ingredient&.display_name_with_emoji
+    object.ingredient&.display_name_with_emoji || object.ingredient_display_name
   end
 
   attribute :checked_recently do |object|

@@ -58,7 +58,16 @@ class ShoppingList < ApplicationRecord
   end
 
   def display_title
-    title.presence || (recipe&.title ? "#{recipe.title}の買い物リスト" : "買い物リスト")
+    auto_generated_title = recipe&.title.present? ? "#{recipe.title}の買い物リスト" : nil
+
+    if title.present?
+      return recipe.title if auto_generated_title.present? && title == auto_generated_title
+      return title
+    end
+
+    return recipe.title if recipe&.title.present?
+
+    "買い物リスト"
   end
 
   def can_be_completed?

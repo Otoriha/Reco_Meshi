@@ -52,19 +52,19 @@ module App
     config.active_job.queue_adapter = :inline
 
     # Vision API設定の集中管理
-    config.x.vision.label_min_score = ENV.fetch('VISION_LABEL_MIN_SCORE', '0.4').to_f.clamp(0.0, 1.0)
-    config.x.vision.object_min_score = ENV.fetch('VISION_OBJECT_MIN_SCORE', '0.4').to_f.clamp(0.0, 1.0)
-    config.x.vision.ingredient_threshold = ENV.fetch('VISION_INGREDIENT_THRESHOLD', '0.5').to_f.clamp(0.0, 1.0)
-    config.x.vision.max_results = ENV.fetch('VISION_MAX_RESULTS', '50').to_i.clamp(1, 100)
+    config.x.vision.label_min_score = ENV.fetch("VISION_LABEL_MIN_SCORE", "0.4").to_f.clamp(0.0, 1.0)
+    config.x.vision.object_min_score = ENV.fetch("VISION_OBJECT_MIN_SCORE", "0.4").to_f.clamp(0.0, 1.0)
+    config.x.vision.ingredient_threshold = ENV.fetch("VISION_INGREDIENT_THRESHOLD", "0.5").to_f.clamp(0.0, 1.0)
+    config.x.vision.max_results = ENV.fetch("VISION_MAX_RESULTS", "50").to_i.clamp(1, 100)
 
     # Vision機能フラグ
-    config.x.vision.enable_crop_reeval = ENV.fetch('VISION_ENABLE_CROP_REEVAL', 'false') == 'true'
-    config.x.vision.enable_crop_hints = ENV.fetch('VISION_ENABLE_CROP_HINTS', 'false') == 'true'
-    config.x.vision.enable_preprocess = ENV.fetch('VISION_ENABLE_PREPROCESS', 'false') == 'true'
+    config.x.vision.enable_crop_reeval = ENV.fetch("VISION_ENABLE_CROP_REEVAL", "false") == "true"
+    config.x.vision.enable_crop_hints = ENV.fetch("VISION_ENABLE_CROP_HINTS", "false") == "true"
+    config.x.vision.enable_preprocess = ENV.fetch("VISION_ENABLE_PREPROCESS", "false") == "true"
 
     # Visionコスト制御
-    config.x.vision.max_crops = ENV.fetch('VISION_MAX_CROPS', '10').to_i.clamp(0, 20)
-    config.x.vision.api_max_calls = ENV.fetch('VISION_API_MAX_CALLS_PER_IMAGE', '15').to_i.clamp(1, 30)
+    config.x.vision.max_crops = ENV.fetch("VISION_MAX_CROPS", "10").to_i.clamp(0, 20)
+    config.x.vision.api_max_calls = ENV.fetch("VISION_API_MAX_CALLS_PER_IMAGE", "15").to_i.clamp(1, 30)
 
     # 起動時に設定値をログ出力（ログが利用可能な場合のみ）
     config.after_initialize do

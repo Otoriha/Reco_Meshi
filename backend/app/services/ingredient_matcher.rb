@@ -4,6 +4,21 @@ class IngredientMatcher
   AMBIGUOUS_SCORE_DIFF = ENV.fetch("INGREDIENT_AMBIGUOUS_SCORE_DIFF", "0.1").to_f
   AUTO_CREATE_ENABLED = ENV.fetch("INGREDIENT_AUTO_CREATE_ENABLED", "false") == "true"
 
+  CANONICAL_NAME_MAPPINGS = {
+    "人参" => "にんじん",
+    "大根" => "だいこん",
+    "玉葱" => "たまねぎ",
+    "葱" => "ねぎ",
+    "長葱" => "ながねぎ",
+    "椎茸" => "しいたけ",
+    "牛蒡" => "ごぼう",
+    "馬鈴薯" => "じゃがいも",
+    "胡瓜" => "きゅうり",
+    "茄子" => "なす",
+    "青梗菜" => "ちんげんさい",
+    "甘藷" => "さつまいも"
+  }.freeze
+
   # ひらがな・カタカナ正規化用のマッピング
   KANA_MAPPING = {
     "あ" => "ア", "い" => "イ", "う" => "ウ", "え" => "エ", "お" => "オ",
@@ -107,6 +122,10 @@ class IngredientMatcher
     return "" if name.blank?
 
     normalized = name.to_s.strip
+
+    CANONICAL_NAME_MAPPINGS.each do |from, to|
+      normalized = normalized.gsub(from, to)
+    end
 
     # 1. 全角・半角変換
     normalized = normalized.chars.map { |char| ZENKAKU_TO_HANKAKU[char] || char }.join

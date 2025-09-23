@@ -1,3 +1,5 @@
+require 'set'
+
 class ShoppingListBuilder
   def initialize(user, recipe)
     @user = user
@@ -42,11 +44,23 @@ class ShoppingListBuilder
     missing_ingredients = calculate_missing_ingredients
 
     missing_ingredients.each do |ingredient_data|
-      list.shopping_list_items.create!(
+      item_params = {
         ingredient_id: ingredient_data[:ingredient_id],
         quantity: ingredient_data[:quantity],
         unit: ingredient_data[:unit]
-      )
+      }
+
+      # ingredient_idがnullの場合はingredient_nameを設定
+      if ingredient_data[:ingredient_id].nil? && ingredient_data[:ingredient_name].present?
+        item_params[:ingredient_name] = ingredient_data[:ingredient_name]
+      end
+
+      if should_mark_as_checked?(ingredient_data)
+        item_params[:is_checked] = true
+        item_params[:checked_at] = Time.current
+      end
+
+      list.shopping_list_items.create!(item_params)
     end
   end
 
@@ -58,40 +72,64 @@ class ShoppingListBuilder
       next if recipe_ingredient.is_optional?
 
       ingredient = recipe_ingredient.ingredient
-      next unless ingredient
-
-      required_amount = recipe_ingredient.amount || 0
+      original_amount = recipe_ingredient.amount
+      required_amount = ensure_required_amount(original_amount)
+      require_exact_amount = original_amount.present? && original_amount.to_f > 0
       recipe_unit = recipe_ingredient.unit
-      ingredient_unit = ingredient.unit
 
-      # レシピの必要量を食材マスター単位に変換
-      converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
-      available_amount = user_inventory[ingredient.id] || 0
+      if ingredient
+        ingredient_unit = ingredient.unit
 
-      # 変換結果に基づいて不足量を計算
-      shortage_amount = if converted_required_amount.nil?
-        # 変換不可の場合は在庫を考慮せずレシピ量をそのまま使用
-        log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit)
-        required_amount
-      else
-        # 変換成功の場合は在庫差し引き
-        shortage = converted_required_amount - available_amount
-        shortage > 0 ? shortage : 0
-      end
+        shortage_amount = if require_exact_amount
+          converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
+          available_amount = user_inventory[ingredient.id] || 0
 
-      if shortage_amount > 0
-        # 最終単位の決定ロジック
-        final_unit = if converted_required_amount.nil?
-          # 変換失敗時: レシピ単位が許可されていれば使用、未許可なら食材単位にフォールバック
-          ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit) ? recipe_unit : ingredient_unit
+          if converted_required_amount.nil?
+            log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit)
+            required_amount
+          else
+            shortage = converted_required_amount - available_amount
+            shortage > 0 ? shortage : 0
+          end
         else
-          # 変換成功時: 食材マスター単位に統一
-          ingredient_unit
+          required_amount
+        end
+
+        if shortage_amount > 0
+          final_unit = if require_exact_amount
+            resolve_unit(recipe_unit, ingredient_unit)
+          else
+            "適量"
+          end
+
+          missing_ingredients << {
+            ingredient_id: ingredient.id,
+            quantity: normalize_quantity(shortage_amount),
+            unit: final_unit
+          }
+        end
+      else
+        # 新しいロジック: ingredientが存在しない場合（ingredient_id = null）
+        # 在庫チェックをスキップして、レシピ量をそのまま追加
+        ingredient_name = recipe_ingredient.ingredient_name
+        next if ingredient_name.blank?
+
+        # レシピ量が0以下の場合はデフォルト量（1）を使用
+        final_quantity = required_amount
+
+        # 単位の決定: レシピ単位が許可されていれば使用、なければ「個」をデフォルト
+        final_unit = if !require_exact_amount
+          "適量"
+        elsif recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
+          recipe_unit
+        else
+          "個"
         end
 
         missing_ingredients << {
-          ingredient_id: ingredient.id,
-          quantity: normalize_quantity(shortage_amount),
+          ingredient_id: nil,
+          ingredient_name: ingredient_name,
+          quantity: normalize_quantity(final_quantity),
           unit: final_unit
         }
       end
@@ -102,6 +140,9 @@ class ShoppingListBuilder
 
   def build_user_inventory
     inventory = {}
+    @inventory_name_index = Set.new
+
+    @inventory_ingredient_ids = Set.new
 
     @user.user_ingredients
          .joins(:ingredient)
@@ -111,7 +152,12 @@ class ShoppingListBuilder
       ingredient_id = user_ingredient.ingredient_id
       quantity = user_ingredient.quantity || 0
 
+      @inventory_ingredient_ids << ingredient_id if ingredient_id.present?
+
       inventory[ingredient_id] = (inventory[ingredient_id] || 0) + quantity
+
+      normalized_name = normalize_name(user_ingredient.ingredient&.name)
+      @inventory_name_index << normalized_name if normalized_name.present?
     end
 
     inventory
@@ -157,13 +203,16 @@ class ShoppingListBuilder
 
     ingredients.each do |ingredient_data|
       id = ingredient_data[:ingredient_id]
+      name = ingredient_data[:ingredient_name]
       quantity = ingredient_data[:quantity]
 
-      # 単位変換後は ingredient_id のみで集約（単位が統一されているため）
-      if consolidated[id]
-        consolidated[id][:quantity] += quantity
+      # 集約キーの決定: ingredient_idがある場合はid、ない場合はingredient_name
+      key = id || "name:#{name}"
+
+      if consolidated[key]
+        consolidated[key][:quantity] += quantity
       else
-        consolidated[id] = ingredient_data.dup
+        consolidated[key] = ingredient_data.dup
       end
     end
 
@@ -171,5 +220,53 @@ class ShoppingListBuilder
       data[:quantity] = normalize_quantity(data[:quantity])
       data
     end
+  end
+
+  def ensure_required_amount(amount)
+    if amount.present? && amount.to_f > 0
+      amount
+    else
+      1.0
+    end
+  end
+
+  def resolve_unit(recipe_unit, ingredient_unit)
+    return recipe_unit if recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
+    return ingredient_unit if ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
+
+    "個"
+  end
+
+  def should_mark_as_checked?(ingredient_data)
+    ingredient_id = ingredient_data[:ingredient_id]
+    ingredient_name = ingredient_data[:ingredient_name]
+
+    return false if ingredient_name.blank?
+    return false if ingredient_id.present? # 不足量がありリストに追加されているため
+
+    @inventory_name_index ||= Set.new
+    return false if @inventory_name_index.empty?
+
+    normalized_name = normalize_name(ingredient_name)
+    return true if normalized_name.present? && @inventory_name_index.include?(normalized_name)
+
+    matcher_result = ingredient_matcher.find_ingredient(ingredient_name)
+    ingredient = matcher_result&.dig(:ingredient)
+    return false unless ingredient
+
+    return true if @inventory_ingredient_ids.include?(ingredient.id)
+
+    matched_normalized_name = normalize_name(ingredient.name)
+    matched_normalized_name.present? && @inventory_name_index.include?(matched_normalized_name)
+  end
+
+  def normalize_name(name)
+    return "" if name.blank?
+
+    ingredient_matcher.send(:normalize_ingredient_name, name)
+  end
+
+  def ingredient_matcher
+    @ingredient_matcher ||= IngredientMatcher.new
   end
 end
