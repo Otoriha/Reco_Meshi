@@ -42,8 +42,6 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
             headers: { 'Authorization' => get_auth_token(user) },
             as: :json
 
-        puts "Response status: #{response.status}"
-        puts "Response body: #{response.body}" if response.status != 200
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
         expect(body['data'].length).to eq(1)
@@ -155,7 +153,7 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
           expect(body['data']['attributes']['note']).to eq('Test note')
         end
 
-        it 'returns 422 with invalid params' do
+        it 'returns 404 when the specified recipe_id does not exist' do
           invalid_params = { shopping_list: { title: 'x' * 101 } }
 
           post '/api/v1/shopping_lists', params: invalid_params, headers: { 'Authorization' => get_auth_token(user) }, as: :json
@@ -354,6 +352,88 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
       it 'returns 403 for other user list' do
         delete "/api/v1/shopping_lists/#{other_user_list.id}", headers: { 'Authorization' => get_auth_token(user) }, as: :json
         expect(response).to have_http_status(:forbidden)
+      end
+    end
+  end
+
+  describe 'PATCH /api/v1/shopping_lists/:id/complete' do
+    let(:headers) { { 'Authorization' => get_auth_token(user) } }
+
+    context '認証されたユーザーの場合' do
+      it '買い物リストが正常に完了する' do
+        shopping_list = create(:shopping_list, user: user, status: :pending)
+        item1 = create(:shopping_list_item, shopping_list: shopping_list, is_checked: false, checked_at: nil)
+        item2 = create(:shopping_list_item, shopping_list: shopping_list, is_checked: false, checked_at: nil)
+
+        patch "/api/v1/shopping_lists/#{shopping_list.id}/complete", headers: headers
+
+        expect(response).to have_http_status(:ok)
+
+        shopping_list.reload
+        expect(shopping_list.status).to eq('completed')
+
+        # 全てのアイテムがチェック済みになること
+        item1.reload
+        item2.reload
+        expect(item1.is_checked).to be true
+        expect(item1.checked_at).not_to be_nil
+        expect(item2.is_checked).to be true
+        expect(item2.checked_at).not_to be_nil
+      end
+
+      it 'JSON:API形式でレスポンスを返す' do
+        shopping_list = create(:shopping_list, user: user, status: :pending)
+        ingredient = create(:ingredient, name: 'Test Ingredient')
+        create(:shopping_list_item, shopping_list: shopping_list, ingredient: ingredient)
+
+        patch "/api/v1/shopping_lists/#{shopping_list.id}/complete", headers: headers
+
+        json = JSON.parse(response.body)
+        expect(json).to have_key('data')
+        expect(json['data']['type']).to eq('shopping_list')
+        expect(json['data']['attributes']['status']).to eq('completed')
+
+        # includedにアイテムとイングリーディエントが含まれること
+        expect(json).to have_key('included')
+        expect(json['included']).not_to be_empty
+      end
+
+      it '他ユーザーのリストの場合403エラー' do
+        other_user = create(:user, :confirmed)
+        shopping_list = create(:shopping_list, user: other_user)
+
+        patch "/api/v1/shopping_lists/#{shopping_list.id}/complete", headers: headers
+
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it '存在しないリストの場合404エラー' do
+        patch "/api/v1/shopping_lists/99999/complete", headers: headers
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'エラー発生時に422エラーとエラーメッセージを返す' do
+        shopping_list = create(:shopping_list, user: user, status: :pending)
+
+        # 何かしらの例外を発生させる（例：無効なデータ）
+        allow_any_instance_of(ShoppingList).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(ShoppingList.new))
+
+        patch "/api/v1/shopping_lists/#{shopping_list.id}/complete", headers: headers
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json).to have_key('errors')
+      end
+    end
+
+    context '未認証ユーザーの場合' do
+      it '401エラーを返す' do
+        shopping_list = create(:shopping_list)
+
+        patch "/api/v1/shopping_lists/#{shopping_list.id}/complete"
+
+        expect(response).to have_http_status(:unauthorized)
       end
     end
   end

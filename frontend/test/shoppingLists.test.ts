@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import React from 'react'
-import { MemoryRouter } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import ShoppingLists from '../src/pages/ShoppingLists/ShoppingLists'
 import ShoppingListDetail from '../src/pages/ShoppingLists/ShoppingListDetail'
 import * as shoppingListsApi from '../src/api/shoppingLists'
 import type { ShoppingListSummary, ShoppingList } from '../src/types/shoppingList'
+
+// API関数のモック
+vi.mock('../src/api/shoppingLists', () => ({
+  getShoppingLists: vi.fn(),
+  getShoppingList: vi.fn(),
+  updateShoppingListItem: vi.fn(),
+  completeShoppingList: vi.fn(),
+  createShoppingList: vi.fn(),
+  getShoppingListErrorMessage: vi.fn()
+}))
 
 // APIクライアントのモック
 vi.mock('../src/api/client', () => ({
@@ -76,9 +87,9 @@ describe('ShoppingLists Component', () => {
       }
     ]
 
-    vi.spyOn(shoppingListsApi, 'getShoppingLists')
-      .mockResolvedValueOnce(mockShoppingLists.filter(list => list.status === 'pending'))
-      .mockResolvedValueOnce(mockShoppingLists.filter(list => list.status === 'in_progress'))
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockResolvedValueOnce([mockShoppingLists[0]]) // pending
+      .mockResolvedValueOnce([mockShoppingLists[1]]) // in_progress
 
     render(
       React.createElement(MemoryRouter, null,
@@ -107,7 +118,8 @@ describe('ShoppingLists Component', () => {
 
   it('エラー時にエラーメッセージを表示する', async () => {
     const mockError = new Error('Network error')
-    vi.spyOn(shoppingListsApi, 'getShoppingLists').mockRejectedValue(mockError)
+    vi.mocked(shoppingListsApi.getShoppingLists).mockRejectedValue(mockError)
+    vi.mocked(shoppingListsApi.getShoppingListErrorMessage).mockReturnValue('予期しないエラーが発生しました')
 
     render(
       React.createElement(MemoryRouter, null,
@@ -116,16 +128,259 @@ describe('ShoppingLists Component', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/予期しないエラーが発生しました/)).toBeInTheDocument()
+      expect(screen.getByText('予期しないエラーが発生しました')).toBeInTheDocument()
       expect(screen.getByText('再試行')).toBeInTheDocument()
+    })
+  })
+
+  it('買い物完了ボタンが正しく動作する', async () => {
+    const user = userEvent.setup()
+    const mockShoppingLists: ShoppingListSummary[] = [{
+      id: 1,
+      displayTitle: 'テスト買い物リスト',
+      status: 'pending',
+      statusDisplay: '作成済み',
+      completionPercentage: 100,
+      totalItemsCount: 2,
+      uncheckedItemsCount: 0,
+      canBeCompleted: true,
+      createdAt: '2024-01-01T10:00:00Z',
+      recipe: null
+    }]
+
+    // pending と in_progress の呼び出しに対してそれぞれモック設定
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockResolvedValueOnce(mockShoppingLists) // pending
+      .mockResolvedValueOnce([]) // in_progress
+      .mockResolvedValueOnce([]) // 完了後のpending再取得
+      .mockResolvedValueOnce([]) // 完了後のin_progress再取得
+
+    vi.mocked(shoppingListsApi.completeShoppingList).mockResolvedValue({
+      id: 1,
+      displayTitle: 'テスト買い物リスト',
+      status: 'completed',
+      statusDisplay: '完了',
+      completionPercentage: 100,
+      totalItemsCount: 2,
+      uncheckedItemsCount: 0,
+      canBeCompleted: false,
+      createdAt: '2024-01-01T10:00:00Z',
+      updatedAt: '2024-01-01T11:00:00Z',
+      title: null,
+      note: null,
+      recipe: null,
+      shoppingListItems: []
+    })
+
+    render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('✓ 買い物完了')).toBeInTheDocument()
+    })
+
+    const completeButton = screen.getByText('✓ 買い物完了')
+    await user.click(completeButton)
+
+    await waitFor(() => {
+      expect(shoppingListsApi.completeShoppingList).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('買い物完了処理中はボタンがdisabledになる', async () => {
+    const user = userEvent.setup()
+    const mockShoppingLists: ShoppingListSummary[] = [{
+      id: 1,
+      displayTitle: 'テスト買い物リスト',
+      status: 'pending',
+      statusDisplay: '作成済み',
+      completionPercentage: 100,
+      totalItemsCount: 2,
+      uncheckedItemsCount: 0,
+      canBeCompleted: true,
+      createdAt: '2024-01-01T10:00:00Z',
+      recipe: null
+    }]
+
+    let resolveComplete: (value: any) => void
+    const completePromise = new Promise(resolve => {
+      resolveComplete = resolve
+    })
+
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockResolvedValueOnce(mockShoppingLists) // pending
+      .mockResolvedValueOnce([]) // in_progress
+    vi.mocked(shoppingListsApi.completeShoppingList).mockReturnValue(completePromise)
+
+    render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('✓ 買い物完了')).toBeInTheDocument()
+    })
+
+    const completeButton = screen.getByText('✓ 買い物完了')
+    await user.click(completeButton)
+
+    // 処理中は「処理中...」テキストが表示される
+    await waitFor(() => {
+      expect(screen.getByText('処理中...')).toBeInTheDocument()
+    })
+
+    resolveComplete!({
+      id: 1,
+      displayTitle: 'テスト買い物リスト',
+      status: 'completed',
+      statusDisplay: '完了',
+      completionPercentage: 100,
+      totalItemsCount: 2,
+      uncheckedItemsCount: 0,
+      canBeCompleted: false,
+      createdAt: '2024-01-01T10:00:00Z',
+      updatedAt: '2024-01-01T11:00:00Z',
+      title: null,
+      note: null,
+      recipe: null,
+      shoppingListItems: []
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('処理中...')).not.toBeInTheDocument()
+    })
+  })
+
+  it('買い物完了でエラーが発生した場合エラーメッセージが表示される', async () => {
+    const user = userEvent.setup()
+    const mockShoppingLists: ShoppingListSummary[] = [{
+      id: 1,
+      displayTitle: 'テスト買い物リスト',
+      status: 'pending',
+      statusDisplay: '作成済み',
+      completionPercentage: 100,
+      totalItemsCount: 2,
+      uncheckedItemsCount: 0,
+      canBeCompleted: true,
+      createdAt: '2024-01-01T10:00:00Z',
+      recipe: null
+    }]
+
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockResolvedValueOnce(mockShoppingLists) // pending
+      .mockResolvedValueOnce([]) // in_progress
+    vi.mocked(shoppingListsApi.completeShoppingList).mockRejectedValue({ response: { status: 500 } })
+    vi.mocked(shoppingListsApi.getShoppingListErrorMessage).mockReturnValue('サーバーエラーが発生しました')
+
+    render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('✓ 買い物完了')).toBeInTheDocument()
+    })
+
+    const completeButton = screen.getByText('✓ 買い物完了')
+    await user.click(completeButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('サーバーエラーが発生しました')).toBeInTheDocument()
+    })
+  })
+
+  it('完了済みタブに切り替えた際、completedステータスのリストが取得される', async () => {
+    const user = userEvent.setup()
+
+    // 最初のpending, in_progress呼び出し用のモック
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockResolvedValueOnce([]) // pending
+      .mockResolvedValueOnce([]) // in_progress
+      .mockResolvedValueOnce([]) // completed (タブ切り替え後)
+
+    render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('完了済み')).toBeInTheDocument()
+    })
+
+    const completedTab = screen.getByText('完了済み')
+    await user.click(completedTab)
+
+    await waitFor(() => {
+      expect(shoppingListsApi.getShoppingLists).toHaveBeenCalledWith({ status: 'completed', per_page: 50 })
+    })
+  })
+
+  it('空状態メッセージが正しく表示される', async () => {
+    const user = userEvent.setup()
+
+    // 全て空配列を返すモック設定（ポーリングも考慮して多めに設定）
+    vi.mocked(shoppingListsApi.getShoppingLists).mockResolvedValue([])
+
+    const { container } = render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    // 初回レンダリング後の空状態メッセージを確認
+    await waitFor(() => {
+      expect(container.textContent).toContain('進行中の買い物リストがありません')
+    }, { timeout: 3000 })
+
+    // 完了済みタブに切り替え
+    const completedTab = screen.getByText('完了済み')
+    await user.click(completedTab)
+
+    // 完了済みタブでの空状態メッセージを確認
+    await waitFor(() => {
+      expect(container.textContent).toContain('完了済みの買い物リストがありません')
+    }, { timeout: 3000 })
+  })
+
+  it('エラー発生時の再試行ボタンが正しく動作する', async () => {
+    const user = userEvent.setup()
+    const mockError = new Error('Network error')
+
+    vi.mocked(shoppingListsApi.getShoppingLists)
+      .mockRejectedValueOnce(mockError)
+      .mockRejectedValueOnce(mockError) // 2回目もエラー（in_progressの呼び出し分）
+      .mockResolvedValueOnce([]) // 再試行でのpending
+      .mockResolvedValueOnce([]) // 再試行でのin_progress
+    vi.mocked(shoppingListsApi.getShoppingListErrorMessage).mockReturnValue('ネットワークエラー')
+
+    render(
+      React.createElement(BrowserRouter, null,
+        React.createElement(ShoppingLists)
+      )
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('再試行')).toBeInTheDocument()
+    })
+
+    const retryButton = screen.getByText('再試行')
+    await user.click(retryButton)
+
+    await waitFor(() => {
+      expect(shoppingListsApi.getShoppingLists).toHaveBeenCalledTimes(4) // 初回2回（エラー）+ 再試行2回（成功）
     })
   })
 
   it('ポーリングが設定された間隔で実行される', async () => {
     vi.useFakeTimers()
     const mockShoppingLists: ShoppingListSummary[] = []
-    const getSpy = vi.spyOn(shoppingListsApi, 'getShoppingLists')
-      .mockResolvedValue(mockShoppingLists)
+    vi.mocked(shoppingListsApi.getShoppingLists).mockResolvedValue(mockShoppingLists)
 
     render(
       React.createElement(MemoryRouter, null,
@@ -135,12 +390,12 @@ describe('ShoppingLists Component', () => {
 
     // 初回の呼び出し（pending と in_progress の2回）
     await flushAsync()
-    expect(getSpy).toHaveBeenCalledTimes(2)
+    expect(shoppingListsApi.getShoppingLists).toHaveBeenCalledTimes(2)
 
     // 30秒後のポーリング
     vi.advanceTimersByTime(30000)
     await flushAsync()
-    expect(getSpy).toHaveBeenCalledTimes(4) // 初回2回 + ポーリング2回
+    expect(shoppingListsApi.getShoppingLists).toHaveBeenCalledTimes(4) // 初回2回 + ポーリング2回
   })
 })
 
@@ -213,7 +468,7 @@ describe('ShoppingListDetail Component', () => {
   })
 
   it('買い物リスト詳細を表示する', async () => {
-    vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(mockShoppingList)
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(mockShoppingList)
 
     render(
       React.createElement(MemoryRouter, null,
@@ -244,8 +499,8 @@ describe('ShoppingListDetail Component', () => {
   })
 
   it('チェックボックスの操作で楽観的更新が動作する', async () => {
-    vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(mockShoppingList)
-    const updateSpy = vi.spyOn(shoppingListsApi, 'updateShoppingListItem').mockResolvedValue({
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(mockShoppingList)
+    vi.mocked(shoppingListsApi.updateShoppingListItem).mockResolvedValue({
       ...mockShoppingList.shoppingListItems![0],
       isChecked: true,
       checkedAt: '2024-01-01T13:00:00Z'
@@ -262,7 +517,7 @@ describe('ShoppingListDetail Component', () => {
     })
 
     const checkbox = screen.getAllByRole('checkbox')[0]
-    
+
     // チェックボックスをクリック
     fireEvent.click(checkbox)
 
@@ -271,7 +526,7 @@ describe('ShoppingListDetail Component', () => {
 
     // API呼び出しの確認
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(1, 1, {
+      expect(shoppingListsApi.updateShoppingListItem).toHaveBeenCalledWith(1, 1, {
         isChecked: true,
         lockVersion: 1
       })
@@ -279,12 +534,12 @@ describe('ShoppingListDetail Component', () => {
   })
 
   it('409エラー時に適切なエラーメッセージを表示する', async () => {
-    vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(mockShoppingList)
-    
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(mockShoppingList)
+
     const error409 = {
       response: { status: 409 }
     }
-    vi.spyOn(shoppingListsApi, 'updateShoppingListItem').mockRejectedValue(error409)
+    vi.mocked(shoppingListsApi.updateShoppingListItem).mockRejectedValue(error409)
 
     render(
       React.createElement(MemoryRouter, null,
@@ -321,7 +576,7 @@ describe('ShoppingListDetail Component', () => {
       }))
     }
 
-    vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(completableList)
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(completableList)
 
     render(
       React.createElement(MemoryRouter, null,
@@ -348,8 +603,8 @@ describe('ShoppingListDetail Component', () => {
       }))
     }
 
-    vi.spyOn(shoppingListsApi, 'getShoppingList').mockResolvedValue(completableList)
-    const completeSpy = vi.spyOn(shoppingListsApi, 'completeShoppingList').mockResolvedValue({
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(completableList)
+    vi.mocked(shoppingListsApi.completeShoppingList).mockResolvedValue({
       ...completableList,
       status: 'completed' as const,
       statusDisplay: '完了'
@@ -369,7 +624,7 @@ describe('ShoppingListDetail Component', () => {
     fireEvent.click(completeButton)
 
     await flushAsync()
-    expect(completeSpy).toHaveBeenCalledWith(1)
+    expect(shoppingListsApi.completeShoppingList).toHaveBeenCalledWith(1)
 
     // 1.5秒後にナビゲート
     vi.advanceTimersByTime(1500)
@@ -379,10 +634,9 @@ describe('ShoppingListDetail Component', () => {
 
   it('ポーリングが編集中のアイテムを上書きしない', async () => {
     vi.useFakeTimers()
-    const getSpy = vi.spyOn(shoppingListsApi, 'getShoppingList')
-      .mockResolvedValue(mockShoppingList)
+    vi.mocked(shoppingListsApi.getShoppingList).mockResolvedValue(mockShoppingList)
 
-    vi.spyOn(shoppingListsApi, 'updateShoppingListItem').mockImplementation(
+    vi.mocked(shoppingListsApi.updateShoppingListItem).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({
         ...mockShoppingList.shoppingListItems![0],
         isChecked: true
@@ -411,6 +665,6 @@ describe('ShoppingListDetail Component', () => {
     await flushAsync()
     expect(checkbox).toBeChecked()
 
-    expect(getSpy).toHaveBeenCalledTimes(2) // 初回 + ポーリング1回
+    expect(shoppingListsApi.getShoppingList).toHaveBeenCalledTimes(2) // 初回 + ポーリング1回
   })
 })
