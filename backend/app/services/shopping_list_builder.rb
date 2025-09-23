@@ -89,7 +89,11 @@ class ShoppingListBuilder
         end
 
         if shortage_amount > 0
-          final_unit = resolve_unit(recipe_unit, ingredient_unit)
+          final_unit = if require_exact_amount
+            resolve_unit(recipe_unit, ingredient_unit)
+          else
+            "適量"
+          end
 
           missing_ingredients << {
             ingredient_id: ingredient.id,
@@ -107,7 +111,9 @@ class ShoppingListBuilder
         final_quantity = required_amount
 
         # 単位の決定: レシピ単位が許可されていれば使用、なければ「個」をデフォルト
-        final_unit = if recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
+        final_unit = if !require_exact_amount
+          "適量"
+        elsif recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
           recipe_unit
         else
           "個"

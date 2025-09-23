@@ -7,6 +7,8 @@ class ShoppingListItem < ApplicationRecord
     大さじ 小さじ 適量
   ].freeze
 
+  QUANTITY_VISIBLE_CATEGORIES = %w[meat fish vegetables fruits].freeze
+
   # Associations
   belongs_to :shopping_list
   belongs_to :ingredient, optional: true
@@ -49,7 +51,9 @@ class ShoppingListItem < ApplicationRecord
   end
 
   def display_quantity_with_unit
-    return unit if unit == "適量"
+    return "" unless quantity_visible_for_category?
+    return "" if unit.in?(%w[適量 少々 お好みで])
+    return "" if unit.blank? && quantity.nil?
     return unit.to_s if quantity.nil?
 
     display_quantity = if quantity % 1 == 0
@@ -72,19 +76,13 @@ class ShoppingListItem < ApplicationRecord
   end
 
   def ingredient_category
-    ingredient&.category || "その他"
+    resolved = ingredient || resolved_ingredient
+    resolved&.category || "その他"
   end
 
   def ingredient_emoji
-    return ingredient&.emoji if ingredient
-
-    return @resolved_ingredient_emoji if defined?(@resolved_ingredient_emoji)
-
-    @resolved_ingredient_emoji = if ingredient_name.present?
-      Ingredient.find_by(name: ingredient_name)&.emoji
-    else
-      nil
-    end
+    resolved = ingredient || resolved_ingredient
+    resolved&.emoji
   end
 
   def checked_recently?
@@ -101,5 +99,22 @@ class ShoppingListItem < ApplicationRecord
     if ingredient_id.blank? && ingredient_name.blank?
       errors.add(:base, "食材または食材名のどちらかを指定してください")
     end
+  end
+
+  def resolved_ingredient
+    return @resolved_ingredient if defined?(@resolved_ingredient)
+
+    @resolved_ingredient = if ingredient_name.present?
+      Ingredient.find_by(name: ingredient_name)
+    else
+      nil
+    end
+  end
+
+  def quantity_visible_for_category?
+    category = (ingredient || resolved_ingredient)&.category
+    return false if category.blank?
+
+    QUANTITY_VISIBLE_CATEGORIES.include?(category)
   end
 end

@@ -417,6 +417,8 @@ const ShoppingListDetail: React.FC = () => {
                   item.ingredientEmoji ||
                   null
 
+                const quantityLabel = (item.displayQuantityWithUnit || '').trim()
+
                 return (
               <div
                 key={item.id}
@@ -452,7 +454,7 @@ const ShoppingListDetail: React.FC = () => {
                         {ingredientLabel}
                       </span>
                       <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
-                        <span>{item.displayQuantityWithUnit}</span>
+                        {quantityLabel && <span>{quantityLabel}</span>}
                       </div>
                     </div>
                   </label>
