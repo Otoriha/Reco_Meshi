@@ -19,7 +19,7 @@ class ShoppingListItemSerializer
   end
 
   attribute :ingredient_emoji do |object|
-    object.ingredient&.emoji
+    object.ingredient_emoji
   end
 
   attribute :ingredient_display_name do |object|

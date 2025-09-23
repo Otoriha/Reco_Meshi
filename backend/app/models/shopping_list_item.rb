@@ -75,6 +75,18 @@ class ShoppingListItem < ApplicationRecord
     ingredient&.category || "その他"
   end
 
+  def ingredient_emoji
+    return ingredient&.emoji if ingredient
+
+    return @resolved_ingredient_emoji if defined?(@resolved_ingredient_emoji)
+
+    @resolved_ingredient_emoji = if ingredient_name.present?
+      Ingredient.find_by(name: ingredient_name)&.emoji
+    else
+      nil
+    end
+  end
+
   def checked_recently?
     checked_at.present? && checked_at > 1.day.ago
   end
