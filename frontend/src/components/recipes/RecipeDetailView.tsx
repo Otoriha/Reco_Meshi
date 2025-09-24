@@ -126,10 +126,10 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
             className="w-full bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors font-medium flex items-center justify-center"
           >
             <FaCheck className="mr-2" />
-            調理履歴に保存
+            レシピを保存
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            このレシピを作った記録として保存できます
+            作ったレシピをあとで確認できます
           </p>
         </div>
       )}

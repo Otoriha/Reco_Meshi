@@ -249,8 +249,8 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
               // 成功時は親コンポーネントに通知
               onRecipeGenerated?.(generatedRecipe)
             } catch (error) {
-              console.error('調理履歴保存エラー:', error)
-              setError('調理履歴の保存に失敗しました')
+              console.error('レシピ保存エラー:', error)
+              setError('レシピの保存に失敗しました')
             }
           }}
         />
