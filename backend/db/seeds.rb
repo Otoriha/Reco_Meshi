@@ -182,6 +182,7 @@ ingredients_data = [
   { name: 'にんにく', category: 'seasonings', unit: '片', emoji: '🧄' },
   { name: 'しょうが', category: 'seasonings', unit: 'g', emoji: '🫚' },
   { name: '生姜', category: 'seasonings', unit: 'g', emoji: '🫚' },
+  { name: '水', category: 'seasonings', unit: 'ml', emoji: '💧' },
 
   # 主食・麺類・パン類
   { name: '米', category: 'others', unit: 'g', emoji: '🍚' },

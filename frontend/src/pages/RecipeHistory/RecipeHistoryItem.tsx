@@ -29,6 +29,19 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
     }
   }
 
+  // 難易度を日本語に変換
+  const getDifficultyDisplayName = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy':
+        return '簡単'
+      case 'medium':
+        return '普通'
+      case 'hard':
+        return '難しい'
+      default:
+        return difficulty
+    }
+  }
 
   // レシピのタイトルに基づいて絵文字を選択（簡易版）
   const getRecipeEmoji = (title: string) => {
@@ -78,7 +91,7 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
                 {/* 難易度 */}
                 {history.recipe?.difficulty && (
                   <div className="flex items-center gap-1">
-                    <span>難易度: {history.recipe.difficulty}</span>
+                    <span>難易度: {getDifficultyDisplayName(history.recipe.difficulty)}</span>
                   </div>
                 )}
               </div>

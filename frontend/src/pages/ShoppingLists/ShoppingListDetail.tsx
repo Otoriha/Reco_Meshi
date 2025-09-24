@@ -105,7 +105,8 @@ const ShoppingListDetail: React.FC = () => {
         setIsPolling(false)
       }
     }
-  }, [id, isPolling, applyItemUpdates])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isPolling])
 
   // ポーリングの設定
   const startPolling = useCallback(() => {
@@ -134,7 +135,8 @@ const ShoppingListDetail: React.FC = () => {
       isMountedRef.current = false
       stopPolling()
     }
-  }, [id, fetchShoppingList, startPolling, stopPolling])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const handleItemCheck = async (item: ShoppingListItem, checked: boolean) => {
     if (!shoppingList || updatingItems.has(item.id)) return
