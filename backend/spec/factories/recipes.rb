@@ -4,7 +4,7 @@ FactoryBot.define do
     title { "テストレシピ" }
     cooking_time { 15 }
     difficulty { "easy" }
-    servings { 1 }
+    servings { 2 }
     steps { [
       { "order" => 1, "text" => "材料を切る" },
       { "order" => 2, "text" => "炒める" }

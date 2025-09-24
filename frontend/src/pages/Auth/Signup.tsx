@@ -295,12 +295,14 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
         </form>
 
         {/* ログイン画面への切り替え */}
-        <div className="mt-4 text-center text-sm text-gray-600">
-          既にアカウントをお持ちの方は{' '}
+        <div className="mt-6 text-center">
+          <div className="text-sm text-gray-600 mb-3">
+            既にアカウントをお持ちの方は
+          </div>
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="text-blue-600 hover:underline"
+            className="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium border border-gray-300"
             disabled={isLoading}
           >
             ログインはこちら

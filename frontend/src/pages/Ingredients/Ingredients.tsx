@@ -4,8 +4,7 @@ import IngredientCardNew from '../../components/ingredients/IngredientCardNew'
 import AddIngredientModal from '../../components/ingredients/AddIngredientModal'
 import EditIngredientModal from '../../components/ingredients/EditIngredientModal'
 import type { UserIngredient } from '../../types/ingredient'
-import { FaSearch, FaCamera, FaPlus } from 'react-icons/fa'
-import { HiSparkles } from 'react-icons/hi'
+import { FaSearch, FaPlus } from 'react-icons/fa'
 import { CATEGORY_LABELS } from '../../constants/categories'
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -63,13 +62,6 @@ const Ingredients: React.FC = () => {
     })
   }, [items, searchTerm, selectedCategory])
 
-  const handleRecipeSuggest = () => {
-    console.log('レシピ提案機能')
-  }
-
-  const handleImageUpload = () => {
-    console.log('写真から食材を追加')
-  }
 
   const handleAdd = async (data: { ingredient_id: number; quantity: number; expiry_date?: string | null }) => {
     setPageError(null)
@@ -179,20 +171,6 @@ const Ingredients: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-gray-900">食材リスト</h1>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleRecipeSuggest}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                >
-                  <HiSparkles className="w-4 h-4" />
-                  レシピを提案
-                </button>
-                <button
-                  onClick={handleImageUpload}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  <FaCamera className="w-4 h-4" />
-                  写真から食材を追加
-                </button>
                 <button
                   onClick={() => setIsAddOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"

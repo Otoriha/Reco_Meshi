@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_22_141000) do
+ActiveRecord::Schema[7.2].define(version: 2025_09_24_020624) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -99,7 +99,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_22_141000) do
     t.string "title", null: false, comment: "料理名"
     t.integer "cooking_time", null: false, comment: "調理時間（分）"
     t.string "difficulty", comment: "難易度（easy/medium/hard）"
-    t.integer "servings", default: 1, comment: "サービング数"
+    t.integer "servings", default: 2, comment: "サービング数"
     t.jsonb "steps", default: "[]", null: false, comment: "調理手順（JSON）"
     t.string "ai_provider", null: false, comment: "AIプロバイダー（openai/gemini等）"
     t.jsonb "ai_response", comment: "生成元のAIレスポンス（JSON）"

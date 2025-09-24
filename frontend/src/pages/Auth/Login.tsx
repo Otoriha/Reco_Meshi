@@ -127,12 +127,14 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
             {isLoading ? 'ログイン中...' : 'ログイン'}
           </button>
         </form>
-        <div className="mt-4 text-center text-sm text-gray-600">
-          アカウントをお持ちでない方は{' '}
+        <div className="mt-6 text-center">
+          <div className="text-sm text-gray-600 mb-3">
+            アカウントをお持ちでない方は
+          </div>
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="text-blue-600 hover:underline"
+            className="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium border border-gray-300"
           >
             新規登録はこちら
           </button>

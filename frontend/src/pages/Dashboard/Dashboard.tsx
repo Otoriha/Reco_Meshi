@@ -121,10 +121,6 @@ const Dashboard: React.FC = () => {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <div className="text-gray-500 text-sm">
-                  <p>写真をドラッグ&ドロップ</p>
-                  <p>または</p>
-                </div>
                 <button
                   onClick={handleImageUpload}
                   className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-70"

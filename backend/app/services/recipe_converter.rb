@@ -109,21 +109,46 @@ class RecipeConverter
   def normalize_difficulty(difficulty)
     return nil if difficulty.blank?
 
-    case difficulty.to_s.downcase
-    when "easy", "簡単", "⭐", "★"
+    difficulty_str = difficulty.to_s.strip
+
+    # 星の数でカウント
+    star_count = difficulty_str.count('★⭐')
+
+    case difficulty_str.downcase
+    when "easy", "簡単", "かんたん"
       "easy"
-    when "medium", "普通", "⭐⭐", "★★"
+    when "medium", "普通", "ふつう"
       "medium"
-    when "hard", "難しい", "⭐⭐⭐", "★★★"
+    when "hard", "難しい", "むずかしい"
       "hard"
     else
-      add_warning("不明な難易度: #{difficulty}")
-      nil
+      # 星の数で判定
+      case star_count
+      when 1
+        "easy"
+      when 2
+        "medium"
+      when 3
+        "hard"
+      else
+        # その他のパターン（★☆☆等）も星の数で判定
+        filled_stars = difficulty_str.count('★⭐')
+        if filled_stars >= 3
+          "hard"
+        elsif filled_stars >= 2
+          "medium"
+        elsif filled_stars >= 1
+          "easy"
+        else
+          add_warning("不明な難易度: #{difficulty}")
+          nil
+        end
+      end
     end
   end
 
   def normalize_servings(servings)
-    return 1 if servings.blank?
+    return 2 if servings.blank?
 
     # 文字列から数値を抽出
     if servings.is_a?(String)
