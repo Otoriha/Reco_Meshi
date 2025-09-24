@@ -1,8 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { imageRecognitionApi } from '../../api/imageRecognition';
-import { FaCamera, FaClipboardList, FaHistory, FaCog } from 'react-icons/fa';
+import { FaCamera } from 'react-icons/fa';
 import { HiSparkles } from 'react-icons/hi';
 import RecipeSuggestModal from '../../components/recipes/RecipeSuggestModal';
 import Toast from '../../components/Toast';
@@ -161,32 +160,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 機能紹介セクション */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Link to="/ingredients" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-            <div className="text-center">
-              <FaClipboardList className="mx-auto h-8 w-8 text-gray-600 mb-4" />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">在庫リスト</h3>
-              <p className="text-gray-600 text-sm">現在の食材在庫を確認・編集できます</p>
-            </div>
-          </Link>
-
-          <Link to="/recipe-history" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-            <div className="text-center">
-              <FaHistory className="mx-auto h-8 w-8 text-gray-600 mb-4" />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">レシピ履歴</h3>
-              <p className="text-gray-600 text-sm">過去に作ったレシピを確認できます</p>
-            </div>
-          </Link>
-
-          <Link to="/settings" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-            <div className="text-center">
-              <FaCog className="mx-auto h-8 w-8 text-gray-600 mb-4" />
-              <h3 className="text-lg font-bold text-gray-900 mb-2">設定</h3>
-              <p className="text-gray-600 text-sm">プロフィールや通知設定を管理できます</p>
-            </div>
-          </Link>
-        </div>
 
         {/* レシピ提案モーダル */}
         <RecipeSuggestModal
