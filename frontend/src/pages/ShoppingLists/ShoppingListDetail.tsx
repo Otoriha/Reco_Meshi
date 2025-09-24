@@ -29,7 +29,7 @@ const ShoppingListDetail: React.FC = () => {
     return Math.round((checkedCount / items.length) * 100)
   }
 
-  const applyItemUpdates = (base: ShoppingList, items: ShoppingListItem[]): ShoppingList => {
+  const applyItemUpdates = useCallback((base: ShoppingList, items: ShoppingListItem[]): ShoppingList => {
     const completionPercentage = calculateCompletionPercentage(items)
     const uncheckedItemsCount = items.filter(item => !item.isChecked).length
     const canBeCompleted = items.length > 0 && items.every(item => item.isChecked)
@@ -42,7 +42,7 @@ const ShoppingListDetail: React.FC = () => {
       canBeCompleted,
       totalItemsCount: items.length
     }
-  }
+  }, [])
 
   const fetchShoppingList = useCallback(async (showLoading = true) => {
     if (!id) return
@@ -105,7 +105,7 @@ const ShoppingListDetail: React.FC = () => {
         setIsPolling(false)
       }
     }
-  }, [id, isPolling])
+  }, [id, isPolling, applyItemUpdates])
 
   // ポーリングの設定
   const startPolling = useCallback(() => {
@@ -134,7 +134,7 @@ const ShoppingListDetail: React.FC = () => {
       isMountedRef.current = false
       stopPolling()
     }
-  }, [id])
+  }, [id, fetchShoppingList, startPolling, stopPolling])
 
   const handleItemCheck = async (item: ShoppingListItem, checked: boolean) => {
     if (!shoppingList || updatingItems.has(item.id)) return

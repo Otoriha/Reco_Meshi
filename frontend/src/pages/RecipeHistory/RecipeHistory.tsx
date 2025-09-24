@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRecipeHistory } from '../../hooks/useRecipeHistory'
 import { useFilters, type FilterPeriod } from '../../hooks/useFilters'
 import RecipeHistoryItem from './RecipeHistoryItem'
 import { RecipeHistorySkeletonList } from './RecipeHistorySkeleton'
 import Pagination from '../../components/Pagination'
-import type { RecipeHistory as RecipeHistoryType, UpdateRecipeHistoryParams } from '../../types/recipe'
+import type { RecipeHistory as RecipeHistoryType } from '../../types/recipe'
 import { FaSearch } from 'react-icons/fa'
 
 const PERIOD_OPTIONS: Array<{ value: FilterPeriod; label: string }> = [
@@ -28,7 +28,6 @@ const RecipeHistory: React.FC = () => {
     error,
     initialized,
     fetchHistories,
-    updateHistory,
     deleteHistory,
     currentPage,
     totalPages
@@ -67,10 +66,6 @@ const RecipeHistory: React.FC = () => {
     if (history.recipe_id) {
       navigate(`/recipes/${history.recipe_id}`)
     }
-  }
-
-  const handleRatingChange = async (id: number, rating: number | null) => {
-    await updateHistory(id, { rating })
   }
 
   const handleItemDelete = async (id: number) => {
@@ -210,7 +205,6 @@ const RecipeHistory: React.FC = () => {
                   key={history.id}
                   history={history}
                   onClick={() => handleItemClick(history)}
-                  onRatingChange={(rating) => handleRatingChange(history.id, rating)}
                   onDelete={() => handleItemDelete(history.id)}
                 />
               ))}

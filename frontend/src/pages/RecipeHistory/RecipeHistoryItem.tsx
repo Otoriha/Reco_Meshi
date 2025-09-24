@@ -1,18 +1,16 @@
 import React from 'react'
 import type { RecipeHistory } from '../../types/recipe'
-import { FaStar, FaRegStar, FaClock } from 'react-icons/fa'
+import { FaClock } from 'react-icons/fa'
 
 interface RecipeHistoryItemProps {
   history: RecipeHistory
   onClick: () => void
-  onRatingChange?: (rating: number | null) => void
   onDelete?: () => void
 }
 
 const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
   history,
   onClick,
-  onRatingChange,
   onDelete
 }) => {
   const formatDate = (dateString: string) => {
@@ -31,46 +29,6 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
     }
   }
 
-  const renderStars = (rating?: number | null, isEditable = false) => {
-    const normalized = rating ? Math.max(0, Math.min(5, Math.round(rating))) : 0
-
-    return (
-      <div className="flex items-center gap-1">
-        {Array.from({ length: 5 }, (_, index) => (
-          <button
-            key={index}
-            onClick={isEditable && onRatingChange ? (e) => {
-              e.stopPropagation()
-              onRatingChange(index + 1)
-            } : undefined}
-            disabled={!isEditable || !onRatingChange}
-            className={`${
-              isEditable && onRatingChange
-                ? 'hover:text-yellow-300 cursor-pointer transition-colors'
-                : 'cursor-default'
-            }`}
-          >
-            <span className={`${
-              index < normalized ? 'text-yellow-400' : 'text-gray-300'
-            }`}>
-              {index < normalized ? <FaStar className="w-4 h-4" /> : <FaRegStar className="w-4 h-4" />}
-            </span>
-          </button>
-        ))}
-        {isEditable && rating && onRatingChange && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onRatingChange(null)
-            }}
-            className="ml-2 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            クリア
-          </button>
-        )}
-      </div>
-    )
-  }
 
   // レシピのタイトルに基づいて絵文字を選択（簡易版）
   const getRecipeEmoji = (title: string) => {

@@ -46,7 +46,7 @@ const TestComp: React.FC = () => {
   const { items, setFilters, filters } = useUserIngredients('none')
   React.useEffect(() => {
     setFilters({ ...filters, name: 'にん' })
-  }, [])
+  }, [filters, setFilters])
   return <div data-testid="count">{items.length}</div>
 }
 
