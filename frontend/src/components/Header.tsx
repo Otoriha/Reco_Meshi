@@ -65,11 +65,11 @@ const Header: React.FC<HeaderProps> = ({ onAuthModeChange }) => {
               <>
                 {isLoggedIn && (
                   <>
-                    <Link to="/" className={getLinkClassName('/')}>ダッシュボード</Link>
+                    <Link to="/" className={getLinkClassName('/')}>ホーム</Link>
                     <Link to="/ingredients" className={getLinkClassName('/ingredients')}>食材リスト</Link>
                     <Link to="/shopping-lists" className={getLinkClassName('/shopping-lists')}>買い物リスト</Link>
                     <Link to="/recipe-history" className={getLinkClassName('/recipe-history')}>レシピ履歴</Link>
-                    <Link to="/settings" className={getLinkClassName('/settings')}>設定</Link>
+                    <Link to="/settings" className={getLinkClassName('/settings')}>設定（準備中）</Link>
                   </>
                 )}
                 {isLoggedIn && user ? (

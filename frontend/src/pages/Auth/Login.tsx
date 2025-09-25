@@ -80,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
             />
           </div>
           <div>
@@ -97,7 +97,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
                 required
                 autoComplete="current-password"
                 disabled={isLoading}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
               />
               <button
                 type="button"
@@ -122,19 +122,46 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading ? 'ログイン中...' : 'ログイン'}
           </button>
         </form>
-        <div className="mt-4 text-center text-sm text-gray-600">
-          アカウントをお持ちでない方は{' '}
+        {/* または区切り */}
+        <div className="mt-6 mb-4">
+          <div className="text-center text-sm text-gray-500 mb-4">または</div>
+
+          {/* LINEログインボタン */}
+          <button
+            type="button"
+            className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-3 flex items-center justify-center"
+            disabled={isLoading}
+          >
+            <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold mr-2">LINE</span>
+            LINEでログイン
+          </button>
+
+          {/* Googleログインボタン */}
+          <button
+            type="button"
+            className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-6 flex items-center justify-center"
+            disabled={isLoading}
+          >
+            <span className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold mr-2">G</span>
+            Googleでログイン
+          </button>
+        </div>
+
+        {/* サインアップ画面への切り替え */}
+        <div className="text-center">
+          <span className="text-sm text-gray-600">アカウントをお持ちでない方は </span>
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="text-blue-600 hover:underline"
+            className="text-sm text-green-600 hover:underline"
+            disabled={isLoading}
           >
-            新規登録はこちら
+            新規登録
           </button>
         </div>
       </div>

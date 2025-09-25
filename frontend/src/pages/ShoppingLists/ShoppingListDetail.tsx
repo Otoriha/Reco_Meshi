@@ -29,7 +29,7 @@ const ShoppingListDetail: React.FC = () => {
     return Math.round((checkedCount / items.length) * 100)
   }
 
-  const applyItemUpdates = (base: ShoppingList, items: ShoppingListItem[]): ShoppingList => {
+  const applyItemUpdates = useCallback((base: ShoppingList, items: ShoppingListItem[]): ShoppingList => {
     const completionPercentage = calculateCompletionPercentage(items)
     const uncheckedItemsCount = items.filter(item => !item.isChecked).length
     const canBeCompleted = items.length > 0 && items.every(item => item.isChecked)
@@ -42,7 +42,7 @@ const ShoppingListDetail: React.FC = () => {
       canBeCompleted,
       totalItemsCount: items.length
     }
-  }
+  }, [])
 
   const fetchShoppingList = useCallback(async (showLoading = true) => {
     if (!id) return
@@ -105,6 +105,7 @@ const ShoppingListDetail: React.FC = () => {
         setIsPolling(false)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isPolling])
 
   // ポーリングの設定
@@ -134,6 +135,7 @@ const ShoppingListDetail: React.FC = () => {
       isMountedRef.current = false
       stopPolling()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const handleItemCheck = async (item: ShoppingListItem, checked: boolean) => {
@@ -389,7 +391,7 @@ const ShoppingListDetail: React.FC = () => {
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    買い物完了（在庫に反映）
+                    買い物完了（在庫に反映）（未実装）
                   </>
                 )}
               </button>

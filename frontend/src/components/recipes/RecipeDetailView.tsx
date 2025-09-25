@@ -1,25 +1,42 @@
 import React, { useState } from 'react'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
-import { FaClock, FaUtensils, FaCheck } from 'react-icons/fa'
+import { FaClock, FaUtensils, FaCheck, FaShoppingCart } from 'react-icons/fa'
+import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
 
 interface RecipeDetailViewProps {
   recipe: Recipe
   onSaveToHistory?: () => void
   showSaveButton?: boolean
+  onShoppingListCreated?: (message: string) => void
 }
 
 const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   recipe,
   onSaveToHistory,
-  showSaveButton = true
+  showSaveButton = true,
+  onShoppingListCreated
 }) => {
   const [checkedIngredients, setCheckedIngredients] = useState<IngredientCheckState>({})
+  const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
 
   const handleIngredientCheck = (ingredientId: number) => {
     setCheckedIngredients(prev => ({
       ...prev,
       [ingredientId]: !prev[ingredientId]
     }))
+  }
+
+  const handleCreateShoppingList = async () => {
+    setIsCreatingShoppingList(true)
+    try {
+      await createShoppingList(recipe.id)
+      onShoppingListCreated?.(`「${recipe.title}」の買い物リストを作成しました！`)
+    } catch (error) {
+      const errorMessage = getShoppingListErrorMessage(error)
+      onShoppingListCreated?.(`買い物リスト作成エラー: ${errorMessage}`)
+    } finally {
+      setIsCreatingShoppingList(false)
+    }
   }
 
   const getDifficultyColor = (difficulty: string) => {
@@ -98,6 +115,21 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
               ))}
             </div>
           </div>
+
+          {/* 買い物リスト作成ボタン */}
+          <div className="mt-4">
+            <button
+              onClick={handleCreateShoppingList}
+              disabled={isCreatingShoppingList}
+              className="w-full bg-orange-400 text-white py-2 px-4 rounded-md hover:bg-orange-500 transition-colors font-medium flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FaShoppingCart className="mr-2" />
+              {isCreatingShoppingList ? '買い物リスト作成中...' : '買い物リストを作成'}
+            </button>
+            <p className="text-xs text-gray-500 text-center mt-2">
+              足りない食材を買い物リストに追加します
+            </p>
+          </div>
         </div>
       )}
 
@@ -126,10 +158,10 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
             className="w-full bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 transition-colors font-medium flex items-center justify-center"
           >
             <FaCheck className="mr-2" />
-            調理履歴に保存
+            レシピを保存
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            このレシピを作った記録として保存できます
+            作ったレシピをあとで確認できます
           </p>
         </div>
       )}

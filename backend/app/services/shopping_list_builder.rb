@@ -1,4 +1,4 @@
-require 'set'
+require "set"
 
 class ShoppingListBuilder
   def initialize(user, recipe)

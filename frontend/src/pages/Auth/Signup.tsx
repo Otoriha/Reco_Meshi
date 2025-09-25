@@ -207,7 +207,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
               value={formData.name}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.name ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isLoading}
@@ -228,7 +228,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
               value={formData.email}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.email ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isLoading}
@@ -249,7 +249,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
               value={formData.password}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.password ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isLoading}
@@ -270,7 +270,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
               value={formData.passwordConfirmation}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 errors.passwordConfirmation ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isLoading}
@@ -284,26 +284,51 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
           <button
             type="submit"
             disabled={isLoading || !!successMessage}
-            className={`w-full py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
               isLoading || successMessage
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-green-600 hover:bg-green-700'
             } text-white`}
           >
             {isLoading ? '登録中...' : '新規登録'}
           </button>
         </form>
 
+        {/* または区切り */}
+        <div className="mt-6 mb-4">
+          <div className="text-center text-sm text-gray-500 mb-4">または</div>
+
+          {/* LINE登録ボタン */}
+          <button
+            type="button"
+            className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-3 flex items-center justify-center"
+            disabled={isLoading}
+          >
+            <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold mr-2">LINE</span>
+            LINEで登録
+          </button>
+
+          {/* Google登録ボタン */}
+          <button
+            type="button"
+            className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-6 flex items-center justify-center"
+            disabled={isLoading}
+          >
+            <span className="bg-gray-600 text-white px-2 py-1 rounded text-xs font-bold mr-2">G</span>
+            Googleで登録
+          </button>
+        </div>
+
         {/* ログイン画面への切り替え */}
-        <div className="mt-4 text-center text-sm text-gray-600">
-          既にアカウントをお持ちの方は{' '}
+        <div className="text-center">
+          <span className="text-sm text-gray-600">すでにアカウントをお持ちの方は </span>
           <button
             type="button"
             onClick={onSwitchToLogin}
-            className="text-blue-600 hover:underline"
+            className="text-sm text-green-600 hover:underline"
             disabled={isLoading}
           >
-            ログインはこちら
+            ログイン
           </button>
         </div>
       </div>

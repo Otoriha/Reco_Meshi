@@ -109,10 +109,10 @@ const RecipeDetail: React.FC = () => {
             <p className="text-red-700">{error || 'レシピが見つかりません'}</p>
           </div>
           <button
-            onClick={() => navigate('/recipes')}
+            onClick={() => navigate('/recipe-history')}
             className="mt-4 text-blue-500 hover:text-blue-700"
           >
-            ← レシピ一覧に戻る
+            ← レシピ履歴に戻る
           </button>
         </div>
       </div>
@@ -125,10 +125,10 @@ const RecipeDetail: React.FC = () => {
         {/* ヘッダー */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/recipes')}
+            onClick={() => navigate('/recipe-history')}
             className="text-blue-500 hover:text-blue-700 mb-2"
           >
-            ← レシピ一覧に戻る
+            ← レシピ履歴に戻る
           </button>
           <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
         </div>
@@ -201,7 +201,7 @@ const RecipeDetail: React.FC = () => {
             <button
               onClick={handleCreateShoppingList}
               disabled={isCreatingShoppingList}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-orange-400 hover:bg-orange-500 disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isCreatingShoppingList ? (
                 <>
@@ -255,7 +255,7 @@ const RecipeDetail: React.FC = () => {
             disabled={isSubmitting}
             className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-bold py-4 px-6 rounded-lg transition-colors shadow-lg"
           >
-            {isSubmitting ? '保存中...' : '🍽 作った！'}
+            {isSubmitting ? '保存中...' : '🍽 作った！（未実装）'}
           </button>
         </div>
       </div>

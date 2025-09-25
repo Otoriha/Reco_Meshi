@@ -183,6 +183,8 @@ class IngredientMatcher
   end
 
   def find_forward_match(normalized_name)
+    return nil if normalized_name.length < 2 # 1文字の場合は前方一致を無効化
+
     ingredients = Ingredient.where("#{sql_normalize_column('name')} LIKE ?", "#{normalized_name}%").limit(10)
 
     return nil if ingredients.empty?

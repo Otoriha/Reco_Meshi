@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useMemo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useRecipeHistory } from '../../hooks/useRecipeHistory'
 import { useFilters, type FilterPeriod } from '../../hooks/useFilters'
 import RecipeHistoryItem from './RecipeHistoryItem'
-import RecipeHistoryModal from './RecipeHistoryModal'
 import { RecipeHistorySkeletonList } from './RecipeHistorySkeleton'
 import Pagination from '../../components/Pagination'
-import type { RecipeHistory as RecipeHistoryType, UpdateRecipeHistoryParams } from '../../types/recipe'
+import type { RecipeHistory as RecipeHistoryType } from '../../types/recipe'
 import { FaSearch } from 'react-icons/fa'
 
 const PERIOD_OPTIONS: Array<{ value: FilterPeriod; label: string }> = [
@@ -22,13 +21,13 @@ const RATING_OPTIONS: Array<{ value: boolean | null; label: string }> = [
 ]
 
 const RecipeHistory: React.FC = () => {
+  const navigate = useNavigate()
   const {
     histories,
     loading,
     error,
     initialized,
     fetchHistories,
-    updateHistory,
     deleteHistory,
     currentPage,
     totalPages
@@ -44,9 +43,6 @@ const RecipeHistory: React.FC = () => {
     hasActiveFilters,
     clearFilters
   } = useFilters()
-
-  const [selectedHistory, setSelectedHistory] = useState<RecipeHistoryType | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // フィルタ変更時にデータを再取得
   useEffect(() => {
@@ -67,32 +63,15 @@ const RecipeHistory: React.FC = () => {
   }, [histories, filterLocalData])
 
   const handleItemClick = (history: RecipeHistoryType) => {
-    setSelectedHistory(history)
-    setIsModalOpen(true)
+    if (history.recipe_id) {
+      navigate(`/recipes/${history.recipe_id}`)
+    }
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setSelectedHistory(null)
-  }
-
-  const handleUpdate = async (id: number, params: UpdateRecipeHistoryParams) => {
-    await updateHistory(id, params)
-    handleModalClose()
-  }
-
-  const handleDelete = async (id: number) => {
+  const handleItemDelete = async (id: number) => {
     await deleteHistory(id)
-    
-    // 削除後に現在のページが空になった場合の処理
-    setTimeout(() => {
-      const filteredAfterDelete = filterLocalData(histories.filter(h => h.id !== id))
-      if (filteredAfterDelete.length === 0 && currentPage > 1) {
-        // 現在のページが空で、かつ1ページ目以外の場合は前のページに移動
-        handlePageChange(currentPage - 1)
-      }
-    }, 100) // 少し遅延させてstate更新を待つ
   }
+
 
   const handlePageChange = async (page: number) => {
     const apiParams = getApiParams()
@@ -226,6 +205,7 @@ const RecipeHistory: React.FC = () => {
                   key={history.id}
                   history={history}
                   onClick={() => handleItemClick(history)}
+                  onDelete={() => handleItemDelete(history.id)}
                 />
               ))}
             </div>
@@ -240,14 +220,6 @@ const RecipeHistory: React.FC = () => {
           </>
         )}
 
-        {/* 詳細モーダル */}
-        <RecipeHistoryModal
-          history={selectedHistory}
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
       </div>
     </div>
   )

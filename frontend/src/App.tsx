@@ -3,7 +3,7 @@ import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
@@ -17,13 +17,14 @@ import NotFound from './components/NotFound'
 type AuthMode = 'login' | 'signup';
 
 function AppContent() {
+  const navigate = useNavigate()
 
   const handleSwitchToLogin = () => {
-    // 今はルーティングベースなので何もしない
+    navigate('/login')
   }
 
   const handleSwitchToSignup = () => {
-    // 今はルーティングベースなので何もしない
+    navigate('/signup')
   }
 
   const handleSignupSuccess = () => {
@@ -39,7 +40,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <BrowserRouter>
         <Header onAuthModeChange={handleAuthModeChange} />
         <main>
           <Routes>
@@ -74,7 +74,6 @@ function AppContent() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
-      </BrowserRouter>
     </div>
   )
 }
@@ -82,7 +81,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </AuthProvider>
   )
 }
