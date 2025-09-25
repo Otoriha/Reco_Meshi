@@ -253,6 +253,14 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
               setError('レシピの保存に失敗しました')
             }
           }}
+          onShoppingListCreated={(message) => {
+            // 買い物リスト作成成功/エラー時の処理
+            setError(message.includes('エラー') ? message : null)
+            // 成功時は親に通知
+            if (!message.includes('エラー')) {
+              onRecipeGenerated?.(generatedRecipe)
+            }
+          }}
         />
       )}
       <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
