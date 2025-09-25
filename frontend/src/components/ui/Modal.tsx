@@ -39,12 +39,12 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, onClose, children, size = 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className={`relative bg-white rounded-lg shadow-lg w-full ${getSizeClass()} mx-4`}>
+      <div className={`relative bg-white rounded-lg shadow-lg w-full ${getSizeClass()} mx-8`}>
         <div className="border-b px-4 py-3 flex justify-between items-center">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button onClick={onClose} aria-label="close" className="text-gray-500 hover:text-gray-700">×</button>
         </div>
-        <div className="p-4">
+        <div className="p-6">
           {children}
         </div>
       </div>

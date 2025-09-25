@@ -107,7 +107,7 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
   }
 
   const renderPreferencesForm = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-md mx-auto">
       {/* 食材指定 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -117,7 +117,7 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
           value={ingredients}
           onChange={(e) => setIngredients(e.target.value)}
           placeholder="例: 玉ねぎ, 豚肉, 人参（カンマ区切りで入力）"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="w-full px-3 py-2 border border-pink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
           rows={2}
         />
         <p className="text-xs text-gray-500 mt-1">
