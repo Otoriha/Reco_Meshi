@@ -112,7 +112,7 @@ class RecipeConverter
     difficulty_str = difficulty.to_s.strip
 
     # 星の数でカウント
-    star_count = difficulty_str.count('★⭐')
+    star_count = difficulty_str.count("★⭐")
 
     case difficulty_str.downcase
     when "easy", "簡単", "かんたん"
@@ -132,7 +132,7 @@ class RecipeConverter
         "hard"
       else
         # その他のパターン（★☆☆等）も星の数で判定
-        filled_stars = difficulty_str.count('★⭐')
+        filled_stars = difficulty_str.count("★⭐")
         if filled_stars >= 3
           "hard"
         elsif filled_stars >= 2

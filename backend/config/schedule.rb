@@ -20,6 +20,6 @@
 # Learn more: http://github.com/javan/whenever
 
 # 毎日午前3時に完了済みの買い物リストアイテムをクリーンアップ
-every 1.day, at: '3:00 am' do
+every 1.day, at: "3:00 am" do
   runner "CleanupCompletedShoppingListItemsJob.perform_later"
 end

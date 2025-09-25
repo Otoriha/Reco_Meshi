@@ -8,12 +8,14 @@ interface RecipeSuggestModalProps {
   isOpen: boolean
   onClose: () => void
   onRecipeGenerated?: (recipe: Recipe) => void
+  onShowToast?: (message: string, type?: 'success' | 'error' | 'info') => void
 }
 
 const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
   isOpen,
   onClose,
-  onRecipeGenerated
+  onRecipeGenerated,
+  onShowToast
 }) => {
   const [currentStep, setCurrentStep] = useState<'preferences' | 'result'>('preferences')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -120,9 +122,6 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
           className="w-full px-3 py-2 border border-pink-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
           rows={2}
         />
-        <p className="text-xs text-gray-500 mt-1">
-          空欄の場合、在庫食材から自動で選択されます
-        </p>
       </div>
 
       {/* 調理時間 */}
@@ -246,19 +245,19 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
                 memo: `${generatedRecipe.title}を作りました`,
                 cooked_at: new Date().toISOString()
               })
-              // 成功時は親コンポーネントに通知
-              onRecipeGenerated?.(generatedRecipe)
+              // レシピ保存成功時の専用メッセージ
+              onShowToast?.(`「${generatedRecipe.title}」をレシピ履歴に保存しました！`, 'success')
             } catch (error) {
               console.error('レシピ保存エラー:', error)
-              setError('レシピの保存に失敗しました')
+              onShowToast?.('レシピの保存に失敗しました', 'error')
             }
           }}
           onShoppingListCreated={(message) => {
-            // 買い物リスト作成成功/エラー時の処理
-            setError(message.includes('エラー') ? message : null)
-            // 成功時は親に通知
-            if (!message.includes('エラー')) {
-              onRecipeGenerated?.(generatedRecipe)
+            // 買い物リスト作成のメッセージを直接トーストで表示
+            if (message.includes('エラー')) {
+              onShowToast?.(message, 'error')
+            } else {
+              onShowToast?.(message, 'success')
             }
           }}
         />

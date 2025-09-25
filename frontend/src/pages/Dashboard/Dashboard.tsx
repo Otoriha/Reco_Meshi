@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
         {/* 使い方ガイド */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">レコめしの使い方</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* ステップ1 */}
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -203,6 +203,7 @@ const Dashboard: React.FC = () => {
           isOpen={isRecipeModalOpen}
           onClose={handleModalClose}
           onRecipeGenerated={handleRecipeGenerated}
+          onShowToast={showToast}
         />
 
         {/* トースト通知 */}
