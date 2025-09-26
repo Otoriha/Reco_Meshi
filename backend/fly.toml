@@ -4,6 +4,8 @@
 app = 'reco-meshi-api'
 primary_region = 'nrt'  # Tokyo region
 console_command = '/rails/bin/rails console'
+kill_signal = "SIGTERM"
+kill_timeout = 30
 
 [build]
   dockerfile = "Dockerfile"
@@ -24,9 +26,9 @@ console_command = '/rails/bin/rails console'
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
   [http_service.concurrency]
@@ -59,8 +61,8 @@ console_command = '/rails/bin/rails console'
     port = 3000
     type = 'http'
     interval = '20s'
-    timeout = '5s'
-    grace_period = '10s'
+    timeout = '10s'
+    grace_period = '60s'
     method = 'GET'
     path = '/up'
     protocol = 'http'
