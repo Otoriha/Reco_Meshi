@@ -60,7 +60,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
-        expect(json['status']['message']).to include("Name can't be blank")
+        expect(json['status']['message']).to eq("登録できませんでした。入力内容をご確認ください。")
       end
     end
 
@@ -74,7 +74,7 @@ RSpec.describe "Api::V1::Users::Registrations", type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
         json = JSON.parse(response.body)
-        expect(json['status']['message']).to include("Email has already been taken")
+        expect(json['status']['message']).to eq("登録できませんでした。入力内容をご確認ください。")
       end
     end
   end
