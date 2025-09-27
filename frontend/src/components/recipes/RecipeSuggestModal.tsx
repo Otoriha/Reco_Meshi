@@ -113,7 +113,7 @@ const RecipeSuggestModal: React.FC<RecipeSuggestModalProps> = ({
       {/* 食材指定 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          使いたい食材（任意）
+          使いたい食材（必須）
         </label>
         <textarea
           value={ingredients}
