@@ -6,78 +6,86 @@ import phonePlaceholder from '../../assets/images/placeholder-phone.svg';
 
 const HeroSection: React.FC = () => {
   return (
-    <section className="bg-gradient-to-br from-green-50 to-green-100 py-16 sm:py-24">
+    <section className="bg-gradient-to-br from-green-50 to-green-100 py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* 左側のテキストコンテンツ */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             <div className="space-y-4">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
                 食材を
                 <span className="text-green-600">無駄なく使い切る</span>
                 <br />
                 AI食材管理アプリ
               </h1>
-              <p className="text-lg sm:text-xl text-gray-600 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
                 冷蔵庫の写真を撮るだけで食材を自動認識。
                 <br />
-                今ある食材で作れるレシピを提案し、
+                今ある食材で作れるレシピを提案します。
                 <br />
-                必要な買い物リストまで自動生成します。
-              </p>
-              <p className="text-sm text-gray-500">
-                食材の無駄をなくして、毎日の料理をもっと楽しく。
+                食材ロスを減らして、家計も地球も守りましょう。
               </p>
             </div>
 
-            {/* LINE版とWEB版の選択ボタン */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="bg-white rounded-lg p-6 border-2 border-green-200 hover:border-green-300 transition-colors">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <FaLine className="text-2xl text-green-500" />
-                    <span className="font-semibold text-gray-900">LINE版</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    LINEでかんたんに食材管理。
-                    <br />
-                    写真を送るだけで認識完了。
-                  </p>
-                  <button className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors font-medium">
-                    LINEで今すぐ始める
-                  </button>
-                </div>
-              </div>
+            {/* あなたに合った使い方を選べます */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-800">
+                あなたに合った使い方を選べます
+              </p>
 
-              <div className="flex-1">
-                <div className="bg-white rounded-lg p-6 border-2 border-gray-200 hover:border-gray-300 transition-colors">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <HiDesktopComputer className="text-2xl text-gray-700" />
-                    <span className="font-semibold text-gray-900">WEB版</span>
+              {/* LINE版とWEB版の選択ボタン */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <div className="bg-white rounded-xl p-4 border border-green-200 hover:border-green-300 transition-colors relative">
+                    {/* おすすめリボン */}
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      おすすめ
+                    </div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <FaLine className="text-sm text-green-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900 text-sm">LINE版</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      気軽に! サクッと使いたい方へ
+                    </p>
+                    <button className="w-full bg-green-500 text-white py-2 px-3 rounded-lg hover:bg-green-600 transition-colors font-medium text-sm">
+                      LINEで友だち追加
+                    </button>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    ブラウザで詳細な食材管理。
-                    <br />
-                    在庫状況や履歴を細かく確認。
-                  </p>
-                  <Link
-                    to="/signup"
-                    className="block w-full bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-800 transition-colors font-medium text-center"
-                  >
-                    無料で始める
-                  </Link>
+                </div>
+
+                <div className="flex-1">
+                  <div className="bg-white rounded-xl p-4 border border-gray-200 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <HiDesktopComputer className="text-sm text-gray-600" />
+                      </div>
+                      <span className="font-semibold text-gray-900 text-sm">WEB版</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      しっかり管理したい方へ
+                    </p>
+                    <Link
+                      to="/signup"
+                      className="block w-full bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-center text-sm"
+                    >
+                      無料で新規登録
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 右側の画像 */}
-          <div className="flex justify-center lg:justify-end">
+          <div className="flex justify-center lg:justify-end order-first lg:order-last">
             <div className="relative">
               <img
                 src={phonePlaceholder}
                 alt="レコめしアプリのプレビュー"
-                className="w-80 h-auto max-w-full drop-shadow-2xl"
+                className="w-64 sm:w-80 h-auto max-w-full drop-shadow-2xl"
               />
             </div>
           </div>

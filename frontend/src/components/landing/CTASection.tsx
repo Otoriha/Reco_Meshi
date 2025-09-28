@@ -4,7 +4,7 @@ import { FaLine } from 'react-icons/fa';
 
 const CTASection: React.FC = () => {
   return (
-    <section className="py-16 sm:py-24 bg-gradient-to-r from-green-600 to-green-700">
+    <section className="py-12 sm:py-16 bg-gradient-to-r from-green-600 to-green-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           {/* メインタイトル */}
@@ -19,35 +19,28 @@ const CTASection: React.FC = () => {
           </p>
 
           {/* CTAボタン */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center max-w-2xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
             {/* LINEで始める */}
-            <div className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-white text-green-600 px-8 py-4 rounded-lg hover:bg-green-50 transition-colors font-bold text-lg shadow-lg flex items-center justify-center space-x-3 min-w-[200px]">
-                <FaLine className="text-2xl" />
-                <span>LINEで始める</span>
-              </button>
-              <p className="text-green-100 text-sm mt-2">
-                LINEアカウントでかんたん登録
-              </p>
-            </div>
-
-            <div className="hidden sm:block text-green-200 text-lg font-medium">
-              または
-            </div>
+            <button className="w-full sm:w-auto bg-white text-green-600 px-6 py-3 rounded-full hover:bg-green-50 transition-colors font-bold shadow-lg flex items-center justify-center space-x-2 min-w-[180px]">
+              <FaLine className="text-xl" />
+              <span>LINEで始める（無料10分）</span>
+            </button>
 
             {/* Web版で始める */}
-            <div className="w-full sm:w-auto">
-              <Link
-                to="/signup"
-                className="block w-full sm:w-auto bg-green-800 text-white px-8 py-4 rounded-lg hover:bg-green-900 transition-colors font-bold text-lg shadow-lg text-center min-w-[200px]"
-              >
-                Web版で始める
-              </Link>
-              <p className="text-green-100 text-sm mt-2">
-                メールアドレスで無料登録
-              </p>
-            </div>
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto bg-green-800 text-white px-6 py-3 rounded-full hover:bg-green-900 transition-colors font-bold shadow-lg text-center min-w-[180px]"
+            >
+              WEB版で始める
+            </Link>
           </div>
+
+          {/* 補足説明 */}
+          <p className="text-green-100 text-sm mt-4">
+            登録は無料。クレジットカード不要。
+            <br />
+            今日から食材を無駄なく使い切る生活を。
+          </p>
 
           {/* 追加情報 */}
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">

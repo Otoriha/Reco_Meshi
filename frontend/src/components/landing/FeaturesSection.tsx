@@ -5,7 +5,7 @@ import { HiDesktopComputer, HiCamera, HiChartBar } from 'react-icons/hi';
 
 const FeaturesSection: React.FC = () => {
   return (
-    <section className="py-16 sm:py-24 bg-white">
+    <section className="py-12 sm:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* セクションタイトル */}
         <div className="text-center mb-16">
@@ -101,45 +101,45 @@ const FeaturesSection: React.FC = () => {
 
         {/* 3つの特徴 */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
             レコめしの特徴
           </h2>
-          <p className="text-lg text-gray-600">
-            毎日の食材管理をもっと楽しく、もっと効率的に
+          <p className="text-base text-gray-600">
+            毎日の食材管理をもっと楽しく、もっとエコに
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {/* 写真で簡単認識 */}
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
-              <HiCamera className="text-3xl text-blue-600" />
+          <div className="text-center bg-white rounded-lg p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mb-4">
+              <HiCamera className="text-2xl text-yellow-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">写真で簡単認識</h3>
-            <p className="text-gray-600">
-              冷蔵庫の写真を撮るだけで、AI が食材を自動認識。手入力の手間を大幅削減します。
+            <h3 className="text-lg font-bold text-gray-900 mb-3">写真で簡単認識</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              冷蔵庫の写真を撮るだけで、AIが食材を自動認識。面倒な入力作業は一切不要です。
             </p>
           </div>
 
           {/* 最適レシピ提案 */}
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-6">
-              <FaSearch className="text-3xl text-orange-600" />
+          <div className="text-center bg-white rounded-lg p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg mb-4">
+              <FaSearch className="text-2xl text-orange-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">最適レシピ提案</h3>
-            <p className="text-gray-600">
-              今ある食材から作れるレシピを AI が提案。食材を無駄にすることなく美味しい料理を。
+            <h3 className="text-lg font-bold text-gray-900 mb-3">最適レシピ提案</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              今ある食材で作れるレシピを即座に提案。新しい料理にもチャレンジできます。
             </p>
           </div>
 
           {/* 買い物管理 */}
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
-              <FaShoppingCart className="text-3xl text-green-600" />
+          <div className="text-center bg-white rounded-lg p-6 shadow-sm border hover:shadow-md transition-shadow">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mb-4">
+              <FaShoppingCart className="text-2xl text-green-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">買い物管理</h3>
-            <p className="text-gray-600">
-              不足している食材を自動でリストアップ。計画的な買い物で食材の無駄を防ぎます。
+            <h3 className="text-lg font-bold text-gray-900 mb-3">買い物管理</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              必要な食材を自動でリストアップ。効率的な買い物で食材ロスを削減します。
             </p>
           </div>
         </div>
