@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaLine, FaSearch, FaShoppingList } from 'react-icons/fa';
+import { FaLine, FaSearch, FaShoppingCart } from 'react-icons/fa';
 import { HiDesktopComputer, HiCamera, HiChartBar } from 'react-icons/hi';
 
 const FeaturesSection: React.FC = () => {
@@ -135,7 +135,7 @@ const FeaturesSection: React.FC = () => {
           {/* 買い物管理 */}
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
-              <FaShoppingList className="text-3xl text-green-600" />
+              <FaShoppingCart className="text-3xl text-green-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-4">買い物管理</h3>
             <p className="text-gray-600">
