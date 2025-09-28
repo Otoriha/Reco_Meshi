@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaLine } from 'react-icons/fa';
 
 const CTASection: React.FC = () => {
   return (
@@ -19,63 +18,21 @@ const CTASection: React.FC = () => {
           </p>
 
           {/* CTAボタン */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
             {/* LINEで始める */}
-            <button className="w-full sm:w-auto bg-white text-green-600 px-6 py-3 rounded-full hover:bg-green-50 transition-colors font-bold shadow-lg flex items-center justify-center space-x-2 min-w-[180px]">
-              <FaLine className="text-xl" />
-              <span>LINEで始める（無料10分）</span>
+            <button className="w-full sm:w-auto bg-white text-green-600 px-8 py-4 rounded-full hover:bg-green-50 transition-colors font-bold shadow-lg text-lg min-w-[250px]">
+              LINEで始める（無料10分）
             </button>
 
             {/* Web版で始める */}
             <Link
               to="/signup"
-              className="w-full sm:w-auto bg-green-800 text-white px-6 py-3 rounded-full hover:bg-green-900 transition-colors font-bold shadow-lg text-center min-w-[180px]"
+              className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-green-600 transition-colors font-bold text-lg text-center min-w-[200px]"
             >
               WEB版で始める
             </Link>
           </div>
 
-          {/* 補足説明 */}
-          <p className="text-green-100 text-sm mt-4">
-            登録は無料。クレジットカード不要。
-            <br />
-            今日から食材を無駄なく使い切る生活を。
-          </p>
-
-          {/* 追加情報 */}
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="text-2xl font-bold text-white mb-2">完全無料</div>
-              <p className="text-green-100 text-sm">
-                基本機能はすべて無料でご利用いただけます
-              </p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-white mb-2">簡単登録</div>
-              <p className="text-green-100 text-sm">
-                1分で登録完了、すぐに食材管理を始められます
-              </p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-white mb-2">安心利用</div>
-              <p className="text-green-100 text-sm">
-                個人情報は適切に保護され、安全にご利用いただけます
-              </p>
-            </div>
-          </div>
-
-          {/* 既存ユーザー向け */}
-          <div className="mt-12 pt-8 border-t border-green-500">
-            <p className="text-green-100 mb-4">
-              すでにアカウントをお持ちの方は
-            </p>
-            <Link
-              to="/login"
-              className="inline-block text-white underline hover:text-green-100 transition-colors font-medium"
-            >
-              こちらからログイン
-            </Link>
-          </div>
         </div>
       </div>
     </section>
