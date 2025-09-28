@@ -46,7 +46,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
   useEffect(() => {
     if (isAuthResolved && isLoggedIn) {
       const next = searchParams.get('next');
-      const dest = isSafeNextPath(next) ? next! : '/';
+      const dest = isSafeNextPath(next) ? next! : '/dashboard';
       navigate(dest, { replace: true });
     }
   }, [isLoggedIn, isAuthResolved, searchParams, navigate]);
@@ -156,7 +156,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
           onSignupSuccess?.();
           // next対応でのリダイレクト
           const next = searchParams.get('next');
-          const dest = isSafeNextPath(next) ? next! : '/';
+          const dest = isSafeNextPath(next) ? next! : '/dashboard';
           navigate(dest, { replace: true });
         }, 1000);
       }
