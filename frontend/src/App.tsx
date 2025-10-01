@@ -1,9 +1,10 @@
 import Dashboard from './pages/Dashboard/Dashboard'
+import Landing from './pages/Landing/Landing'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
@@ -18,6 +19,7 @@ type AuthMode = 'login' | 'signup';
 
 function AppContent() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleSwitchToLogin = () => {
     navigate('/login')
@@ -38,12 +40,15 @@ function AppContent() {
     // 今はルーティングベースなので何もしない
   }
 
+  const isLandingPage = location.pathname === '/';
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className={`min-h-screen ${isLandingPage ? '' : 'bg-gray-100'}`}>
         <Header onAuthModeChange={handleAuthModeChange} />
         <main>
           <Routes>
             {/* パブリックルート */}
+            <Route path="/" element={<Landing />} />
             <Route
               path="/login"
               element={<Login onSwitchToSignup={handleSwitchToSignup} />}
@@ -60,7 +65,7 @@ function AppContent() {
 
             {/* 保護ルート */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/ingredients" element={<Ingredients />} />
               <Route path="/recipes" element={<RecipeList />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />

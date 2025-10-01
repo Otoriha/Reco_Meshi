@@ -1,0 +1,24 @@
+<svg width="300" height="600" viewBox="0 0 300 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="600" rx="30" fill="#1F2937"/>
+  <rect x="20" y="60" width="260" height="520" rx="15" fill="#F9FAFB"/>
+  <circle cx="150" cy="30" r="5" fill="#6B7280"/>
+  <rect x="125" y="15" width="50" height="30" rx="15" fill="#1F2937"/>
+
+  <!-- Header -->
+  <rect x="40" y="80" width="220" height="40" rx="8" fill="#10B981"/>
+  <text x="150" y="105" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">レコめし</text>
+
+  <!-- Content -->
+  <rect x="40" y="140" width="220" height="120" rx="8" fill="#E5E7EB"/>
+  <text x="60" y="170" fill="#374151" font-family="Arial, sans-serif" font-size="12">食材リスト</text>
+  <circle cx="70" cy="190" r="15" fill="#FCD34D"/>
+  <text x="95" y="195" fill="#374151" font-family="Arial, sans-serif" font-size="10">にんじん 2本</text>
+  <circle cx="70" cy="220" r="15" fill="#F87171"/>
+  <text x="95" y="225" fill="#374151" font-family="Arial, sans-serif" font-size="10">トマト 3個</text>
+  <circle cx="70" cy="250" r="15" fill="#34D399"/>
+  <text x="95" y="255" fill="#374151" font-family="Arial, sans-serif" font-size="10">きゅうり 1本</text>
+
+  <rect x="40" y="280" width="220" height="60" rx="8" fill="#10B981"/>
+  <text x="150" y="305" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">レシピ提案</text>
+  <text x="150" y="325" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10">今ある食材で何作る？</text>
+</svg>
