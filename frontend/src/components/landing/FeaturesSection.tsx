@@ -20,47 +20,56 @@ const FeaturesSection: React.FC = () => {
         {/* LINE版とWEB版の比較 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-24">
           {/* LINE版 */}
-          <div className="bg-green-50 rounded-2xl p-8 border-2 border-green-200">
-            <div className="flex items-center space-x-3 mb-6">
-              <FaLine className="text-3xl text-green-500" />
-              <h3 className="text-2xl font-bold text-gray-900">LINE版</h3>
+          <div className="bg-gray-50 rounded-2xl p-8 border-2 border-gray-200 relative opacity-75">
+            <div className="absolute top-4 right-4 bg-gray-500 text-white text-xs px-3 py-1 rounded-full font-medium">
+              準備中
             </div>
-            <p className="text-gray-600 mb-6">
+            <div className="flex items-center space-x-3 mb-6">
+              <FaLine className="text-3xl text-gray-500" />
+              <h3 className="text-2xl font-bold text-gray-600">LINE版</h3>
+            </div>
+            <p className="text-gray-500 mb-6">
               いつものLINEで手軽に食材管理。写真を送るだけでかんたんスタート。
             </p>
 
             <ul className="space-y-3 mb-8">
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700">写真認識</span>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-500">写真認識</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700">食材リストの確認と編集</span>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-500">食材リストの確認と編集</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700">レシピ提案</span>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-500">レシピ提案</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700">買い物リスト作成</span>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-500">買い物リスト作成</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700">基本的な設定</span>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-500">基本的な設定</span>
               </li>
             </ul>
 
-            <button className="w-full bg-green-500 text-white py-3 px-6 rounded-lg hover:bg-green-600 transition-colors font-medium">
-              LINEで今すぐ始める
+            <button
+              disabled
+              className="w-full bg-gray-400 text-gray-600 py-3 px-6 rounded-lg cursor-not-allowed font-medium"
+            >
+              近日公開予定
             </button>
           </div>
 
           {/* WEB版 */}
-          <div className="bg-gray-50 rounded-2xl p-8 border-2 border-gray-200">
+          <div className="bg-green-50 rounded-2xl p-8 border-2 border-green-200 relative">
+            <div className="absolute top-4 right-4 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium">
+              おすすめ
+            </div>
             <div className="flex items-center space-x-3 mb-6">
-              <HiDesktopComputer className="text-3xl text-gray-700" />
+              <HiDesktopComputer className="text-3xl text-green-600" />
               <h3 className="text-2xl font-bold text-gray-900">WEB版</h3>
             </div>
             <p className="text-gray-600 mb-6">
@@ -69,30 +78,30 @@ const FeaturesSection: React.FC = () => {
 
             <ul className="space-y-3 mb-8">
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-700 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-gray-700">写真認識機能</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-700 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-gray-700">詳細な在庫管理</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-700 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-gray-700">レシピ履歴管理</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-700 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-gray-700">お気に入りレシピ</span>
               </li>
               <li className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-gray-700 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                 <span className="text-gray-700">高度な設定・統計</span>
               </li>
             </ul>
 
             <Link
               to="/signup"
-              className="block w-full bg-gray-700 text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition-colors font-medium text-center"
+              className="block w-full bg-green-500 text-white py-3 px-6 rounded-lg hover:bg-green-600 transition-colors font-medium text-center"
             >
               無料で始める
             </Link>

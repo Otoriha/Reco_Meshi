@@ -20,14 +20,17 @@ const CTASection: React.FC = () => {
           {/* CTAボタン */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
             {/* LINEで始める */}
-            <button className="w-full sm:w-auto bg-white text-green-600 px-8 py-4 rounded-full hover:bg-green-50 transition-colors font-bold shadow-lg text-lg min-w-[250px]">
-              LINEで始める（無料10分）
+            <button
+              disabled
+              className="w-full sm:w-auto bg-gray-400 text-gray-600 px-8 py-4 rounded-full cursor-not-allowed font-bold shadow-lg text-lg min-w-[250px]"
+            >
+              LINEで始める（準備中）
             </button>
 
             {/* Web版で始める */}
             <Link
               to="/signup"
-              className="w-full sm:w-auto bg-transparent border-2 border-white text-white px-8 py-4 rounded-full hover:bg-white hover:text-green-600 transition-colors font-bold text-lg text-center min-w-[200px]"
+              className="w-full sm:w-auto bg-white text-green-600 px-8 py-4 rounded-full hover:bg-green-50 transition-colors font-bold text-lg text-center min-w-[200px] shadow-lg"
             >
               WEB版で始める
             </Link>

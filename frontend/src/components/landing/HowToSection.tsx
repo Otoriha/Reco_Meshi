@@ -91,27 +91,6 @@ const HowToSection: React.FC = () => {
           ))}
         </div>
 
-        {/* 追加説明 */}
-        <div className="mt-16 text-center">
-          <div className="bg-white rounded-lg p-8 shadow-sm border">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              もっと詳しく知りたい方へ
-            </h3>
-            <p className="text-gray-600 mb-6">
-              レコめしの機能をもっと詳しく知りたい方は、公式LINEアカウントを友だち追加するか、
-              <br className="hidden sm:inline" />
-              Webサイトで詳細機能をご確認ください。
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors font-medium">
-                LINEで体験する
-              </button>
-              <button className="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium">
-                Web版を試す
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
