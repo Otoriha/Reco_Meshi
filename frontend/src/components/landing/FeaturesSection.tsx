@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaLine, FaSearch, FaShoppingCart } from 'react-icons/fa';
-import { HiDesktopComputer, HiCamera, HiChartBar } from 'react-icons/hi';
+import { HiDesktopComputer, HiCamera } from 'react-icons/hi';
 
 const FeaturesSection: React.FC = () => {
   return (
