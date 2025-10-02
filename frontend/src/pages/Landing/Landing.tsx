@@ -26,7 +26,14 @@ const Landing: React.FC = () => {
           <div className="flex flex-wrap justify-center gap-8 mb-6">
             <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">利用規約</a>
             <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">プライバシーポリシー</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">お問い合わせ</a>
+            <a
+              href={import.meta.env.VITE_CONTACT_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors text-sm"
+            >
+              お問い合わせ
+            </a>
             <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">ヘルプ</a>
           </div>
 
