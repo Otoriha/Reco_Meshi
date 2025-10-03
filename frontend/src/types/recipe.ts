@@ -68,3 +68,29 @@ export interface RecipeHistoriesParams {
 
 // チェックボックス用のローカル状態
 export type IngredientCheckState = Record<number, boolean>
+
+// お気に入りレシピ
+export interface FavoriteRecipe {
+  id: number
+  user_id: number
+  recipe_id: number
+  created_at: string
+  recipe?: {
+    id: number
+    title: string
+    cooking_time: number
+    difficulty: string | null
+    servings: number | null
+  }
+}
+
+// お気に入り一覧取得パラメータ
+export interface FavoriteRecipesParams {
+  page?: number
+  per_page?: number
+}
+
+// お気に入り追加パラメータ
+export interface CreateFavoriteRecipeParams {
+  recipe_id: number
+}

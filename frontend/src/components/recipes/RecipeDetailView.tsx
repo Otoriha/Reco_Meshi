@@ -2,19 +2,26 @@ import React, { useState } from 'react'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 import { FaClock, FaUtensils, FaCheck, FaShoppingCart } from 'react-icons/fa'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
+import FavoriteButton from './FavoriteButton'
 
 interface RecipeDetailViewProps {
   recipe: Recipe
   onSaveToHistory?: () => void
   showSaveButton?: boolean
   onShoppingListCreated?: (message: string) => void
+  favoriteId?: number | null
+  onFavoriteToggle?: (isFavorited: boolean) => void
+  showFavoriteButton?: boolean
 }
 
 const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   recipe,
   onSaveToHistory,
   showSaveButton = true,
-  onShoppingListCreated
+  onShoppingListCreated,
+  favoriteId = null,
+  onFavoriteToggle,
+  showFavoriteButton = true
 }) => {
   const [checkedIngredients, setCheckedIngredients] = useState<IngredientCheckState>({})
   const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
@@ -59,7 +66,20 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
     <div className="space-y-6">
       {/* レシピヘッダー */}
       <div className="text-center border-b pb-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{recipe.title}</h2>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1"></div>
+          <h2 className="text-2xl font-bold text-gray-900">{recipe.title}</h2>
+          <div className="flex-1 flex justify-end">
+            {showFavoriteButton && (
+              <FavoriteButton
+                recipeId={recipe.id}
+                favoriteId={favoriteId}
+                onToggle={onFavoriteToggle}
+                compact
+              />
+            )}
+          </div>
+        </div>
         <div className="flex justify-center items-center space-x-4 text-sm text-gray-600">
           <div className="flex items-center">
             <FaClock className="mr-1" />

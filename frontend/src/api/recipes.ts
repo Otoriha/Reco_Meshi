@@ -1,7 +1,7 @@
 import { apiClient } from './client'
-import type { Recipe, RecipeHistory, CreateRecipeHistoryParams, UpdateRecipeHistoryParams, PaginationMeta, RecipeHistoriesParams } from '../types/recipe'
+import type { Recipe, RecipeHistory, CreateRecipeHistoryParams, UpdateRecipeHistoryParams, PaginationMeta, RecipeHistoriesParams, FavoriteRecipe, FavoriteRecipesParams } from '../types/recipe'
 
-export type { PaginationMeta, RecipeHistoriesParams }
+export type { PaginationMeta, RecipeHistoriesParams, FavoriteRecipesParams }
 
 interface ApiResponse<T> {
   success: boolean
@@ -125,6 +125,46 @@ export const recipesApi = {
     const response = await apiClient.delete<ApiResponse<never>>(`/recipe_histories/${id}`)
     if (!response.data.success) {
       throw new Error(response.data.message || '調理記録の削除に失敗しました')
+    }
+  },
+
+  // お気に入り一覧取得（ページネーション対応）
+  async fetchFavoriteRecipes(params: FavoriteRecipesParams = {}): Promise<{ data: FavoriteRecipe[]; meta: PaginationMeta }> {
+    const searchParams = new URLSearchParams()
+
+    if (params.page) searchParams.append('page', params.page.toString())
+    if (params.per_page) searchParams.append('per_page', params.per_page.toString())
+
+    const url = `/favorite_recipes${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+    const response = await apiClient.get<PaginatedApiResponse<FavoriteRecipe>>(url)
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'お気に入りの取得に失敗しました')
+    }
+
+    return {
+      data: response.data.data,
+      meta: response.data.meta
+    }
+  },
+
+  // お気に入り追加
+  async addFavoriteRecipe(recipeId: number): Promise<FavoriteRecipe> {
+    const response = await apiClient.post<ApiResponse<FavoriteRecipe>>(
+      '/favorite_recipes',
+      { favorite_recipe: { recipe_id: recipeId } }
+    )
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'お気に入りの追加に失敗しました')
+    }
+    return response.data.data
+  },
+
+  // お気に入り削除
+  async removeFavoriteRecipe(favoriteId: number): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<never>>(`/favorite_recipes/${favoriteId}`)
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'お気に入りの削除に失敗しました')
     }
   }
 }

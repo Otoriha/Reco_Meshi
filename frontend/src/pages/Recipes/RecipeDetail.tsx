@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { recipesApi } from '../../api/recipes'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
+import { useFavoriteRecipes } from '../../hooks/useFavoriteRecipes'
+import FavoriteButton from '../../components/recipes/FavoriteButton'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 
 const RecipeDetail: React.FC = () => {
@@ -15,16 +17,18 @@ const RecipeDetail: React.FC = () => {
   const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
   const [memo, setMemo] = useState('')
 
+  const { favorites, fetchFavorites, refreshFavorites } = useFavoriteRecipes()
+
   useEffect(() => {
     const fetchRecipe = async () => {
       if (!id) return
-      
+
       try {
         setLoading(true)
         const data = await recipesApi.getRecipe(parseInt(id, 10))
         setRecipe(data)
         setError(null)
-        
+
         // 初期状態では全ての材料のチェックを外す
         if (data.ingredients) {
           const initialChecked: IngredientCheckState = {}
@@ -41,7 +45,8 @@ const RecipeDetail: React.FC = () => {
     }
 
     fetchRecipe()
-  }, [id])
+    fetchFavorites()
+  }, [id, fetchFavorites])
 
   const handleIngredientCheck = (ingredientId: number) => {
     setCheckedIngredients(prev => ({
@@ -89,6 +94,12 @@ const RecipeDetail: React.FC = () => {
     }
   }
 
+  const handleFavoriteToggle = async () => {
+    await refreshFavorites()
+  }
+
+  const currentFavorite = recipe ? favorites.find(f => f.recipe_id === recipe.id) : null
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -130,7 +141,14 @@ const RecipeDetail: React.FC = () => {
           >
             ← レシピ履歴に戻る
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
+            <FavoriteButton
+              recipeId={recipe.id}
+              favoriteId={currentFavorite?.id || null}
+              onToggle={handleFavoriteToggle}
+            />
+          </div>
         </div>
 
         {/* レシピ基本情報 */}
