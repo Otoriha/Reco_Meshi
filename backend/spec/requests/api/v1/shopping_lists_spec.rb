@@ -6,8 +6,14 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
   # 各テストでクリーンなトークン取得を行う
   def get_auth_token(user)
-    post "/api/v1/auth/login", params: { user: { email: user.email, password: 'password123' } }, as: :json
-    response.headers['Authorization']
+    # メインのテストセッションに影響を与えないように、独立したセッションでトークンを取得
+    session = ActionDispatch::Integration::Session.new(Rails.application)
+    session.post(
+      "/api/v1/auth/login",
+      params: { user: { email: user.email, password: 'password123' } },
+      as: :json
+    )
+    session.response.headers['Authorization']
   end
 
   describe 'GET /api/v1/shopping_lists' do
@@ -39,8 +45,7 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
         get '/api/v1/shopping_lists',
             params: { status: 'completed' },
-            headers: { 'Authorization' => get_auth_token(user) },
-            as: :json
+            headers: { 'Authorization' => get_auth_token(user) }
 
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
@@ -76,8 +81,7 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
         get '/api/v1/shopping_lists',
             params: { page: 1, per_page: 10 },
-            headers: { 'Authorization' => get_auth_token(user) },
-            as: :json
+            headers: { 'Authorization' => get_auth_token(user) }
 
         expect(response).to have_http_status(:ok)
         body = JSON.parse(response.body)
@@ -220,6 +224,17 @@ RSpec.describe 'Api::V1::ShoppingLists', type: :request do
 
           # 新しいリストは作成されていない
           expect(ShoppingList.count).to eq(initial_count)
+        end
+      end
+
+      context 'with invalid parameters' do
+        it 'returns 400 bad request when no parameters are provided' do
+          post '/api/v1/shopping_lists', headers: { 'Authorization' => get_auth_token(user) }, as: :json
+
+          expect(response).to have_http_status(:bad_request)
+          body = JSON.parse(response.body)
+          expect(body['errors']).to be_present
+          expect(body['errors'].first['detail']).to eq('リクエストの形式が正しくありません。recipe_id または shopping_list パラメータが必要です。')
         end
       end
 
