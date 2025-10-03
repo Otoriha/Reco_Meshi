@@ -3,7 +3,7 @@ class Api::V1::LineController < ApplicationController
 
   def webhook
   raw_body = request.raw_post
-  signature = request.get_header("HTTP_X_LINE_SIGNATURE")
+  signature = request.headers["X-Line-Signature"]
 
   # 署名ヘッダーが存在しない場合は400エラーを返す
   if signature.blank?
