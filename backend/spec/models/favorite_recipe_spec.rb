@@ -13,11 +13,14 @@ RSpec.describe FavoriteRecipe, type: :model do
     it { is_expected.to validate_presence_of(:recipe_id) }
 
     it "同一ユーザーが同じレシピを重複登録できない" do
-      existing = create(:favorite_recipe, user: favorite_recipe.user, recipe: favorite_recipe.recipe)
-      duplicate = build(:favorite_recipe, user: existing.user, recipe: existing.recipe)
+      user = create(:user, :confirmed)
+      recipe = create(:recipe, user: user)
+
+      create(:favorite_recipe, user: user, recipe: recipe)
+      duplicate = build(:favorite_recipe, user: user, recipe: recipe)
 
       expect(duplicate).not_to be_valid
-      expect(duplicate.errors[:recipe_id]).to include("は既にお気に入りに追加されています")
+      expect(duplicate.errors[:recipe_id]).to include("レシピIDは既にお気に入りに追加されています")
     end
   end
 

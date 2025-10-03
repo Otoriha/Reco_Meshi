@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :favorite_recipe do
     association :user, :confirmed
-    association :recipe
+    recipe { association :recipe, user: user }
   end
 end
 

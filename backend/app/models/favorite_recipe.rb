@@ -6,7 +6,7 @@ class FavoriteRecipe < ApplicationRecord
   # Validations
   validates :user_id, presence: true
   validates :recipe_id, presence: true
-  validates :recipe_id, uniqueness: { scope: :user_id, message: "は既にお気に入りに追加されています" }
+  validates :recipe_id, uniqueness: { scope: :user_id, message: "レシピIDは既にお気に入りに追加されています" }
 
   # Scopes
   scope :recent, -> { order(created_at: :desc) }

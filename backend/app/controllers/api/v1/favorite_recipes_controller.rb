@@ -39,7 +39,7 @@ class Api::V1::FavoriteRecipesController < ApplicationController
     else
       render json: {
         success: false,
-        errors: favorite.errors.full_messages,
+        errors: favorite.errors.messages.transform_keys { |key| key == :recipe ? :recipe_id : key }.values.flatten,
         message: "お気に入りの追加に失敗しました"
       }, status: :unprocessable_entity
     end

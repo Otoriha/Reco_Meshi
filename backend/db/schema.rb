@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_09_24_020624) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_03_014326) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "favorite_recipes", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "ユーザーID"
+    t.bigint "recipe_id", null: false, comment: "レシピID"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recipe_id"], name: "index_favorite_recipes_on_recipe_id"
+    t.index ["user_id", "created_at"], name: "index_favorite_recipes_on_user_id_and_created_at"
+    t.index ["user_id", "recipe_id"], name: "index_favorite_recipes_on_user_and_recipe", unique: true
+    t.index ["user_id"], name: "index_favorite_recipes_on_user_id"
+  end
 
   create_table "fridge_images", force: :cascade do |t|
     t.bigint "user_id", comment: "撮影したユーザー"
@@ -179,6 +190,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_09_24_020624) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "favorite_recipes", "recipes", on_delete: :cascade
+  add_foreign_key "favorite_recipes", "users", on_delete: :cascade
   add_foreign_key "fridge_images", "line_accounts"
   add_foreign_key "fridge_images", "users"
   add_foreign_key "line_accounts", "users", on_delete: :nullify

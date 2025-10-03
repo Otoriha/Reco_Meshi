@@ -66,9 +66,11 @@ RSpec.describe "Api::V1::FavoriteRecipes", type: :request do
     end
 
     it "パラメータ不足は400" do
-      expect {
-        post "/api/v1/favorite_recipes", params: {}, headers: headers, as: :json
-      }.to raise_error(ActionController::ParameterMissing)
+      post "/api/v1/favorite_recipes", params: {}, headers: headers, as: :json
+
+      expect(response).to have_http_status(:bad_request)
+      body = JSON.parse(response.body)
+      expect(body["error"]).to include("param is missing")
     end
   end
 
