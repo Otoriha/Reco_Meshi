@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRecipeHistory } from '../../hooks/useRecipeHistory'
+import { useFavoriteRecipes } from '../../hooks/useFavoriteRecipes'
 import { useFilters, type FilterPeriod } from '../../hooks/useFilters'
+import { useToast } from '../../hooks/useToast'
 import RecipeHistoryItem from './RecipeHistoryItem'
 import { RecipeHistorySkeletonList } from './RecipeHistorySkeleton'
 import Pagination from '../../components/Pagination'
@@ -22,6 +24,8 @@ const RATING_OPTIONS: Array<{ value: boolean | null; label: string }> = [
 
 const RecipeHistory: React.FC = () => {
   const navigate = useNavigate()
+  const { showToast } = useToast()
+
   const {
     histories,
     loading,
@@ -34,9 +38,18 @@ const RecipeHistory: React.FC = () => {
   } = useRecipeHistory()
 
   const {
+    favorites,
+    fetchFavorites,
+    addFavorite,
+    removeFavorite,
+    updateRating,
+    initialized: favoritesInitialized
+  } = useFavoriteRecipes()
+
+  const {
     filters,
     setPeriod,
-    setRatedOnly,
+    setFavoritedOnly,
     setSearchQuery,
     getApiParams,
     filterLocalData,
@@ -48,7 +61,7 @@ const RecipeHistory: React.FC = () => {
   useEffect(() => {
     const apiParams = getApiParams()
     fetchHistories({ ...apiParams, page: 1 })
-  }, [filters.period, filters.ratedOnly, getApiParams, fetchHistories])
+  }, [filters.period, filters.favoritedOnly, getApiParams, fetchHistories])
 
   // 初回データ取得
   useEffect(() => {
@@ -56,6 +69,13 @@ const RecipeHistory: React.FC = () => {
       fetchHistories()
     }
   }, [initialized, fetchHistories])
+
+  // お気に入りデータ取得
+  useEffect(() => {
+    if (!favoritesInitialized) {
+      fetchFavorites()
+    }
+  }, [favoritesInitialized, fetchFavorites])
 
   // ローカルフィルタを適用したデータ
   const filteredHistories = useMemo(() => {
@@ -72,6 +92,30 @@ const RecipeHistory: React.FC = () => {
     await deleteHistory(id)
   }
 
+  const handleRatingChange = async (recipeId: number, rating: number | null) => {
+    try {
+      const favorite = favorites.find(f => f.recipe_id === recipeId)
+
+      if (favorite) {
+        if (rating === null) {
+          // 評価を削除する場合はお気に入りから削除
+          await removeFavorite(favorite.id)
+          showToast('お気に入りから削除しました', 'success')
+        } else {
+          // 評価を更新
+          await updateRating(favorite.id, rating)
+          showToast(`${rating}つ星で評価しました`, 'success')
+        }
+      } else {
+        // お気に入りでない場合は、評価付きで追加
+        await addFavorite(recipeId, rating)
+        showToast(rating ? `お気に入りに追加し、${rating}つ星で評価しました` : 'お気に入りに追加しました', 'success')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '評価の更新に失敗しました'
+      showToast(errorMessage, 'error')
+    }
+  }
 
   const handlePageChange = async (page: number) => {
     const apiParams = getApiParams()
@@ -156,9 +200,9 @@ const RecipeHistory: React.FC = () => {
               <button
                 key={option.label}
                 type="button"
-                onClick={() => setRatedOnly(option.value)}
+                onClick={() => setFavoritedOnly(option.value)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  filters.ratedOnly === option.value
+                  filters.favoritedOnly === option.value
                     ? 'bg-green-600 text-white border-green-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
@@ -200,14 +244,19 @@ const RecipeHistory: React.FC = () => {
         ) : (
           <>
             <div className="space-y-4">
-              {filteredHistories.map((history) => (
-                <RecipeHistoryItem
-                  key={history.id}
-                  history={history}
-                  onClick={() => handleItemClick(history)}
-                  onDelete={() => handleItemDelete(history.id)}
-                />
-              ))}
+              {filteredHistories.map((history) => {
+                const favorite = history.recipe_id ? favorites.find(f => f.recipe_id === history.recipe_id) : null
+                return (
+                  <RecipeHistoryItem
+                    key={history.id}
+                    history={history}
+                    onClick={() => handleItemClick(history)}
+                    onDelete={() => handleItemDelete(history.id)}
+                    favoriteRating={favorite?.rating || null}
+                    onRatingChange={history.recipe_id ? (rating) => handleRatingChange(history.recipe_id!, rating) : undefined}
+                  />
+                )
+              })}
             </div>
 
             {/* ページネーション */}

@@ -6,7 +6,7 @@ export type FilterPeriod = 'all' | 'this-week' | 'this-month'
 
 interface Filters {
   period: FilterPeriod
-  ratedOnly: boolean | null
+  favoritedOnly: boolean | null
   searchQuery: string
 }
 
@@ -14,7 +14,7 @@ interface UseFiltersReturn {
   filters: Filters
   setFilters: React.Dispatch<React.SetStateAction<Filters>>
   setPeriod: (period: FilterPeriod) => void
-  setRatedOnly: (ratedOnly: boolean | null) => void
+  setFavoritedOnly: (favoritedOnly: boolean | null) => void
   setSearchQuery: (query: string) => void
   getApiParams: () => RecipeHistoriesParams
   filterLocalData: (data: RecipeHistory[]) => RecipeHistory[]
@@ -25,7 +25,7 @@ interface UseFiltersReturn {
 export const useFilters = (): UseFiltersReturn => {
   const [filters, setFilters] = useState<Filters>({
     period: 'all',
-    ratedOnly: null,
+    favoritedOnly: null,
     searchQuery: ''
   })
 
@@ -33,8 +33,8 @@ export const useFilters = (): UseFiltersReturn => {
     setFilters(prev => ({ ...prev, period }))
   }
 
-  const setRatedOnly = (ratedOnly: boolean | null) => {
-    setFilters(prev => ({ ...prev, ratedOnly }))
+  const setFavoritedOnly = (favoritedOnly: boolean | null) => {
+    setFilters(prev => ({ ...prev, favoritedOnly }))
   }
 
   const setSearchQuery = (searchQuery: string) => {
@@ -47,7 +47,7 @@ export const useFilters = (): UseFiltersReturn => {
     // 期間フィルタの処理
     if (filters.period !== 'all') {
       const now = new Date()
-      
+
       if (filters.period === 'this-week') {
         const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // 月曜日開始
         params.start_date = format(weekStart, 'yyyy-MM-dd')
@@ -57,22 +57,17 @@ export const useFilters = (): UseFiltersReturn => {
       }
     }
 
-    // 評価フィルタの処理（評価済みのみサーバーサイド対応）
-    if (filters.ratedOnly === true) {
-      params.rated_only = true
+    // お気に入りフィルタの処理（サーバーサイドで対応）
+    if (filters.favoritedOnly !== null) {
+      params.favorited_only = filters.favoritedOnly
     }
 
     return params
-  }, [filters.period, filters.ratedOnly])
+  }, [filters.period, filters.favoritedOnly])
 
   const filterLocalData = useMemo(() => {
     return (data: RecipeHistory[]): RecipeHistory[] => {
       let filteredData = data
-
-      // 未評価フィルタ（クライアントサイド）
-      if (filters.ratedOnly === false) {
-        filteredData = filteredData.filter(item => !item.rating)
-      }
 
       // 検索フィルタ（クライアントサイド）
       if (filters.searchQuery.trim()) {
@@ -85,18 +80,18 @@ export const useFilters = (): UseFiltersReturn => {
 
       return filteredData
     }
-  }, [filters.ratedOnly, filters.searchQuery])
+  }, [filters.searchQuery])
 
   const hasActiveFilters = useMemo(() => {
-    return filters.period !== 'all' || 
-           filters.ratedOnly !== null || 
+    return filters.period !== 'all' ||
+           filters.favoritedOnly !== null ||
            filters.searchQuery.trim() !== ''
   }, [filters])
 
   const clearFilters = () => {
     setFilters({
       period: 'all',
-      ratedOnly: null,
+      favoritedOnly: null,
       searchQuery: ''
     })
   }
@@ -105,7 +100,7 @@ export const useFilters = (): UseFiltersReturn => {
     filters,
     setFilters,
     setPeriod,
-    setRatedOnly,
+    setFavoritedOnly,
     setSearchQuery,
     getApiParams,
     filterLocalData,

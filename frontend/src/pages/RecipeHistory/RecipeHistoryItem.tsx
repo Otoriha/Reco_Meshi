@@ -1,17 +1,22 @@
 import React from 'react'
 import type { RecipeHistory } from '../../types/recipe'
 import { FaClock } from 'react-icons/fa'
+import StarRating from '../../components/recipes/StarRating'
 
 interface RecipeHistoryItemProps {
   history: RecipeHistory
   onClick: () => void
   onDelete?: () => void
+  favoriteRating?: number | null
+  onRatingChange?: (rating: number | null) => void
 }
 
 const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
   history,
   onClick,
-  onDelete
+  onDelete,
+  favoriteRating = null,
+  onRatingChange
 }) => {
   const formatDate = (dateString: string) => {
     try {
@@ -95,6 +100,21 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* 星評価 */}
+              {history.recipe && (
+                <div className="mt-3 flex items-center gap-3">
+                  <StarRating
+                    rating={favoriteRating}
+                    onRate={onRatingChange}
+                    readonly={!onRatingChange}
+                    size="md"
+                  />
+                  {favoriteRating && (
+                    <span className="text-sm text-gray-600">({favoriteRating}つ星)</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

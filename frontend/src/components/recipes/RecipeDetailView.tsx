@@ -2,19 +2,26 @@ import React, { useState } from 'react'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 import { FaClock, FaUtensils, FaCheck, FaShoppingCart } from 'react-icons/fa'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
+import StarRating from './StarRating'
 
 interface RecipeDetailViewProps {
   recipe: Recipe
   onSaveToHistory?: () => void
   showSaveButton?: boolean
   onShoppingListCreated?: (message: string) => void
+  favoriteRating?: number | null
+  onRatingChange?: (rating: number | null) => void
+  showStarRating?: boolean
 }
 
 const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   recipe,
   onSaveToHistory,
   showSaveButton = true,
-  onShoppingListCreated
+  onShoppingListCreated,
+  favoriteRating = null,
+  onRatingChange,
+  showStarRating = true
 }) => {
   const [checkedIngredients, setCheckedIngredients] = useState<IngredientCheckState>({})
   const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
@@ -60,6 +67,19 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
       {/* レシピヘッダー */}
       <div className="text-center border-b pb-4">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">{recipe.title}</h2>
+        {showStarRating && (
+          <div className="flex justify-center items-center gap-3 mb-3">
+            <StarRating
+              rating={favoriteRating}
+              onRate={onRatingChange}
+              readonly={!onRatingChange}
+              size="md"
+            />
+            {favoriteRating && (
+              <span className="text-sm text-gray-600">({favoriteRating}つ星)</span>
+            )}
+          </div>
+        )}
         <div className="flex justify-center items-center space-x-4 text-sm text-gray-600">
           <div className="flex items-center">
             <FaClock className="mr-1" />

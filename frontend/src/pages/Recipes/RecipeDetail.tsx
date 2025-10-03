@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { recipesApi } from '../../api/recipes'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
+import { useFavoriteRecipes } from '../../hooks/useFavoriteRecipes'
+import { useToast } from '../../hooks/useToast'
+import StarRating from '../../components/recipes/StarRating'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 
 const RecipeDetail: React.FC = () => {
@@ -15,16 +18,19 @@ const RecipeDetail: React.FC = () => {
   const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
   const [memo, setMemo] = useState('')
 
+  const { favorites, fetchFavorites, addFavorite, removeFavorite, updateRating } = useFavoriteRecipes()
+  const { showToast } = useToast()
+
   useEffect(() => {
     const fetchRecipe = async () => {
       if (!id) return
-      
+
       try {
         setLoading(true)
         const data = await recipesApi.getRecipe(parseInt(id, 10))
         setRecipe(data)
         setError(null)
-        
+
         // 初期状態では全ての材料のチェックを外す
         if (data.ingredients) {
           const initialChecked: IngredientCheckState = {}
@@ -41,7 +47,8 @@ const RecipeDetail: React.FC = () => {
     }
 
     fetchRecipe()
-  }, [id])
+    fetchFavorites()
+  }, [id, fetchFavorites])
 
   const handleIngredientCheck = (ingredientId: number) => {
     setCheckedIngredients(prev => ({
@@ -89,6 +96,35 @@ const RecipeDetail: React.FC = () => {
     }
   }
 
+  const handleRatingChange = async (rating: number | null) => {
+    if (!recipe) return
+
+    try {
+      const favorite = favorites.find(f => f.recipe_id === recipe.id)
+
+      if (favorite) {
+        if (rating === null) {
+          // 評価を削除する場合はお気に入りから削除
+          await removeFavorite(favorite.id)
+          showToast('お気に入りから削除しました', 'success')
+        } else {
+          // 評価を更新
+          await updateRating(favorite.id, rating)
+          showToast(`${rating}つ星で評価しました`, 'success')
+        }
+      } else {
+        // お気に入りでない場合は、評価付きで追加
+        await addFavorite(recipe.id, rating)
+        showToast(rating ? `お気に入りに追加し、${rating}つ星で評価しました` : 'お気に入りに追加しました', 'success')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '評価の更新に失敗しました'
+      showToast(errorMessage, 'error')
+    }
+  }
+
+  const currentFavorite = recipe ? favorites.find(f => f.recipe_id === recipe.id) : null
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -130,7 +166,20 @@ const RecipeDetail: React.FC = () => {
           >
             ← レシピ履歴に戻る
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
+            {/* 星評価 */}
+            <div className="flex items-center gap-3">
+              <StarRating
+                rating={currentFavorite?.rating || null}
+                onRate={handleRatingChange}
+                size="lg"
+              />
+              {currentFavorite?.rating && (
+                <span className="text-sm text-gray-600">({currentFavorite.rating}つ星)</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* レシピ基本情報 */}

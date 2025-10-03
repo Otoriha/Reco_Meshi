@@ -105,9 +105,18 @@ class Api::V1::RecipeHistoriesController < ApplicationController
     # レシピIDフィルタ
     histories = histories.where(recipe_id: params[:recipe_id]) if params[:recipe_id].present?
 
-    # 評価済みフィルタ
-    if params[:rated_only].present?
-      histories = histories.rated if ActiveModel::Type::Boolean.new.cast(params[:rated_only])
+    # お気に入りフィルタ（FavoriteRecipeの存在で判定）
+    if params[:favorited_only].present?
+      is_favorited = ActiveModel::Type::Boolean.new.cast(params[:favorited_only])
+      if is_favorited
+        # お気に入り登録されているレシピのみ
+        favorited_recipe_ids = current_user.favorite_recipes.pluck(:recipe_id)
+        histories = histories.where(recipe_id: favorited_recipe_ids)
+      else
+        # お気に入り登録されていないレシピのみ
+        favorited_recipe_ids = current_user.favorite_recipes.pluck(:recipe_id)
+        histories = histories.where.not(recipe_id: favorited_recipe_ids)
+      end
     end
 
     histories
