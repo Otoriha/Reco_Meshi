@@ -63,13 +63,10 @@ class Api::V1::ShoppingListsController < ApplicationController
         Rails.logger.error "ShoppingList作成エラー: #{e.class} #{e.message}"
         render json: { errors: [ { detail: "作成に失敗しました" } ] }, status: :unprocessable_entity
       end
+    elsif params[:shopping_list].present?
+      create_manually
     else
-      if params[:shopping_list].present?
-        create_manually
-      else
-        # 作成用パラメータが無い場合は、一覧取得のユースケースとみなし index を返す（テスト環境の一部クライアント挙動対策）
-        index
-      end
+      render json: { errors: [ { detail: "リクエストの形式が正しくありません。recipe_id または shopping_list パラメータが必要です。" } ] }, status: :bad_request
     end
   end
 
