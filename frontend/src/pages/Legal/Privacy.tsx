@@ -77,7 +77,7 @@ const Privacy: React.FC = () => {
               <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
                 <li>LINE（ユーザー認証、メッセージ送信）</li>
                 <li>Google Cloud Vision API（画像認識）</li>
-                <li>AI API（レシピ生成）</li>
+                <li>OpenAI APIまたはGoogle Gemini API（レシピ生成）</li>
               </ul>
               <p className="text-gray-700 leading-relaxed mt-4">
                 これらのサービスを利用する際、必要最小限の情報のみが送信されます。
