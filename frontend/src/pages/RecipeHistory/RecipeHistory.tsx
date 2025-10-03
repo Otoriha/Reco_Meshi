@@ -92,32 +92,20 @@ const RecipeHistory: React.FC = () => {
     await deleteHistory(id)
   }
 
-  const handleFavoriteToggle = async (recipeId: number, isFavorited: boolean) => {
-    try {
-      if (isFavorited) {
-        await addFavorite(recipeId)
-        showToast('お気に入りに追加しました', 'success')
-      } else {
-        const favorite = favorites.find(f => f.recipe_id === recipeId)
-        if (favorite) {
-          await removeFavorite(favorite.id)
-          showToast('お気に入りから削除しました', 'success')
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'エラーが発生しました'
-      showToast(errorMessage, 'error')
-    }
-  }
-
   const handleRatingChange = async (recipeId: number, rating: number | null) => {
     try {
       const favorite = favorites.find(f => f.recipe_id === recipeId)
 
       if (favorite) {
-        // すでにお気に入りの場合は評価を更新
-        await updateRating(favorite.id, rating)
-        showToast(rating ? `${rating}つ星で評価しました` : '評価を削除しました', 'success')
+        if (rating === null) {
+          // 評価を削除する場合はお気に入りから削除
+          await removeFavorite(favorite.id)
+          showToast('お気に入りから削除しました', 'success')
+        } else {
+          // 評価を更新
+          await updateRating(favorite.id, rating)
+          showToast(`${rating}つ星で評価しました`, 'success')
+        }
       } else {
         // お気に入りでない場合は、評価付きで追加
         await addFavorite(recipeId, rating)
@@ -264,9 +252,7 @@ const RecipeHistory: React.FC = () => {
                     history={history}
                     onClick={() => handleItemClick(history)}
                     onDelete={() => handleItemDelete(history.id)}
-                    favoriteId={favorite?.id || null}
                     favoriteRating={favorite?.rating || null}
-                    onFavoriteToggle={history.recipe_id ? (isFavorited) => handleFavoriteToggle(history.recipe_id!, isFavorited) : undefined}
                     onRatingChange={history.recipe_id ? (rating) => handleRatingChange(history.recipe_id!, rating) : undefined}
                   />
                 )

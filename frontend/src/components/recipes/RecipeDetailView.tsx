@@ -2,16 +2,16 @@ import React, { useState } from 'react'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 import { FaClock, FaUtensils, FaCheck, FaShoppingCart } from 'react-icons/fa'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
-import FavoriteButton from './FavoriteButton'
+import StarRating from './StarRating'
 
 interface RecipeDetailViewProps {
   recipe: Recipe
   onSaveToHistory?: () => void
   showSaveButton?: boolean
   onShoppingListCreated?: (message: string) => void
-  favoriteId?: number | null
-  onFavoriteToggle?: (isFavorited: boolean) => void
-  showFavoriteButton?: boolean
+  favoriteRating?: number | null
+  onRatingChange?: (rating: number | null) => void
+  showStarRating?: boolean
 }
 
 const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
@@ -19,9 +19,9 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   onSaveToHistory,
   showSaveButton = true,
   onShoppingListCreated,
-  favoriteId = null,
-  onFavoriteToggle,
-  showFavoriteButton = true
+  favoriteRating = null,
+  onRatingChange,
+  showStarRating = true
 }) => {
   const [checkedIngredients, setCheckedIngredients] = useState<IngredientCheckState>({})
   const [isCreatingShoppingList, setIsCreatingShoppingList] = useState(false)
@@ -66,20 +66,20 @@ const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
     <div className="space-y-6">
       {/* レシピヘッダー */}
       <div className="text-center border-b pb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex-1"></div>
-          <h2 className="text-2xl font-bold text-gray-900">{recipe.title}</h2>
-          <div className="flex-1 flex justify-end">
-            {showFavoriteButton && (
-              <FavoriteButton
-                recipeId={recipe.id}
-                favoriteId={favoriteId}
-                onToggle={onFavoriteToggle}
-                compact
-              />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{recipe.title}</h2>
+        {showStarRating && (
+          <div className="flex justify-center items-center gap-3 mb-3">
+            <StarRating
+              rating={favoriteRating}
+              onRate={onRatingChange}
+              readonly={!onRatingChange}
+              size="md"
+            />
+            {favoriteRating && (
+              <span className="text-sm text-gray-600">({favoriteRating}つ星)</span>
             )}
           </div>
-        </div>
+        )}
         <div className="flex justify-center items-center space-x-4 text-sm text-gray-600">
           <div className="flex items-center">
             <FaClock className="mr-1" />

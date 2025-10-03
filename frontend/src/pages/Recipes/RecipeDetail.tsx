@@ -4,7 +4,6 @@ import { recipesApi } from '../../api/recipes'
 import { createShoppingList, getShoppingListErrorMessage } from '../../api/shoppingLists'
 import { useFavoriteRecipes } from '../../hooks/useFavoriteRecipes'
 import { useToast } from '../../hooks/useToast'
-import FavoriteButton from '../../components/recipes/FavoriteButton'
 import StarRating from '../../components/recipes/StarRating'
 import type { Recipe, IngredientCheckState } from '../../types/recipe'
 
@@ -97,26 +96,6 @@ const RecipeDetail: React.FC = () => {
     }
   }
 
-  const handleFavoriteToggle = async (isFavorited: boolean) => {
-    if (!recipe) return
-
-    try {
-      if (isFavorited) {
-        await addFavorite(recipe.id)
-        showToast('お気に入りに追加しました', 'success')
-      } else {
-        const favorite = favorites.find(f => f.recipe_id === recipe.id)
-        if (favorite) {
-          await removeFavorite(favorite.id)
-          showToast('お気に入りから削除しました', 'success')
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'エラーが発生しました'
-      showToast(errorMessage, 'error')
-    }
-  }
-
   const handleRatingChange = async (rating: number | null) => {
     if (!recipe) return
 
@@ -124,9 +103,15 @@ const RecipeDetail: React.FC = () => {
       const favorite = favorites.find(f => f.recipe_id === recipe.id)
 
       if (favorite) {
-        // すでにお気に入りの場合は評価を更新
-        await updateRating(favorite.id, rating)
-        showToast(rating ? `${rating}つ星で評価しました` : '評価を削除しました', 'success')
+        if (rating === null) {
+          // 評価を削除する場合はお気に入りから削除
+          await removeFavorite(favorite.id)
+          showToast('お気に入りから削除しました', 'success')
+        } else {
+          // 評価を更新
+          await updateRating(favorite.id, rating)
+          showToast(`${rating}つ星で評価しました`, 'success')
+        }
       } else {
         // お気に入りでない場合は、評価付きで追加
         await addFavorite(recipe.id, rating)
@@ -182,14 +167,7 @@ const RecipeDetail: React.FC = () => {
             ← レシピ履歴に戻る
           </button>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
-              <FavoriteButton
-                recipeId={recipe.id}
-                favoriteId={currentFavorite?.id || null}
-                onToggle={handleFavoriteToggle}
-              />
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900">{recipe.title}</h1>
             {/* 星評価 */}
             <div className="flex items-center gap-3">
               <StarRating

@@ -2,15 +2,12 @@ import React from 'react'
 import type { RecipeHistory } from '../../types/recipe'
 import { FaClock } from 'react-icons/fa'
 import StarRating from '../../components/recipes/StarRating'
-import FavoriteButton from '../../components/recipes/FavoriteButton'
 
 interface RecipeHistoryItemProps {
   history: RecipeHistory
   onClick: () => void
   onDelete?: () => void
-  favoriteId?: number | null
   favoriteRating?: number | null
-  onFavoriteToggle?: (isFavorited: boolean) => void
   onRatingChange?: (rating: number | null) => void
 }
 
@@ -18,9 +15,7 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
   history,
   onClick,
   onDelete,
-  favoriteId = null,
   favoriteRating = null,
-  onFavoriteToggle,
   onRatingChange
 }) => {
   const formatDate = (dateString: string) => {
@@ -125,41 +120,26 @@ const RecipeHistoryItem: React.FC<RecipeHistoryItemProps> = ({
         </div>
 
         {/* 右側のアクション */}
-        <div className="flex flex-col items-end gap-2">
-          {/* お気に入りボタン */}
-          {history.recipe && (
-            <div onClick={(e) => e.stopPropagation()}>
-              <FavoriteButton
-                recipeId={history.recipe.id}
-                favoriteId={favoriteId}
-                onToggle={onFavoriteToggle}
-                compact
-              />
-            </div>
-          )}
-
-          {/* ボタン群 */}
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClick}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+          >
+            詳細を見る
+          </button>
+          {onDelete && (
             <button
-              onClick={onClick}
-              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (window.confirm('この調理記録を削除しますか？')) {
+                  onDelete()
+                }
+              }}
+              className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
             >
-              詳細を見る
+              削除
             </button>
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (window.confirm('この調理記録を削除しますか？')) {
-                    onDelete()
-                  }
-                }}
-                className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-              >
-                削除
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

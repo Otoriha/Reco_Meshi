@@ -22,10 +22,11 @@ const StarRating: React.FC<StarRatingProps> = ({
 
   const handleClick = (value: number) => {
     if (readonly || !onRate) return
-    // 同じ星をクリックした場合は評価を削除
+    // 同じ星をクリックした場合は評価を削除（お気に入りからも削除）
     if (rating === value) {
       onRate(null)
     } else {
+      // 星をクリックした場合は評価を設定（お気に入りに追加）
       onRate(value)
     }
   }
