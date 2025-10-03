@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import HeroSection from '../../components/landing/HeroSection';
 import FeaturesSection from '../../components/landing/FeaturesSection';
 import HowToSection from '../../components/landing/HowToSection';
@@ -24,8 +25,8 @@ const Landing: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* フッターリンク */}
           <div className="flex flex-wrap justify-center gap-8 mb-6">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">利用規約</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">プライバシーポリシー</a>
+            <Link to="/terms" className="text-gray-400 hover:text-white transition-colors text-sm">利用規約</Link>
+            <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors text-sm">プライバシーポリシー</Link>
             <a
               href={import.meta.env.VITE_CONTACT_FORM_URL}
               target="_blank"

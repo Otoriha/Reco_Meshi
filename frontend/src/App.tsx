@@ -14,6 +14,8 @@ import ShoppingLists from './pages/ShoppingLists/ShoppingLists'
 import ShoppingListDetail from './pages/ShoppingLists/ShoppingListDetail'
 import ProtectedRoute from './components/ProtectedRoute'
 import NotFound from './components/NotFound'
+import Terms from './pages/Legal/Terms'
+import Privacy from './pages/Legal/Privacy'
 
 type AuthMode = 'login' | 'signup';
 
@@ -62,6 +64,8 @@ function AppContent() {
                 />
               }
             />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             {/* 保護ルート */}
             <Route element={<ProtectedRoute />}>
