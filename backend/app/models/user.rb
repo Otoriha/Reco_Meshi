@@ -20,6 +20,8 @@ class User < ApplicationRecord
   has_many :recipes, dependent: :destroy
   has_many :recipe_histories, dependent: :destroy
   has_many :shopping_lists, dependent: :destroy
+  has_many :favorite_recipes, dependent: :destroy
+  has_many :favorited_recipes, through: :favorite_recipes, source: :recipe
 
   # Validations
   validates :name, presence: true, length: { maximum: 50 }
