@@ -67,14 +67,28 @@ export const useFavoriteRecipes = (): UseFavoriteRecipesReturn => {
     try {
       const newFavorite = await recipesApi.addFavoriteRecipe({ recipe_id: recipeId, rating })
 
-      setState(prev => ({
-        ...prev,
-        favorites: [newFavorite, ...prev.favorites],
-        meta: prev.meta ? {
-          ...prev.meta,
-          total_count: prev.meta.total_count + 1
-        } : null
-      }))
+      setState(prev => {
+        if (!prev.meta) {
+          return {
+            ...prev,
+            favorites: [newFavorite, ...prev.favorites],
+            meta: null
+          }
+        }
+
+        const newTotalCount = prev.meta.total_count + 1
+        const newTotalPages = Math.ceil(newTotalCount / prev.meta.per_page)
+
+        return {
+          ...prev,
+          favorites: [newFavorite, ...prev.favorites],
+          meta: {
+            ...prev.meta,
+            total_count: newTotalCount,
+            total_pages: newTotalPages
+          }
+        }
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'お気に入りの追加に失敗しました'
       throw new Error(errorMessage)
@@ -87,15 +101,26 @@ export const useFavoriteRecipes = (): UseFavoriteRecipesReturn => {
 
       setState(prev => {
         const newFavorites = prev.favorites.filter(favorite => favorite.id !== favoriteId)
-        const newMeta = prev.meta ? {
-          ...prev.meta,
-          total_count: prev.meta.total_count - 1
-        } : null
+
+        if (!prev.meta) {
+          return {
+            ...prev,
+            favorites: newFavorites,
+            meta: null
+          }
+        }
+
+        const newTotalCount = Math.max(prev.meta.total_count - 1, 0)
+        const newTotalPages = Math.ceil(newTotalCount / prev.meta.per_page)
 
         return {
           ...prev,
           favorites: newFavorites,
-          meta: newMeta
+          meta: {
+            ...prev.meta,
+            total_count: newTotalCount,
+            total_pages: newTotalPages
+          }
         }
       })
     } catch (err) {

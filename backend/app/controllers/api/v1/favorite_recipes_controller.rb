@@ -28,7 +28,7 @@ class Api::V1::FavoriteRecipesController < ApplicationController
   # POST /api/v1/favorite_recipes
   # お気に入りレシピを追加
   def create
-    favorite = current_user.favorite_recipes.build(favorite_recipe_params)
+    favorite = current_user.favorite_recipes.build(create_favorite_recipe_params)
 
     if favorite.save
       render json: {
@@ -48,7 +48,7 @@ class Api::V1::FavoriteRecipesController < ApplicationController
   # PATCH /api/v1/favorite_recipes/:id
   # お気に入りレシピの評価を更新
   def update
-    if @favorite_recipe.update(favorite_recipe_params)
+    if @favorite_recipe.update(update_favorite_recipe_params)
       render json: {
         success: true,
         data: favorite_recipe_json(@favorite_recipe),
@@ -86,8 +86,12 @@ class Api::V1::FavoriteRecipesController < ApplicationController
     @favorite_recipe = current_user.favorite_recipes.find(params[:id])
   end
 
-  def favorite_recipe_params
+  def create_favorite_recipe_params
     params.require(:favorite_recipe).permit(:recipe_id, :rating)
+  end
+
+  def update_favorite_recipe_params
+    params.require(:favorite_recipe).permit(:rating)
   end
 
   def favorite_recipe_json(favorite)

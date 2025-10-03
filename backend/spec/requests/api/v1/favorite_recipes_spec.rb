@@ -74,6 +74,69 @@ RSpec.describe "Api::V1::FavoriteRecipes", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/favorite_recipes/:id" do
+    let!(:favorite_recipe) { create(:favorite_recipe, user: user, rating: 3) }
+
+    it "認証なしは401" do
+      patch "/api/v1/favorite_recipes/#{favorite_recipe.id}", params: { favorite_recipe: { rating: 5 } }, as: :json
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "評価を更新できる" do
+      patch "/api/v1/favorite_recipes/#{favorite_recipe.id}", params: { favorite_recipe: { rating: 5 } }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["success"]).to eq(true)
+      expect(body["message"]).to eq("評価を更新しました")
+      expect(body["data"]["rating"]).to eq(5)
+
+      favorite_recipe.reload
+      expect(favorite_recipe.rating).to eq(5)
+    end
+
+    it "評価をnullに更新できる" do
+      patch "/api/v1/favorite_recipes/#{favorite_recipe.id}", params: { favorite_recipe: { rating: nil } }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["success"]).to eq(true)
+      expect(body["data"]["rating"]).to be_nil
+
+      favorite_recipe.reload
+      expect(favorite_recipe.rating).to be_nil
+    end
+
+    it "不正な評価値は422" do
+      patch "/api/v1/favorite_recipes/#{favorite_recipe.id}", params: { favorite_recipe: { rating: 6 } }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      body = JSON.parse(response.body)
+      expect(body["success"]).to eq(false)
+      expect(body["errors"]).to be_present
+    end
+
+    it "recipe_idは更新できない" do
+      other_recipe = create(:recipe, user: user)
+      original_recipe_id = favorite_recipe.recipe_id
+
+      patch "/api/v1/favorite_recipes/#{favorite_recipe.id}", params: { favorite_recipe: { recipe_id: other_recipe.id, rating: 5 } }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:ok)
+      favorite_recipe.reload
+      expect(favorite_recipe.recipe_id).to eq(original_recipe_id)
+      expect(favorite_recipe.rating).to eq(5)
+    end
+
+    it "他ユーザーのレコードは404" do
+      other_favorite = create(:favorite_recipe)
+
+      patch "/api/v1/favorite_recipes/#{other_favorite.id}", params: { favorite_recipe: { rating: 5 } }, headers: headers, as: :json
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "DELETE /api/v1/favorite_recipes/:id" do
     let!(:favorite_recipe) { create(:favorite_recipe, user: user) }
 
