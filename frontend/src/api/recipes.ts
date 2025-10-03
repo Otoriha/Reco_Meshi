@@ -1,7 +1,7 @@
 import { apiClient } from './client'
-import type { Recipe, RecipeHistory, CreateRecipeHistoryParams, UpdateRecipeHistoryParams, PaginationMeta, RecipeHistoriesParams, FavoriteRecipe, FavoriteRecipesParams } from '../types/recipe'
+import type { Recipe, RecipeHistory, CreateRecipeHistoryParams, UpdateRecipeHistoryParams, PaginationMeta, RecipeHistoriesParams, FavoriteRecipe, FavoriteRecipesParams, CreateFavoriteRecipeParams, UpdateFavoriteRecipeParams } from '../types/recipe'
 
-export type { PaginationMeta, RecipeHistoriesParams, FavoriteRecipesParams }
+export type { PaginationMeta, RecipeHistoriesParams, FavoriteRecipesParams, CreateFavoriteRecipeParams, UpdateFavoriteRecipeParams }
 
 interface ApiResponse<T> {
   success: boolean
@@ -149,13 +149,25 @@ export const recipesApi = {
   },
 
   // お気に入り追加
-  async addFavoriteRecipe(recipeId: number): Promise<FavoriteRecipe> {
+  async addFavoriteRecipe(params: CreateFavoriteRecipeParams): Promise<FavoriteRecipe> {
     const response = await apiClient.post<ApiResponse<FavoriteRecipe>>(
       '/favorite_recipes',
-      { favorite_recipe: { recipe_id: recipeId } }
+      { favorite_recipe: params }
     )
     if (!response.data.success) {
       throw new Error(response.data.message || 'お気に入りの追加に失敗しました')
+    }
+    return response.data.data
+  },
+
+  // お気に入り更新（評価の変更）
+  async updateFavoriteRecipe(favoriteId: number, params: UpdateFavoriteRecipeParams): Promise<FavoriteRecipe> {
+    const response = await apiClient.patch<ApiResponse<FavoriteRecipe>>(
+      `/favorite_recipes/${favoriteId}`,
+      { favorite_recipe: params }
+    )
+    if (!response.data.success) {
+      throw new Error(response.data.message || '評価の更新に失敗しました')
     }
     return response.data.data
   },

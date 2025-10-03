@@ -12,8 +12,9 @@ interface UseFavoriteRecipesState {
 
 interface UseFavoriteRecipesReturn extends UseFavoriteRecipesState {
   fetchFavorites: (params?: FavoriteRecipesParams) => Promise<void>
-  addFavorite: (recipeId: number) => Promise<void>
+  addFavorite: (recipeId: number, rating?: number | null) => Promise<void>
   removeFavorite: (favoriteId: number) => Promise<void>
+  updateRating: (favoriteId: number, rating: number | null) => Promise<void>
   refreshFavorites: () => Promise<void>
   currentPage: number
   totalPages: number
@@ -62,9 +63,9 @@ export const useFavoriteRecipes = (): UseFavoriteRecipesReturn => {
     }
   }, [])
 
-  const addFavorite = useCallback(async (recipeId: number): Promise<void> => {
+  const addFavorite = useCallback(async (recipeId: number, rating?: number | null): Promise<void> => {
     try {
-      const newFavorite = await recipesApi.addFavoriteRecipe(recipeId)
+      const newFavorite = await recipesApi.addFavoriteRecipe({ recipe_id: recipeId, rating })
 
       setState(prev => ({
         ...prev,
@@ -103,6 +104,22 @@ export const useFavoriteRecipes = (): UseFavoriteRecipesReturn => {
     }
   }, [])
 
+  const updateRating = useCallback(async (favoriteId: number, rating: number | null): Promise<void> => {
+    try {
+      const updatedFavorite = await recipesApi.updateFavoriteRecipe(favoriteId, { rating })
+
+      setState(prev => ({
+        ...prev,
+        favorites: prev.favorites.map(favorite =>
+          favorite.id === favoriteId ? updatedFavorite : favorite
+        )
+      }))
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '評価の更新に失敗しました'
+      throw new Error(errorMessage)
+    }
+  }, [])
+
   const refreshFavorites = useCallback(async (): Promise<void> => {
     await fetchFavorites(currentParams)
   }, [fetchFavorites, currentParams])
@@ -133,6 +150,7 @@ export const useFavoriteRecipes = (): UseFavoriteRecipesReturn => {
     fetchFavorites,
     addFavorite,
     removeFavorite,
+    updateRating,
     refreshFavorites,
     currentPage,
     totalPages,

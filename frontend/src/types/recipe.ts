@@ -63,7 +63,7 @@ export interface RecipeHistoriesParams {
   start_date?: string
   end_date?: string
   recipe_id?: number
-  rated_only?: boolean
+  favorited_only?: boolean
 }
 
 // チェックボックス用のローカル状態
@@ -74,6 +74,7 @@ export interface FavoriteRecipe {
   id: number
   user_id: number
   recipe_id: number
+  rating: number | null
   created_at: string
   recipe?: {
     id: number
@@ -93,4 +94,10 @@ export interface FavoriteRecipesParams {
 // お気に入り追加パラメータ
 export interface CreateFavoriteRecipeParams {
   recipe_id: number
+  rating?: number | null
+}
+
+// お気に入り更新パラメータ
+export interface UpdateFavoriteRecipeParams {
+  rating?: number | null
 }

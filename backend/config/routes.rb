@@ -55,7 +55,7 @@ Rails.application.routes.draw do
           post :suggest
         end
       end
-      resources :favorite_recipes, only: [ :index, :create, :destroy ]
+      resources :favorite_recipes, only: [ :index, :create, :update, :destroy ]
       resources :recipe_histories, only: [ :index, :show, :create, :update, :destroy ]
 
       # Shopping lists and items

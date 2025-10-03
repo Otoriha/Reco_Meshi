@@ -1,6 +1,6 @@
 class Api::V1::FavoriteRecipesController < ApplicationController
   before_action :authenticate_user!
-  before_action :find_favorite_recipe, only: [ :destroy ]
+  before_action :find_favorite_recipe, only: [ :update, :destroy ]
 
   # GET /api/v1/favorite_recipes
   # お気に入りレシピ一覧を取得
@@ -45,6 +45,24 @@ class Api::V1::FavoriteRecipesController < ApplicationController
     end
   end
 
+  # PATCH /api/v1/favorite_recipes/:id
+  # お気に入りレシピの評価を更新
+  def update
+    if @favorite_recipe.update(favorite_recipe_params)
+      render json: {
+        success: true,
+        data: favorite_recipe_json(@favorite_recipe),
+        message: "評価を更新しました"
+      }
+    else
+      render json: {
+        success: false,
+        errors: @favorite_recipe.errors.full_messages,
+        message: "評価の更新に失敗しました"
+      }, status: :unprocessable_entity
+    end
+  end
+
   # DELETE /api/v1/favorite_recipes/:id
   # お気に入りレシピを削除
   def destroy
@@ -69,7 +87,7 @@ class Api::V1::FavoriteRecipesController < ApplicationController
   end
 
   def favorite_recipe_params
-    params.require(:favorite_recipe).permit(:recipe_id)
+    params.require(:favorite_recipe).permit(:recipe_id, :rating)
   end
 
   def favorite_recipe_json(favorite)
@@ -77,6 +95,7 @@ class Api::V1::FavoriteRecipesController < ApplicationController
       id: favorite.id,
       user_id: favorite.user_id,
       recipe_id: favorite.recipe_id,
+      rating: favorite.rating,
       created_at: favorite.created_at,
       recipe: favorite.recipe ? {
         id: favorite.recipe.id,
