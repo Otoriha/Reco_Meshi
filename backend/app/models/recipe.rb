@@ -12,6 +12,8 @@ class Recipe < ApplicationRecord
   has_many :ingredients, through: :recipe_ingredients
   has_many :recipe_histories, dependent: :destroy
   has_many :shopping_lists
+  has_many :favorite_recipes, dependent: :destroy
+  has_many :favorited_by_users, through: :favorite_recipes, source: :user
 
   # Validations
   validates :title, presence: true, length: { maximum: 100 }
