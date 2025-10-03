@@ -4,7 +4,7 @@ import { useFilters, type FilterPeriod } from '../../hooks/useFilters'
 interface RecipeHistoryFiltersProps {
   filters: ReturnType<typeof useFilters>['filters']
   setPeriod: (period: FilterPeriod) => void
-  setRatedOnly: (ratedOnly: boolean | null) => void
+  setFavoritedOnly: (favoritedOnly: boolean | null) => void
   setSearchQuery: (query: string) => void
   hasActiveFilters: boolean
   clearFilters: () => void
@@ -13,7 +13,7 @@ interface RecipeHistoryFiltersProps {
 const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
   filters,
   setPeriod,
-  setRatedOnly,
+  setFavoritedOnly,
   setSearchQuery,
   hasActiveFilters,
   clearFilters
@@ -26,8 +26,8 @@ const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
 
   const ratingOptions = [
     { value: null, label: 'すべて表示' },
-    { value: true, label: '評価済み' },
-    { value: false, label: '未評価' }
+    { value: true, label: 'お気に入り' },
+    { value: false, label: '未登録' }
   ]
 
   return (
@@ -81,18 +81,18 @@ const RecipeHistoryFilters: React.FC<RecipeHistoryFiltersProps> = ({
           </div>
         </div>
 
-        {/* 評価フィルタ */}
+        {/* お気に入りフィルタ */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            評価
+            お気に入り
           </label>
           <div className="flex gap-3 flex-wrap">
             {ratingOptions.map((option, index) => (
               <button
                 key={index}
-                onClick={() => setRatedOnly(option.value)}
+                onClick={() => setFavoritedOnly(option.value)}
                 className={`px-4 py-2 rounded-full border transition-colors ${
-                  filters.ratedOnly === option.value
+                  filters.favoritedOnly === option.value
                     ? 'bg-blue-500 text-white border-blue-500'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}

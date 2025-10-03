@@ -49,7 +49,7 @@ const RecipeHistory: React.FC = () => {
   const {
     filters,
     setPeriod,
-    setRatedOnly,
+    setFavoritedOnly,
     setSearchQuery,
     getApiParams,
     filterLocalData,
@@ -61,7 +61,7 @@ const RecipeHistory: React.FC = () => {
   useEffect(() => {
     const apiParams = getApiParams()
     fetchHistories({ ...apiParams, page: 1 })
-  }, [filters.period, filters.ratedOnly, getApiParams, fetchHistories])
+  }, [filters.period, filters.favoritedOnly, getApiParams, fetchHistories])
 
   // 初回データ取得
   useEffect(() => {
@@ -212,9 +212,9 @@ const RecipeHistory: React.FC = () => {
               <button
                 key={option.label}
                 type="button"
-                onClick={() => setRatedOnly(option.value)}
+                onClick={() => setFavoritedOnly(option.value)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  filters.ratedOnly === option.value
+                  filters.favoritedOnly === option.value
                     ? 'bg-green-600 text-white border-green-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}

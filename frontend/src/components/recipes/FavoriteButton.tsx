@@ -34,7 +34,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({
         onToggle?.(false)
       } else {
         const { recipesApi } = await import('../../api/recipes')
-        await recipesApi.addFavoriteRecipe(recipeId)
+        await recipesApi.addFavoriteRecipe({ recipe_id: recipeId })
         showSuccess('お気に入りに追加しました')
         onToggle?.(true)
       }

@@ -81,7 +81,7 @@ export const recipesApi = {
     if (params.start_date) searchParams.append('start_date', params.start_date)
     if (params.end_date) searchParams.append('end_date', params.end_date)
     if (params.recipe_id) searchParams.append('recipe_id', params.recipe_id.toString())
-    if (params.rated_only !== undefined) searchParams.append('rated_only', params.rated_only.toString())
+    if (params.favorited_only !== undefined) searchParams.append('favorited_only', params.favorited_only.toString())
 
     const url = `/recipe_histories${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
     const response = await apiClient.get<PaginatedApiResponse<RecipeHistory>>(url)

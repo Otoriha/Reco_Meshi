@@ -12,7 +12,6 @@ import RecipeList from './pages/Recipes/RecipeList'
 import RecipeDetail from './pages/Recipes/RecipeDetail'
 import ShoppingLists from './pages/ShoppingLists/ShoppingLists'
 import ShoppingListDetail from './pages/ShoppingLists/ShoppingListDetail'
-import FavoriteRecipes from './pages/FavoriteRecipes/FavoriteRecipes'
 import ProtectedRoute from './components/ProtectedRoute'
 import NotFound from './components/NotFound'
 import Terms from './pages/Legal/Terms'
@@ -77,7 +76,6 @@ function AppContent() {
               <Route path="/shopping-lists" element={<ShoppingLists />} />
               <Route path="/shopping-lists/:id" element={<ShoppingListDetail />} />
               <Route path="/recipe-history" element={<RecipeHistory />} />
-              <Route path="/favorite-recipes" element={<FavoriteRecipes />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
 
