@@ -69,6 +69,14 @@ Rails.application.routes.draw do
           end
         end
       end
+
+      # User settings
+      namespace :users do
+        resource :profile, only: [ :show, :update ]
+        resource :settings, only: [ :show, :update ]
+        post "change_password", to: "passwords#create"
+        post "change_email", to: "emails#create"
+      end
     end
   end
 
