@@ -1,64 +1,96 @@
-import React, { useState } from 'react';
-import { FaUser, FaCog, FaBell, FaExclamationTriangle, FaClipboard, FaUserCircle } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaUser, FaCog, FaClipboard } from 'react-icons/fa';
+import { getUserProfile, getUserSettings, updateUserProfile, updateUserSettings } from '../../api/users';
+import type { UserProfile, UserSettings } from '../../api/users';
+import { DIFFICULTY_OPTIONS, COOKING_TIME_OPTIONS, SHOPPING_FREQUENCY_OPTIONS } from '../../constants/settings';
+import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../hooks/useAuth';
 
-type SettingsTab = 'basic' | 'profile' | 'allergies' | 'notifications' | 'account';
+type SettingsTab = 'basic' | 'profile' | 'account';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
-  const [formData, setFormData] = useState({
-    familySize: '3人',
-    recipeDifficulty: '簡単なレシピ中心',
-    cookingTime: '30分以内',
-    shoppingFrequency: '2-3日に1回',
-    name: '山田太郎',
-    nickname: 'やまだ',
-    email: 'yamada.taro@example.com',
-    allergies: ['卵', 'えび', '小麦'],
-    dislikes: ['ピーマン', 'セロリ'],
-    recipeNotifications: true,
-    stockReminder: true,
-    foodWasteAlert: false
-  });
-
-  const [showAllergyInput, setShowAllergyInput] = useState(false);
-  const [showDislikeInput, setShowDislikeInput] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [profileForm, setProfileForm] = useState({ name: '' });
+  const [loading, setLoading] = useState({ profile: true, settings: true, saving: false });
+  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
+  const { showToast } = useToast();
+  const { logout } = useAuth();
 
   const menuItems = [
     { id: 'basic', label: '基本設定', icon: FaCog },
     { id: 'profile', label: 'プロフィール', icon: FaUser },
-    { id: 'allergies', label: 'アレルギー・苦手', icon: FaExclamationTriangle },
-    { id: 'notifications', label: '通知設定', icon: FaBell },
     { id: 'account', label: 'アカウント', icon: FaClipboard }
   ];
 
-  const handleToggle = (field: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: !prev[field as keyof typeof prev]
-    }));
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [profileData, settingsData] = await Promise.all([
+          getUserProfile(),
+          getUserSettings()
+        ]);
+        setProfile(profileData);
+        setSettings(settingsData);
+        setProfileForm({ name: profileData.name });
+      } catch (error: any) {
+        if (error.response?.status === 401) {
+          showToast('セッションが切れました。再度ログインしてください', 'error');
+          logout();
+        } else {
+          showToast('データの取得に失敗しました', 'error');
+        }
+      } finally {
+        setLoading({ ...loading, profile: false, settings: false });
+      }
+    };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+    fetchData();
+  }, []);
 
-  const addItem = (field: 'allergies' | 'dislikes', item: string) => {
-    if (item.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: [...prev[field], item.trim()]
-      }));
+  const handleProfileSave = async () => {
+    setLoading({ ...loading, saving: true });
+    setErrors({});
+    try {
+      const response = await updateUserProfile({ name: profileForm.name });
+      showToast(response.message, 'success');
+      setProfile({ ...profile!, name: profileForm.name });
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        setErrors(error.response.data.errors);
+        showToast('入力内容を確認してください', 'error');
+      } else if (error.response?.status === 401) {
+        showToast('セッションが切れました。再度ログインしてください', 'error');
+        logout();
+      } else {
+        showToast('保存に失敗しました', 'error');
+      }
+    } finally {
+      setLoading({ ...loading, saving: false });
     }
   };
 
-  const removeItem = (field: 'allergies' | 'dislikes', index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }));
+  const handleSettingsSave = async () => {
+    if (!settings) return;
+    setLoading({ ...loading, saving: true });
+    setErrors({});
+    try {
+      const response = await updateUserSettings(settings);
+      showToast(response.message, 'success');
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        setErrors(error.response.data.errors);
+        showToast('入力内容を確認してください', 'error');
+      } else if (error.response?.status === 401) {
+        showToast('セッションが切れました。再度ログインしてください', 'error');
+        logout();
+      } else {
+        showToast('保存に失敗しました', 'error');
+      }
+    } finally {
+      setLoading({ ...loading, saving: false });
+    }
   };
 
   const renderBasicSettings = () => (
@@ -66,65 +98,76 @@ const Settings: React.FC = () => {
       <h2 className="text-xl font-bold text-gray-900 mb-4">基本設定</h2>
       <p className="text-gray-600 mb-6">レシピの提案精度を高めます</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">家族の人数</label>
-          <select
-            value={formData.familySize}
-            onChange={(e) => handleInputChange('familySize', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="1人">1人</option>
-            <option value="2人">2人</option>
-            <option value="3人">3人</option>
-            <option value="4人">4人</option>
-            <option value="5人以上">5人以上</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">レシピの分量計算に使用されます</p>
-        </div>
+      {loading.settings ? (
+        <div className="text-center py-8">読み込み中...</div>
+      ) : settings && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">家族の人数</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={settings.default_servings}
+              onChange={(e) => setSettings({ ...settings, default_servings: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            {errors.default_servings && (
+              <p className="text-xs text-red-600 mt-1">{errors.default_servings.join(', ')}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">レシピの分量計算に使用されます</p>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">レシピの難易度</label>
-          <select
-            value={formData.recipeDifficulty}
-            onChange={(e) => handleInputChange('recipeDifficulty', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="簡単なレシピ中心">簡単なレシピ中心</option>
-            <option value="本格的なレシピ">本格的なレシピ</option>
-            <option value="バランス重視">バランス重視</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">あなたの料理スキルに合わせて調整</p>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">レシピの難易度</label>
+            <select
+              value={settings.recipe_difficulty}
+              onChange={(e) => setSettings({ ...settings, recipe_difficulty: e.target.value as 'easy' | 'medium' | 'hard' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              {DIFFICULTY_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {errors.recipe_difficulty && (
+              <p className="text-xs text-red-600 mt-1">{errors.recipe_difficulty.join(', ')}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">あなたの料理スキルに合わせて調整</p>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">調理時間の目安</label>
-          <select
-            value={formData.cookingTime}
-            onChange={(e) => handleInputChange('cookingTime', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="15分以内">15分以内</option>
-            <option value="30分以内">30分以内</option>
-            <option value="1時間以内">1時間以内</option>
-            <option value="時間制限なし">時間制限なし</option>
-          </select>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">調理時間の目安</label>
+            <select
+              value={settings.cooking_time}
+              onChange={(e) => setSettings({ ...settings, cooking_time: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              {COOKING_TIME_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {errors.cooking_time && (
+              <p className="text-xs text-red-600 mt-1">{errors.cooking_time.join(', ')}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">買い物の頻度</label>
-          <select
-            value={formData.shoppingFrequency}
-            onChange={(e) => handleInputChange('shoppingFrequency', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="毎日">毎日</option>
-            <option value="2-3日に1回">2-3日に1回</option>
-            <option value="週に1回">週に1回</option>
-            <option value="まとめ買い">まとめ買い</option>
-          </select>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">買い物の頻度</label>
+            <select
+              value={settings.shopping_frequency}
+              onChange={(e) => setSettings({ ...settings, shopping_frequency: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              {SHOPPING_FREQUENCY_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {errors.shopping_frequency && (
+              <p className="text-xs text-red-600 mt-1">{errors.shopping_frequency.join(', ')}</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
@@ -132,208 +175,45 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">プロフィール</h2>
 
-      <div className="flex items-center space-x-4 mb-6">
-        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-          <FaUserCircle className="w-16 h-16 text-gray-400" />
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">プロフィール画像を変更</p>
-          <p className="text-xs text-gray-500">画像を追加</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">お名前</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">ニックネーム</label>
-          <input
-            type="text"
-            value={formData.nickname}
-            onChange={(e) => handleInputChange('nickname', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="やまだ"
-          />
-          <p className="text-xs text-gray-500 mt-1">画面で表示される名前です</p>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
-        <input
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleInputChange('email', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        />
-        <p className="text-xs text-gray-500 mt-1">アカウント情報や通知を送信します</p>
-      </div>
-    </div>
-  );
-
-  const renderAllergiesSection = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">アレルギー・苦手な食材</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">アレルギー食材</label>
-            <button
-              onClick={() => setShowAllergyInput(!showAllergyInput)}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-            >
-              + 追加
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {formData.allergies.map((allergy, index) => (
-              <span
-                key={index}
-                className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
-                {allergy}
-                <button
-                  onClick={() => removeItem('allergies', index)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-          {showAllergyInput && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="アレルギー食材を入力"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    addItem('allergies', e.currentTarget.value);
-                    e.currentTarget.value = '';
-                  }
-                }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">苦手な食材</label>
-            <button
-              onClick={() => setShowDislikeInput(!showDislikeInput)}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-            >
-              + 追加
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {formData.dislikes.map((dislike, index) => (
-              <span
-                key={index}
-                className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-              >
-                {dislike}
-                <button
-                  onClick={() => removeItem('dislikes', index)}
-                  className="text-orange-600 hover:text-orange-800"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-          {showDislikeInput && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="苦手な食材を入力"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    addItem('dislikes', e.currentTarget.value);
-                    e.currentTarget.value = '';
-                  }
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderNotifications = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">通知設定</h2>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+      {loading.profile ? (
+        <div className="text-center py-8">読み込み中...</div>
+      ) : profile && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="font-medium text-gray-900">レシピ提案通知</h3>
-            <p className="text-sm text-gray-600">毎日午後5時にレシピを提案します</p>
-            <div className="mt-2">
-              <select className="text-sm border border-gray-300 rounded px-2 py-1">
-                <option>17:00</option>
-                <option>18:00</option>
-                <option>19:00</option>
-              </select>
-              <span className="ml-2 text-sm text-gray-600">に通知</span>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+            <label className="block text-sm font-medium text-gray-700 mb-2">お名前</label>
             <input
-              type="checkbox"
-              checked={formData.recipeNotifications}
-              onChange={() => handleToggle('recipeNotifications')}
-              className="sr-only peer"
+              type="text"
+              value={profileForm.name}
+              onChange={(e) => setProfileForm({ name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-          </label>
-        </div>
+            {errors.name && (
+              <p className="text-xs text-red-600 mt-1">{errors.name.join(', ')}</p>
+            )}
+          </div>
 
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <h3 className="font-medium text-gray-900">在庫確認リマインダー</h3>
-            <p className="text-sm text-gray-600">定期的に食材の在庫確認を促します</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+            <label className="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
             <input
-              type="checkbox"
-              checked={formData.stockReminder}
-              onChange={() => handleToggle('stockReminder')}
-              className="sr-only peer"
+              type="email"
+              value={profile.email}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-          </label>
-        </div>
+            <p className="text-xs text-gray-500 mt-1">メールアドレスはアカウントタブから変更できます</p>
+          </div>
 
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div>
-            <h3 className="font-medium text-gray-900">食材廃棄アラート</h3>
-            <p className="text-sm text-gray-600">消費期限が近い食材をお知らせします</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
+            <label className="block text-sm font-medium text-gray-700 mb-2">プロバイダー</label>
             <input
-              type="checkbox"
-              checked={formData.foodWasteAlert}
-              onChange={() => handleToggle('foodWasteAlert')}
-              className="sr-only peer"
+              type="text"
+              value={profile.provider === 'email' ? 'メール' : 'LINE'}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-          </label>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
@@ -347,23 +227,34 @@ const Settings: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">LINE</div>
-              <span className="text-sm text-gray-600">連携済み</span>
+              <span className="text-sm text-gray-600">
+                {profile?.provider === 'line' ? '連携済み' : '未連携'}
+              </span>
             </div>
-            <button className="text-sm text-gray-600 hover:text-gray-800">連携解除</button>
           </div>
         </div>
 
         <div className="flex gap-4">
-          <button className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+          <button
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            disabled
+          >
             パスワード変更
           </button>
-          <button className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+          <button
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            disabled
+          >
             メールアドレス変更
           </button>
-          <button className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50">
+          <button
+            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+            disabled
+          >
             アカウント削除
           </button>
         </div>
+        <p className="text-xs text-gray-500 text-center">パスワード・メール変更機能は準備中です</p>
       </div>
     </div>
   );
@@ -374,10 +265,6 @@ const Settings: React.FC = () => {
         return renderBasicSettings();
       case 'profile':
         return renderProfile();
-      case 'allergies':
-        return renderAllergiesSection();
-      case 'notifications':
-        return renderNotifications();
       case 'account':
         return renderAccount();
       default:
@@ -385,11 +272,18 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleSave = () => {
+    if (activeTab === 'profile') {
+      handleProfileSave();
+    } else if (activeTab === 'basic') {
+      handleSettingsSave();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex">
-          {/* 左サイドバー */}
           <div className="w-64 bg-white rounded-lg shadow-sm p-4 mr-6 h-fit">
             <h1 className="text-lg font-bold text-gray-900 mb-4">設定</h1>
             <nav className="space-y-2">
@@ -413,20 +307,33 @@ const Settings: React.FC = () => {
             </nav>
           </div>
 
-          {/* メインコンテンツ */}
           <div className="flex-1">
             <div className="bg-white rounded-lg shadow-sm p-6">
               {renderContent()}
 
-              {/* 保存ボタン */}
-              <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
-                <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
-                  キャンセル
-                </button>
-                <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  変更を保存
-                </button>
-              </div>
+              {activeTab !== 'account' && (
+                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+                  <button
+                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                    onClick={() => {
+                      if (activeTab === 'profile' && profile) {
+                        setProfileForm({ name: profile.name });
+                      }
+                      setErrors({});
+                    }}
+                    disabled={loading.saving}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                    onClick={handleSave}
+                    disabled={loading.saving}
+                  >
+                    {loading.saving ? '保存中...' : '変更を保存'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
