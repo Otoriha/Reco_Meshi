@@ -14,6 +14,7 @@ class User < ApplicationRecord
 
   # Associations
   has_one :line_account, dependent: :destroy
+  has_one :setting, dependent: :destroy
   has_many :fridge_images, dependent: :destroy
   has_many :user_ingredients, dependent: :destroy
   has_many :ingredients, through: :user_ingredients
@@ -22,6 +23,9 @@ class User < ApplicationRecord
   has_many :shopping_lists, dependent: :destroy
   has_many :favorite_recipes, dependent: :destroy
   has_many :favorited_recipes, through: :favorite_recipes, source: :recipe
+
+  # Callbacks
+  after_create :build_default_setting, if: -> { setting.nil? }
 
   # Validations
   validates :name, presence: true, length: { maximum: 50 }
@@ -37,5 +41,14 @@ class User < ApplicationRecord
     end
 
     { "email" => email, "confirmed" => is_confirmed }
+  end
+
+  private
+
+  def build_default_setting
+    create_setting!
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error("Failed to create default setting for user #{id}: #{e.message}")
+    true
   end
 end

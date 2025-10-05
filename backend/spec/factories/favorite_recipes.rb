@@ -4,4 +4,3 @@ FactoryBot.define do
     recipe { association :recipe, user: user }
   end
 end
-

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_03_071608) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_04_121949) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -121,6 +121,17 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_03_071608) do
     t.index ["user_id"], name: "index_recipes_on_user_id"
   end
 
+  create_table "settings", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "ユーザーID"
+    t.integer "default_servings", default: 2, null: false, comment: "デフォルトの人数"
+    t.string "recipe_difficulty", default: "medium", comment: "レシピの難易度（easy/medium/hard）"
+    t.integer "cooking_time", default: 30, null: false, comment: "調理時間の目安（分）"
+    t.string "shopping_frequency", default: "2-3日に1回", comment: "買い物の頻度"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_settings_on_user_id", unique: true
+  end
+
   create_table "shopping_list_items", force: :cascade do |t|
     t.bigint "shopping_list_id", null: false, comment: "所属する買い物リスト"
     t.bigint "ingredient_id", comment: "購入する食材"
@@ -201,6 +212,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_03_071608) do
   add_foreign_key "recipe_ingredients", "ingredients"
   add_foreign_key "recipe_ingredients", "recipes", on_delete: :cascade
   add_foreign_key "recipes", "users"
+  add_foreign_key "settings", "users"
   add_foreign_key "shopping_list_items", "ingredients"
   add_foreign_key "shopping_list_items", "shopping_lists"
   add_foreign_key "shopping_lists", "recipes"
