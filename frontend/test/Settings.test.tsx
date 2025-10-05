@@ -28,7 +28,12 @@ describe('Settings', () => {
     })
 
     vi.mocked(useToastHook.useToast).mockReturnValue({
+      toast: null,
       showToast: mockShowToast,
+      hideToast: vi.fn(),
+      showSuccess: vi.fn(),
+      showError: vi.fn(),
+      showInfo: vi.fn(),
     })
 
     vi.mocked(usersApi.getUserProfile).mockResolvedValue({
@@ -53,7 +58,7 @@ describe('Settings', () => {
     )
   }
 
-  it('設定画面が表示される', async () => {
+  it('設定画面が表示され、プロフィールと設定データが取得される', async () => {
     renderSettings()
 
     await waitFor(() => {
@@ -62,11 +67,8 @@ describe('Settings', () => {
     })
   })
 
-  it('保存時にAPIが呼ばれる', async () => {
+  it('基本設定の保存が正常に動作する', async () => {
     const user = userEvent.setup()
-    vi.mocked(usersApi.updateUserProfile).mockResolvedValue({
-      message: 'プロフィールを更新しました',
-    })
     vi.mocked(usersApi.updateUserSettings).mockResolvedValue({
       message: '設定を保存しました',
     })
@@ -81,7 +83,111 @@ describe('Settings', () => {
     await user.click(saveButton)
 
     await waitFor(() => {
-      expect(usersApi.updateUserSettings).toHaveBeenCalled()
+      expect(usersApi.updateUserSettings).toHaveBeenCalledWith({
+        default_servings: 2,
+        recipe_difficulty: 'medium',
+        cooking_time: 30,
+        shopping_frequency: '2-3日に1回',
+      })
+      expect(mockShowToast).toHaveBeenCalledWith('設定を保存しました', 'success')
+    })
+  })
+
+  it('422エラー時にバリデーションエラーが表示される（基本設定）', async () => {
+    const user = userEvent.setup()
+    vi.mocked(usersApi.updateUserSettings).mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          errors: {
+            default_servings: ['人数は1以上10以下で入力してください'],
+          },
+        },
+      },
+    })
+
+    renderSettings()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '変更を保存' })).toBeInTheDocument()
+    })
+
+    const saveButton = screen.getByRole('button', { name: '変更を保存' })
+    await user.click(saveButton)
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('入力内容を確認してください', 'error')
+    })
+  })
+
+  it('401エラー時にログアウト処理が実行される（基本設定保存時）', async () => {
+    const user = userEvent.setup()
+    vi.mocked(usersApi.updateUserSettings).mockRejectedValue({
+      response: {
+        status: 401,
+      },
+    })
+
+    renderSettings()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '変更を保存' })).toBeInTheDocument()
+    })
+
+    const saveButton = screen.getByRole('button', { name: '変更を保存' })
+    await user.click(saveButton)
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('セッションが切れました。再度ログインしてください', 'error')
+      expect(mockLogout).toHaveBeenCalled()
+    })
+  })
+
+  it('401エラー時にログアウト処理が実行される（データ取得時）', async () => {
+    vi.mocked(usersApi.getUserProfile).mockRejectedValue({
+      response: {
+        status: 401,
+      },
+    })
+
+    renderSettings()
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith('セッションが切れました。再度ログインしてください', 'error')
+      expect(mockLogout).toHaveBeenCalled()
+    })
+  })
+
+  it('updateUserProfileが正しく呼ばれる', async () => {
+    const user = userEvent.setup()
+    vi.mocked(usersApi.updateUserProfile).mockResolvedValue({
+      message: 'プロフィールを更新しました',
+    })
+
+    renderSettings()
+
+    // データ読み込み完了を待つ
+    await waitFor(() => {
+      expect(usersApi.getUserProfile).toHaveBeenCalled()
+      expect(usersApi.getUserSettings).toHaveBeenCalled()
+    })
+
+    // プロフィールタブに切り替え
+    const profileTab = screen.getByRole('button', { name: 'プロフィール' })
+    await user.click(profileTab)
+
+    // 保存ボタンをクリック
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '変更を保存' })).toBeInTheDocument()
+    })
+
+    const saveButton = screen.getByRole('button', { name: '変更を保存' })
+    await user.click(saveButton)
+
+    // updateUserProfileが呼ばれることを確認
+    await waitFor(() => {
+      expect(usersApi.updateUserProfile).toHaveBeenCalled()
+      expect(mockShowToast).toHaveBeenCalledWith('プロフィールを更新しました', 'success')
     })
   })
 })
