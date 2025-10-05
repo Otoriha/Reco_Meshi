@@ -23,25 +23,26 @@ const Settings: React.FC = () => {
         setProfile(profileData);
         setSettings(settingsData);
         setProfileForm({ name: profileData.name });
-      } catch (error: any) {
-        if (error.response?.status === 401) {
+      } catch (error) {
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 401) {
           setMessage({ type: 'error', text: 'セッションが切れました。再度ログインしてください' });
           setTimeout(() => logout(), 2000);
         } else {
           setMessage({ type: 'error', text: 'データの取得に失敗しました' });
         }
       } finally {
-        setLoading({ ...loading, data: false });
+        setLoading((prev) => ({ ...prev, data: false }));
       }
     };
 
     fetchData();
-  }, []);
+  }, [logout]);
 
   const handleSave = async () => {
     if (!settings) return;
 
-    setLoading({ ...loading, saving: true });
+    setLoading((prev) => ({ ...prev, saving: true }));
     setErrors({});
     setMessage(null);
 
@@ -55,18 +56,19 @@ const Settings: React.FC = () => {
         setProfile({ ...profile, name: profileForm.name });
       }
       setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
-      if (error.response?.status === 422) {
-        setErrors(error.response.data.errors);
+    } catch (error) {
+      const err = error as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
+      if (err.response?.status === 422) {
+        setErrors(err.response.data?.errors || {});
         setMessage({ type: 'error', text: '入力内容を確認してください' });
-      } else if (error.response?.status === 401) {
+      } else if (err.response?.status === 401) {
         setMessage({ type: 'error', text: 'セッションが切れました。再度ログインしてください' });
         setTimeout(() => logout(), 2000);
       } else {
         setMessage({ type: 'error', text: '保存に失敗しました' });
       }
     } finally {
-      setLoading({ ...loading, saving: false });
+      setLoading((prev) => ({ ...prev, saving: false }));
     }
   };
 

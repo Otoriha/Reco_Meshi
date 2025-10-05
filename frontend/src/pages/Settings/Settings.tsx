@@ -34,62 +34,65 @@ const Settings: React.FC = () => {
         setProfile(profileData);
         setSettings(settingsData);
         setProfileForm({ name: profileData.name });
-      } catch (error: any) {
-        if (error.response?.status === 401) {
+      } catch (error) {
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 401) {
           showToast('セッションが切れました。再度ログインしてください', 'error');
           logout();
         } else {
           showToast('データの取得に失敗しました', 'error');
         }
       } finally {
-        setLoading({ ...loading, profile: false, settings: false });
+        setLoading((prev) => ({ ...prev, profile: false, settings: false }));
       }
     };
 
     fetchData();
-  }, []);
+  }, [logout, showToast]);
 
   const handleProfileSave = async () => {
-    setLoading({ ...loading, saving: true });
+    setLoading((prev) => ({ ...prev, saving: true }));
     setErrors({});
     try {
       const response = await updateUserProfile({ name: profileForm.name });
       showToast(response.message, 'success');
       setProfile({ ...profile!, name: profileForm.name });
-    } catch (error: any) {
-      if (error.response?.status === 422) {
-        setErrors(error.response.data.errors);
+    } catch (error) {
+      const err = error as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
+      if (err.response?.status === 422) {
+        setErrors(err.response.data?.errors || {});
         showToast('入力内容を確認してください', 'error');
-      } else if (error.response?.status === 401) {
+      } else if (err.response?.status === 401) {
         showToast('セッションが切れました。再度ログインしてください', 'error');
         logout();
       } else {
         showToast('保存に失敗しました', 'error');
       }
     } finally {
-      setLoading({ ...loading, saving: false });
+      setLoading((prev) => ({ ...prev, saving: false }));
     }
   };
 
   const handleSettingsSave = async () => {
     if (!settings) return;
-    setLoading({ ...loading, saving: true });
+    setLoading((prev) => ({ ...prev, saving: true }));
     setErrors({});
     try {
       const response = await updateUserSettings(settings);
       showToast(response.message, 'success');
-    } catch (error: any) {
-      if (error.response?.status === 422) {
-        setErrors(error.response.data.errors);
+    } catch (error) {
+      const err = error as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
+      if (err.response?.status === 422) {
+        setErrors(err.response.data?.errors || {});
         showToast('入力内容を確認してください', 'error');
-      } else if (error.response?.status === 401) {
+      } else if (err.response?.status === 401) {
         showToast('セッションが切れました。再度ログインしてください', 'error');
         logout();
       } else {
         showToast('保存に失敗しました', 'error');
       }
     } finally {
-      setLoading({ ...loading, saving: false });
+      setLoading((prev) => ({ ...prev, saving: false }));
     }
   };
 

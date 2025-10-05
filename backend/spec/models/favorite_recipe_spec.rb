@@ -43,4 +43,3 @@ RSpec.describe FavoriteRecipe, type: :model do
     end
   end
 end
-

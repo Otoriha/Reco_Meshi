@@ -167,4 +167,3 @@ RSpec.describe "Api::V1::FavoriteRecipes", type: :request do
     end
   end
 end
-
