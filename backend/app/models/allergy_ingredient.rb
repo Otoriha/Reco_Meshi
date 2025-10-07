@@ -12,7 +12,7 @@ class AllergyIngredient < ApplicationRecord
 
   # Validations
   validates :severity, presence: true, inclusion: { in: severities.keys }
-  validates :note, length: { maximum: 500 }, allow_blank: true
+  validates :note, length: { maximum: 500, message: "は500文字以内で入力してください" }, allow_blank: true
   validates :ingredient_id, uniqueness: { scope: :user_id, message: "は既に登録されています" }
 
   # Scopes
