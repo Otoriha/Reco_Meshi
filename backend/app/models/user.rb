@@ -23,6 +23,8 @@ class User < ApplicationRecord
   has_many :shopping_lists, dependent: :destroy
   has_many :favorite_recipes, dependent: :destroy
   has_many :favorited_recipes, through: :favorite_recipes, source: :recipe
+  has_many :allergy_ingredients, dependent: :destroy
+  has_many :allergen_ingredients, through: :allergy_ingredients, source: :ingredient
 
   # Callbacks
   after_create :build_default_setting, if: -> { setting.nil? }

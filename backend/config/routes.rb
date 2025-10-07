@@ -74,6 +74,7 @@ Rails.application.routes.draw do
       namespace :users do
         resource :profile, only: [ :show, :update ]
         resource :settings, only: [ :show, :update ]
+        resources :allergy_ingredients, only: [ :index, :create, :update, :destroy ]
         post "change_password", to: "passwords#create"
         post "change_email", to: "emails#create"
       end
