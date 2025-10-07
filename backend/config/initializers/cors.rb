@@ -23,12 +23,13 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       # Production environment - Allow specific domains
       allowed_origins = []
 
-      # Frontend URLs (Vercel or custom domain)
+      # 本番ドメイン（常に許可）
+      allowed_origins << "https://reco-meshi.com"
+      allowed_origins << "https://reco-meshiweb.vercel.app"
+
+      # Frontend URLs (環境変数で追加のURLがあれば追加)
       if ENV["FRONTEND_URL"].present?
         allowed_origins += ENV["FRONTEND_URL"].split(",").map(&:strip)
-      else
-        # Fallback for direct domain specification
-        allowed_origins << "https://reco-meshiweb.vercel.app"
       end
 
       # LIFF URLs (Vercel or custom domain)
