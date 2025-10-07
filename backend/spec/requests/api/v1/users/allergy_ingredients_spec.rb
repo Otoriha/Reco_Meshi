@@ -111,7 +111,12 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
 
       expect {
         post "/api/v1/users/allergy_ingredients", params: invalid_params, headers: headers, as: :json
-      }.to raise_error(ArgumentError)
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      body = JSON.parse(response.body)
+      expect(body["errors"]["severity"]).to be_present
+      expect(body["errors"]["severity"].first).to include("invalid")
     end
 
     it "noteが501文字以上で422を返す" do
@@ -187,6 +192,20 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
       body = JSON.parse(response.body)
       expect(body["errors"]["note"]).to include("は500文字以内で入力してください")
+    end
+
+    it "無効なseverityで422を返す" do
+      headers = auth_header_for(user)
+      invalid_params = { allergy_ingredient: { severity: "invalid" } }
+
+      expect {
+        patch "/api/v1/users/allergy_ingredients/#{allergy_ingredient.id}", params: invalid_params, headers: headers, as: :json
+      }.not_to raise_error
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      body = JSON.parse(response.body)
+      expect(body["errors"]["severity"]).to be_present
+      expect(body["errors"]["severity"].first).to include("invalid")
     end
   end
 

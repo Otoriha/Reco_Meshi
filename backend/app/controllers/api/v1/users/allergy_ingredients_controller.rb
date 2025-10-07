@@ -19,6 +19,8 @@ class Api::V1::Users::AllergyIngredientsController < ApplicationController
     else
       render json: { errors: allergy_ingredient.errors.messages }, status: :unprocessable_entity
     end
+  rescue ArgumentError => e
+    render json: { errors: { severity: [ e.message ] } }, status: :unprocessable_entity
   end
 
   # PATCH /api/v1/users/allergy_ingredients/:id
@@ -29,6 +31,8 @@ class Api::V1::Users::AllergyIngredientsController < ApplicationController
     else
       render json: { errors: @allergy_ingredient.errors.messages }, status: :unprocessable_entity
     end
+  rescue ArgumentError => e
+    render json: { errors: { severity: [ e.message ] } }, status: :unprocessable_entity
   end
 
   # DELETE /api/v1/users/allergy_ingredients/:id
