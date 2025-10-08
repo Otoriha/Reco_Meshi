@@ -17,6 +17,7 @@ class Ingredient < ApplicationRecord
   has_many :shopping_list_items, dependent: :destroy
   has_many :shopping_lists, through: :shopping_list_items
   has_many :allergy_ingredients, dependent: :destroy
+  has_many :disliked_ingredients, dependent: :destroy
 
   # Validations
   validates :name, presence: true, uniqueness: true, length: { maximum: 100 }
