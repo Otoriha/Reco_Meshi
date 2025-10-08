@@ -30,11 +30,13 @@ RSpec.describe "Api::V1::Users::DislikedIngredients", type: :request do
       expect(body.size).to eq(2)
 
       # 最新順で返される
+      expect(body.first["id"]).to eq(disliked2.id.to_s)
       expect(body.first["ingredient_id"]).to eq(cilantro_ingredient.id)
       expect(body.first["priority"]).to eq("high")
       expect(body.first["priority_label"]).to eq("高")
       expect(body.first["ingredient"]["name"]).to eq("パクチー")
 
+      expect(body.last["id"]).to eq(disliked1.id.to_s)
       expect(body.last["ingredient_id"]).to eq(ingredient.id)
       expect(body.last["priority"]).to eq("low")
       expect(body.last["priority_label"]).to eq("低")
@@ -77,6 +79,7 @@ RSpec.describe "Api::V1::Users::DislikedIngredients", type: :request do
 
       expect(response).to have_http_status(:created)
       body = JSON.parse(response.body)
+      expect(body["id"]).to be_present
       expect(body["user_id"]).to eq(user.id)
       expect(body["ingredient_id"]).to eq(ingredient.id)
       expect(body["priority"]).to eq("medium")
@@ -158,6 +161,7 @@ RSpec.describe "Api::V1::Users::DislikedIngredients", type: :request do
       patch "/api/v1/users/disliked_ingredients/#{disliked_ingredient.id}", params: update_params, headers: headers, as: :json
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
+      expect(body["id"]).to eq(disliked_ingredient.id.to_s)
       expect(body["priority"]).to eq("high")
       expect(body["priority_label"]).to eq("高")
       expect(body["reason"]).to eq("更新されたメモ")

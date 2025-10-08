@@ -6,7 +6,7 @@ class Api::V1::Users::DislikedIngredientsController < ApplicationController
   def index
     disliked_ingredients = current_user.disliked_ingredients.includes(:ingredient).recent
     serialized_data = DislikedIngredientSerializer.new(disliked_ingredients).serializable_hash
-    render json: serialized_data[:data].map { |item| item[:attributes] }
+    render json: serialized_data[:data].map { |item| item[:attributes].merge(id: item[:id]) }
   end
 
   # POST /api/v1/users/disliked_ingredients
@@ -15,7 +15,7 @@ class Api::V1::Users::DislikedIngredientsController < ApplicationController
 
     if disliked_ingredient.save
       serialized_data = DislikedIngredientSerializer.new(disliked_ingredient).serializable_hash
-      render json: serialized_data[:data][:attributes], status: :created
+      render json: serialized_data[:data][:attributes].merge(id: serialized_data[:data][:id]), status: :created
     else
       render json: { errors: disliked_ingredient.errors.messages }, status: :unprocessable_entity
     end
@@ -31,7 +31,7 @@ class Api::V1::Users::DislikedIngredientsController < ApplicationController
   def update
     if @disliked_ingredient.update(disliked_ingredient_params)
       serialized_data = DislikedIngredientSerializer.new(@disliked_ingredient).serializable_hash
-      render json: serialized_data[:data][:attributes]
+      render json: serialized_data[:data][:attributes].merge(id: serialized_data[:data][:id])
     else
       render json: { errors: @disliked_ingredient.errors.messages }, status: :unprocessable_entity
     end
