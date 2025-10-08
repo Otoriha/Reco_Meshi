@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_07_075612) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_08_082323) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -26,6 +26,20 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_075612) do
     t.index ["user_id"], name: "index_allergy_ingredients_on_user_id"
     t.check_constraint "length(note) <= 500 OR note IS NULL", name: "chk_note_length"
     t.check_constraint "severity = ANY (ARRAY[0, 1, 2])", name: "chk_severity_valid"
+  end
+
+  create_table "disliked_ingredients", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "ユーザーID"
+    t.bigint "ingredient_id", null: false, comment: "食材ID"
+    t.integer "priority", default: 0, null: false, comment: "優先度（0: low, 1: medium, 2: high）"
+    t.text "reason", comment: "理由"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ingredient_id"], name: "index_disliked_ingredients_on_ingredient_id"
+    t.index ["user_id", "ingredient_id"], name: "index_disliked_ingredients_on_user_and_ingredient", unique: true
+    t.index ["user_id"], name: "index_disliked_ingredients_on_user_id"
+    t.check_constraint "char_length(reason) <= 500 OR reason IS NULL", name: "chk_reason_length"
+    t.check_constraint "priority = ANY (ARRAY[0, 1, 2])", name: "chk_priority_valid"
   end
 
   create_table "favorite_recipes", force: :cascade do |t|
@@ -218,6 +232,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_07_075612) do
 
   add_foreign_key "allergy_ingredients", "ingredients", on_delete: :cascade
   add_foreign_key "allergy_ingredients", "users", on_delete: :cascade
+  add_foreign_key "disliked_ingredients", "ingredients", on_delete: :cascade
+  add_foreign_key "disliked_ingredients", "users", on_delete: :cascade
   add_foreign_key "favorite_recipes", "recipes", on_delete: :cascade
   add_foreign_key "favorite_recipes", "users", on_delete: :cascade
   add_foreign_key "fridge_images", "line_accounts"
