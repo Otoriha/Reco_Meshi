@@ -1,0 +1,303 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎日午前2時(UTC)に実行
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # Ruby/Rails セキュリティチェック
+  brakeman:
+    name: Brakeman Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: backend
+
+      - name: Install Brakeman
+        working-directory: backend
+        run: |
+          gem install brakeman
+
+      - name: Run Brakeman
+        working-directory: backend
+        run: |
+          brakeman --format json --output ../brakeman-report.json --no-pager --force || true
+
+      - name: Check Brakeman results
+        run: |
+          if [ -f brakeman-report.json ]; then
+            WARNINGS=$(jq '.warnings | length' brakeman-report.json)
+            echo "Brakeman found $WARNINGS warnings"
+            if [ "$WARNINGS" -gt "0" ]; then
+              echo "::warning::Brakeman found $WARNINGS security warnings"
+              jq '.warnings[] | {warning_type, message, file, line}' brakeman-report.json
+            fi
+          fi
+
+      - name: Upload Brakeman results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: brakeman-report
+          path: brakeman-report.json
+
+  # Ruby依存関係の脆弱性スキャン
+  bundler-audit:
+    name: Bundler Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install bundler-audit
+        run: gem install bundler-audit
+
+      - name: Update vulnerability database
+        run: bundle-audit update
+
+      - name: Run bundler-audit
+        working-directory: backend
+        run: |
+          bundle-audit check --verbose || EXIT_CODE=$?
+          if [ "${EXIT_CODE}" != "0" ]; then
+            echo "::error::Vulnerable dependencies found"
+            exit ${EXIT_CODE}
+          fi
+
+  # RuboCop Security
+  rubocop-security:
+    name: RuboCop Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: backend
+
+      - name: Run RuboCop Security
+        working-directory: backend
+        run: |
+          bundle exec rubocop --only Security --format json --out ../rubocop-security.json || true
+
+      - name: Check RuboCop results
+        run: |
+          if [ -f rubocop-security.json ]; then
+            OFFENSES=$(jq '.summary.offense_count' rubocop-security.json)
+            echo "RuboCop found $OFFENSES security offenses"
+            if [ "$OFFENSES" -gt "0" ]; then
+              echo "::warning::RuboCop found $OFFENSES security offenses"
+            fi
+          fi
+
+      - name: Upload RuboCop results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: rubocop-security-report
+          path: rubocop-security.json
+
+  # Frontend依存関係の脆弱性スキャン
+  npm-audit-frontend:
+    name: npm audit (Frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: frontend
+        run: |
+          npm audit --audit-level=moderate --json > ../frontend-audit.json || EXIT_CODE=$?
+          if [ "${EXIT_CODE}" != "0" ]; then
+            echo "::warning::Vulnerabilities found in frontend dependencies"
+            cat ../frontend-audit.json | jq '.vulnerabilities'
+          fi
+
+      - name: Upload npm audit results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: frontend-npm-audit
+          path: frontend-audit.json
+
+  # LIFF依存関係の脆弱性スキャン
+  npm-audit-liff:
+    name: npm audit (LIFF)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: liff/package-lock.json
+
+      - name: Install dependencies
+        working-directory: liff
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: liff
+        run: |
+          npm audit --audit-level=moderate --json > ../liff-audit.json || EXIT_CODE=$?
+          if [ "${EXIT_CODE}" != "0" ]; then
+            echo "::warning::Vulnerabilities found in LIFF dependencies"
+            cat ../liff-audit.json | jq '.vulnerabilities'
+          fi
+
+      - name: Upload npm audit results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: liff-npm-audit
+          path: liff-audit.json
+
+  # シークレットスキャン
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 全履歴をフェッチ
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # セキュリティスコアカード
+  scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+
+  # 環境変数チェック
+  env-check:
+    name: Environment Variables Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check required environment variables
+        run: |
+          echo "Checking for required environment variable references..."
+          
+          # 必須の環境変数がENV.fetch()で取得されているかチェック
+          MISSING_FETCHES=$(grep -r "ENV\[" backend/app backend/config | grep -v "ENV\.fetch" | grep -v ".rb~" | wc -l)
+          
+          if [ "$MISSING_FETCHES" -gt "5" ]; then
+            echo "::warning::Found ${MISSING_FETCHES} instances of ENV[] without .fetch()"
+            echo "Consider using ENV.fetch() for required environment variables"
+          fi
+          
+          # ハードコードされた可能性のあるシークレット
+          echo "Checking for potential hardcoded secrets..."
+          if grep -r "password.*=.*['\"]" backend/config --include="*.rb" | grep -v "password_length" | grep -v "change_password"; then
+            echo "::error::Potential hardcoded password found in config"
+            exit 1
+          fi
+
+  # まとめレポート
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [brakeman, bundler-audit, rubocop-security, npm-audit-frontend, npm-audit-liff, secret-scan]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate summary
+        run: |
+          echo "# Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Brakeman
+          if [ -f brakeman-report/brakeman-report.json ]; then
+            BRAKEMAN_WARNINGS=$(jq '.warnings | length' brakeman-report/brakeman-report.json)
+            echo "- **Brakeman**: $BRAKEMAN_WARNINGS warnings" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Frontend audit
+          if [ -f frontend-npm-audit/frontend-audit.json ]; then
+            FRONTEND_VULNS=$(jq '.metadata.vulnerabilities | to_entries | map(.value) | add' frontend-npm-audit/frontend-audit.json)
+            echo "- **Frontend npm audit**: $FRONTEND_VULNS vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # LIFF audit
+          if [ -f liff-npm-audit/liff-audit.json ]; then
+            LIFF_VULNS=$(jq '.metadata.vulnerabilities | to_entries | map(.value) | add' liff-npm-audit/liff-audit.json)
+            echo "- **LIFF npm audit**: $LIFF_VULNS vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "For detailed results, check the individual job outputs and artifacts." >> $GITHUB_STEP_SUMMARY
