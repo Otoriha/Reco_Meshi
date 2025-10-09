@@ -17,3 +17,9 @@ export const SHOPPING_FREQUENCY_OPTIONS = [
   { value: '週に1回', label: '週に1回' },
   { value: 'まとめ買い', label: 'まとめ買い' }
 ] as const;
+
+export const SEVERITY_OPTIONS = [
+  { value: 'mild', label: '軽度' },
+  { value: 'moderate', label: '中程度' },
+  { value: 'severe', label: '重度' }
+] as const;
