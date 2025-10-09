@@ -1,20 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import Modal from '../ui/Modal';
 import { useIngredients } from '../../hooks/useIngredients';
-import { SEVERITY_OPTIONS } from '../../constants/settings';
 import type { AllergyIngredient } from '../../types/allergy';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { ingredient_id: number; severity: 'mild' | 'moderate' | 'severe'; note?: string }) => Promise<void>;
+  onSubmit: (data: { ingredient_id: number; note?: string }) => Promise<void>;
   existingAllergies: AllergyIngredient[];
 };
 
 const AddAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, existingAllergies }) => {
   const { items, search, setSearch } = useIngredients({ perPage: 50 });
   const [selectedId, setSelectedId] = useState<number | ''>('');
-  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('mild');
   const [note, setNote] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -46,12 +44,10 @@ const AddAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, existingA
     try {
       await onSubmit({
         ingredient_id: Number(selectedId),
-        severity,
         note: note || undefined
       });
       // 成功時はリセット
       setSelectedId('');
-      setSeverity('mild');
       setNote('');
       setSearch('');
       onClose();
@@ -71,7 +67,6 @@ const AddAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, existingA
 
   const handleClose = () => {
     setSelectedId('');
-    setSeverity('mild');
     setNote('');
     setSearch('');
     setError(null);
@@ -120,24 +115,7 @@ const AddAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, existingA
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">
-            重症度 <span className="text-red-500">*</span>
-          </label>
-          <select
-            className="w-full px-3 py-2 border rounded"
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value as 'mild' | 'moderate' | 'severe')}
-          >
-            {SEVERITY_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-700 mb-1 flex justify-between">
+          <label className="flex justify-between text-sm text-gray-700 mb-1">
             <span>備考（任意）</span>
             <span className="text-xs text-gray-500">{note.length}/500</span>
           </label>

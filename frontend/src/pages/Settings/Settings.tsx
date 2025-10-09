@@ -106,7 +106,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleAddAllergy = async (data: { ingredient_id: number; severity: 'mild' | 'moderate' | 'severe'; note?: string }) => {
+  const handleAddAllergy = async (data: { ingredient_id: number; note?: string }) => {
     try {
       const newAllergy = await createAllergyIngredient(data);
       setAllergies([...allergies, newAllergy]);
@@ -123,7 +123,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleUpdateAllergy = async (data: { severity?: 'mild' | 'moderate' | 'severe'; note?: string }) => {
+  const handleUpdateAllergy = async (data: { note?: string }) => {
     if (!editingAllergy) return;
     try {
       const updatedAllergy = await updateAllergyIngredient(editingAllergy.id, data);
@@ -284,15 +284,6 @@ const Settings: React.FC = () => {
   );
 
   const renderAllergyIngredients = () => {
-    const getSeverityColor = (severity: string) => {
-      switch (severity) {
-        case 'mild': return 'bg-green-100 text-green-800';
-        case 'moderate': return 'bg-yellow-100 text-yellow-800';
-        case 'severe': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-      }
-    };
-
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center mb-4">
@@ -317,7 +308,6 @@ const Settings: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">食材名</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">重症度</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">備考</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">操作</th>
                 </tr>
@@ -327,11 +317,6 @@ const Settings: React.FC = () => {
                   <tr key={allergy.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {allergy.ingredient.name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getSeverityColor(allergy.severity)}`}>
-                        {allergy.severity_label}
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {allergy.note ? (

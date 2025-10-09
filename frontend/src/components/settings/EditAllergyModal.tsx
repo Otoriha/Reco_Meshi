@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
-import { SEVERITY_OPTIONS } from '../../constants/settings';
 import type { AllergyIngredient } from '../../types/allergy';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { severity?: 'mild' | 'moderate' | 'severe'; note?: string }) => Promise<void>;
+  onSubmit: (data: { note?: string }) => Promise<void>;
   allergy: AllergyIngredient | null;
 };
 
 const EditAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, allergy }) => {
-  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('mild');
   const [note, setNote] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (allergy) {
-      setSeverity(allergy.severity);
       setNote(allergy.note || '');
     }
   }, [allergy]);
@@ -31,7 +28,6 @@ const EditAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, allergy 
 
     try {
       await onSubmit({
-        severity,
         note: note || undefined
       });
       onClose();
@@ -76,24 +72,7 @@ const EditAllergyModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, allergy 
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">
-            重症度 <span className="text-red-500">*</span>
-          </label>
-          <select
-            className="w-full px-3 py-2 border rounded"
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value as 'mild' | 'moderate' | 'severe')}
-          >
-            {SEVERITY_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-700 mb-1 flex justify-between">
+          <label className="flex justify-between text-sm text-gray-700 mb-1">
             <span>備考（任意）</span>
             <span className="text-xs text-gray-500">{note.length}/500</span>
           </label>
