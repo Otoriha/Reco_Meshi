@@ -10,14 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_08_082323) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_10_082038) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
   create_table "allergy_ingredients", force: :cascade do |t|
     t.bigint "user_id", null: false, comment: "ユーザーID"
     t.bigint "ingredient_id", null: false, comment: "食材ID"
-    t.integer "severity", default: 0, null: false, comment: "重症度（0: mild, 1: moderate, 2: severe）"
     t.text "note", comment: "備考"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -25,7 +24,6 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_08_082323) do
     t.index ["user_id", "ingredient_id"], name: "index_allergy_ingredients_on_user_and_ingredient", unique: true
     t.index ["user_id"], name: "index_allergy_ingredients_on_user_id"
     t.check_constraint "length(note) <= 500 OR note IS NULL", name: "chk_note_length"
-    t.check_constraint "severity = ANY (ARRAY[0, 1, 2])", name: "chk_severity_valid"
   end
 
   create_table "disliked_ingredients", force: :cascade do |t|

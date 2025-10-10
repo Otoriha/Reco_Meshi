@@ -12,8 +12,8 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
   end
 
   describe "GET /api/v1/users/allergy_ingredients" do
-    let!(:allergy1) { create(:allergy_ingredient, user: user, ingredient: ingredient, severity: :mild) }
-    let!(:allergy2) { create(:allergy_ingredient, user: user, ingredient: soba_ingredient, severity: :severe) }
+    let!(:allergy1) { create(:allergy_ingredient, user: user, ingredient: ingredient) }
+    let!(:allergy2) { create(:allergy_ingredient, user: user, ingredient: soba_ingredient) }
     let!(:other_allergy) { create(:allergy_ingredient, user: other_user, ingredient: ingredient) }
 
     it "認証なしで401を返す" do
@@ -31,13 +31,18 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
 
       # 最新順で返される
       expect(body.first["ingredient_id"]).to eq(soba_ingredient.id)
-      expect(body.first["severity"]).to eq("severe")
-      expect(body.first["severity_label"]).to eq("重度")
       expect(body.first["ingredient"]["name"]).to eq("そば")
 
       expect(body.last["ingredient_id"]).to eq(ingredient.id)
-      expect(body.last["severity"]).to eq("mild")
-      expect(body.last["severity_label"]).to eq("軽度")
+    end
+
+    it "レスポンスにseverityが含まれないこと" do
+      headers = auth_header_for(user)
+      get "/api/v1/users/allergy_ingredients", headers: headers, as: :json
+
+      body = JSON.parse(response.body)
+      expect(body.first).not_to have_key("severity")
+      expect(body.first).not_to have_key("severity_label")
     end
 
     it "他のユーザーのアレルギー食材は返さない" do
@@ -57,7 +62,6 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       {
         allergy_ingredient: {
           ingredient_id: ingredient.id,
-          severity: "moderate",
           note: "食べると喉が痒くなる"
         }
       }
@@ -79,15 +83,15 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       body = JSON.parse(response.body)
       expect(body["user_id"]).to eq(user.id)
       expect(body["ingredient_id"]).to eq(ingredient.id)
-      expect(body["severity"]).to eq("moderate")
-      expect(body["severity_label"]).to eq("中程度")
       expect(body["note"]).to eq("食べると喉が痒くなる")
       expect(body["ingredient"]["name"]).to eq("卵")
+      expect(body).not_to have_key("severity")
+      expect(body).not_to have_key("severity_label")
     end
 
     it "noteなしでも登録できる" do
       headers = auth_header_for(user)
-      params = { allergy_ingredient: { ingredient_id: ingredient.id, severity: "mild" } }
+      params = { allergy_ingredient: { ingredient_id: ingredient.id } }
 
       post "/api/v1/users/allergy_ingredients", params: params, headers: headers, as: :json
       expect(response).to have_http_status(:created)
@@ -105,26 +109,11 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       expect(body["errors"]["ingredient_id"]).to include("は既に登録されています")
     end
 
-    it "無効なseverityで422を返す" do
-      headers = auth_header_for(user)
-      invalid_params = { allergy_ingredient: { ingredient_id: ingredient.id, severity: "invalid" } }
-
-      expect {
-        post "/api/v1/users/allergy_ingredients", params: invalid_params, headers: headers, as: :json
-      }.not_to raise_error
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      body = JSON.parse(response.body)
-      expect(body["errors"]["severity"]).to be_present
-      expect(body["errors"]["severity"].first).to include("invalid")
-    end
-
     it "noteが501文字以上で422を返す" do
       headers = auth_header_for(user)
       invalid_params = {
         allergy_ingredient: {
           ingredient_id: ingredient.id,
-          severity: "mild",
           note: "a" * 501
         }
       }
@@ -137,11 +126,10 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
   end
 
   describe "PATCH /api/v1/users/allergy_ingredients/:id" do
-    let!(:allergy_ingredient) { create(:allergy_ingredient, user: user, ingredient: ingredient, severity: :mild, note: "元のメモ") }
+    let!(:allergy_ingredient) { create(:allergy_ingredient, user: user, ingredient: ingredient, note: "元のメモ") }
     let(:update_params) do
       {
         allergy_ingredient: {
-          severity: "severe",
           note: "更新されたメモ"
         }
       }
@@ -158,12 +146,11 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       patch "/api/v1/users/allergy_ingredients/#{allergy_ingredient.id}", params: update_params, headers: headers, as: :json
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      expect(body["severity"]).to eq("severe")
-      expect(body["severity_label"]).to eq("重度")
       expect(body["note"]).to eq("更新されたメモ")
+      expect(body).not_to have_key("severity")
+      expect(body).not_to have_key("severity_label")
 
       allergy_ingredient.reload
-      expect(allergy_ingredient.severity).to eq("severe")
       expect(allergy_ingredient.note).to eq("更新されたメモ")
     end
 
@@ -194,19 +181,6 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       expect(body["errors"]["note"]).to include("は500文字以内で入力してください")
     end
 
-    it "無効なseverityで422を返す" do
-      headers = auth_header_for(user)
-      invalid_params = { allergy_ingredient: { severity: "invalid" } }
-
-      expect {
-        patch "/api/v1/users/allergy_ingredients/#{allergy_ingredient.id}", params: invalid_params, headers: headers, as: :json
-      }.not_to raise_error
-
-      expect(response).to have_http_status(:unprocessable_entity)
-      body = JSON.parse(response.body)
-      expect(body["errors"]["severity"]).to be_present
-      expect(body["errors"]["severity"].first).to include("invalid")
-    end
   end
 
   describe "DELETE /api/v1/users/allergy_ingredients/:id" do
