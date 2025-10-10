@@ -99,6 +99,18 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       expect(body["note"]).to be_nil
     end
 
+    it "クライアントから誤ってseverityを送信しても無視される" do
+      headers = auth_header_for(user)
+      params = { allergy_ingredient: { ingredient_id: ingredient.id, severity: "moderate", note: "テストメモ" } }
+
+      post "/api/v1/users/allergy_ingredients", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:created)
+      body = JSON.parse(response.body)
+      expect(body["note"]).to eq("テストメモ")
+      expect(body).not_to have_key("severity")
+      expect(body).not_to have_key("severity_label")
+    end
+
     it "同じ食材の重複登録時に422を返す" do
       create(:allergy_ingredient, user: user, ingredient: ingredient)
       headers = auth_header_for(user)
@@ -152,6 +164,18 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
 
       allergy_ingredient.reload
       expect(allergy_ingredient.note).to eq("更新されたメモ")
+    end
+
+    it "クライアントから誤ってseverityを送信しても無視される" do
+      headers = auth_header_for(user)
+      params = { allergy_ingredient: { severity: "severe", note: "更新メモ" } }
+
+      patch "/api/v1/users/allergy_ingredients/#{allergy_ingredient.id}", params: params, headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["note"]).to eq("更新メモ")
+      expect(body).not_to have_key("severity")
+      expect(body).not_to have_key("severity_label")
     end
 
     it "他のユーザーのアレルギー食材を更新しようとすると404を返す" do
