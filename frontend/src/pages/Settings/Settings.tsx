@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaCog, FaClipboard, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan } from 'react-icons/fa';
 import { getUserProfile, getUserSettings, updateUserProfile, updateUserSettings } from '../../api/users';
 import type { UserProfile, UserSettings } from '../../api/users';
 import { DIFFICULTY_OPTIONS, COOKING_TIME_OPTIONS, SHOPPING_FREQUENCY_OPTIONS } from '../../constants/settings';
@@ -7,21 +7,28 @@ import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import { getAllergyIngredients, createAllergyIngredient, updateAllergyIngredient, deleteAllergyIngredient } from '../../api/allergyIngredients';
 import type { AllergyIngredient } from '../../types/allergy';
+import { getDislikedIngredients, createDislikedIngredient, updateDislikedIngredient, deleteDislikedIngredient } from '../../api/dislikedIngredients';
+import type { DislikedIngredient } from '../../types/disliked';
 import AddAllergyModal from '../../components/settings/AddAllergyModal';
 import EditAllergyModal from '../../components/settings/EditAllergyModal';
+import AddDislikedModal from '../../components/settings/AddDislikedModal';
+import EditDislikedModal from '../../components/settings/EditDislikedModal';
 
-type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy';
+type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [allergies, setAllergies] = useState<AllergyIngredient[]>([]);
+  const [dislikedIngredients, setDislikedIngredients] = useState<DislikedIngredient[]>([]);
   const [profileForm, setProfileForm] = useState({ name: '' });
-  const [loading, setLoading] = useState({ profile: true, settings: true, allergies: true, saving: false });
+  const [loading, setLoading] = useState({ profile: true, settings: true, allergies: true, disliked: true, saving: false });
   const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [isAddAllergyOpen, setIsAddAllergyOpen] = useState(false);
   const [editingAllergy, setEditingAllergy] = useState<AllergyIngredient | null>(null);
+  const [isAddDislikedOpen, setIsAddDislikedOpen] = useState(false);
+  const [editingDisliked, setEditingDisliked] = useState<DislikedIngredient | null>(null);
   const { showToast } = useToast();
   const { logout } = useAuth();
 
@@ -29,20 +36,23 @@ const Settings: React.FC = () => {
     { id: 'basic', label: '基本設定', icon: FaCog },
     { id: 'profile', label: 'プロフィール', icon: FaUser },
     { id: 'allergy', label: 'アレルギー食材', icon: FaExclamationTriangle },
+    { id: 'disliked', label: '苦手な食材', icon: FaBan },
     { id: 'account', label: 'アカウント', icon: FaClipboard }
   ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileData, settingsData, allergiesData] = await Promise.all([
+        const [profileData, settingsData, allergiesData, dislikedData] = await Promise.all([
           getUserProfile(),
           getUserSettings(),
-          getAllergyIngredients()
+          getAllergyIngredients(),
+          getDislikedIngredients()
         ]);
         setProfile(profileData);
         setSettings(settingsData);
         setAllergies(allergiesData);
+        setDislikedIngredients(dislikedData);
         setProfileForm({ name: profileData.name });
       } catch (error) {
         const err = error as { response?: { status?: number } };
@@ -53,7 +63,7 @@ const Settings: React.FC = () => {
           showToast('データの取得に失敗しました', 'error');
         }
       } finally {
-        setLoading((prev) => ({ ...prev, profile: false, settings: false, allergies: false }));
+        setLoading((prev) => ({ ...prev, profile: false, settings: false, allergies: false, disliked: false }));
       }
     };
 
@@ -148,6 +158,59 @@ const Settings: React.FC = () => {
       await deleteAllergyIngredient(id);
       setAllergies(allergies.filter(a => a.id !== id));
       showToast('アレルギー食材を削除しました', 'success');
+    } catch (error) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 401) {
+        showToast('セッションが切れました。再度ログインしてください', 'error');
+        logout();
+      } else {
+        showToast('削除に失敗しました', 'error');
+      }
+    }
+  };
+
+  const handleAddDisliked = async (data: { ingredient_id: number; priority: 'low' | 'medium' | 'high'; reason?: string }) => {
+    try {
+      const newDisliked = await createDislikedIngredient(data);
+      setDislikedIngredients([...dislikedIngredients, newDisliked]);
+      showToast('苦手な食材を追加しました', 'success');
+    } catch (error) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 401) {
+        showToast('セッションが切れました。再度ログインしてください', 'error');
+        logout();
+      } else {
+        showToast('追加に失敗しました', 'error');
+      }
+      throw error;
+    }
+  };
+
+  const handleUpdateDisliked = async (data: { priority?: 'low' | 'medium' | 'high'; reason?: string }) => {
+    if (!editingDisliked) return;
+    try {
+      const updatedDisliked = await updateDislikedIngredient(Number(editingDisliked.id), data);
+      setDislikedIngredients(dislikedIngredients.map(d => d.id === updatedDisliked.id ? updatedDisliked : d));
+      setEditingDisliked(null);
+      showToast('苦手な食材を更新しました', 'success');
+    } catch (error) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 401) {
+        showToast('セッションが切れました。再度ログインしてください', 'error');
+        logout();
+      } else {
+        showToast('更新に失敗しました', 'error');
+      }
+      throw error;
+    }
+  };
+
+  const handleDeleteDisliked = async (id: string) => {
+    if (!confirm('この苦手な食材を削除しますか？')) return;
+    try {
+      await deleteDislikedIngredient(Number(id));
+      setDislikedIngredients(dislikedIngredients.filter(d => d.id !== id));
+      showToast('苦手な食材を削除しました', 'success');
     } catch (error) {
       const err = error as { response?: { status?: number } };
       if (err.response?.status === 401) {
@@ -349,6 +412,76 @@ const Settings: React.FC = () => {
     );
   };
 
+  const renderDislikedIngredients = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">苦手な食材</h2>
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={() => setIsAddDislikedOpen(true)}
+          >
+            新規登録
+          </button>
+        </div>
+
+        {loading.disliked ? (
+          <div className="text-center py-8">読み込み中...</div>
+        ) : dislikedIngredients.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            苦手な食材が登録されていません
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">食材名</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">優先度</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">理由</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {dislikedIngredients.map((disliked) => (
+                  <tr key={disliked.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {disliked.ingredient.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {disliked.priority_label}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {disliked.reason ? (
+                        disliked.reason.length > 50 ? `${disliked.reason.substring(0, 50)}...` : disliked.reason
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        className="text-blue-600 hover:text-blue-800 text-sm mr-3"
+                        onClick={() => setEditingDisliked(disliked)}
+                      >
+                        編集
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        onClick={() => handleDeleteDisliked(disliked.id)}
+                      >
+                        削除
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderAccount = () => (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">アカウント</h2>
@@ -399,6 +532,8 @@ const Settings: React.FC = () => {
         return renderProfile();
       case 'allergy':
         return renderAllergyIngredients();
+      case 'disliked':
+        return renderDislikedIngredients();
       case 'account':
         return renderAccount();
       default:
@@ -445,7 +580,7 @@ const Settings: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-6">
               {renderContent()}
 
-              {activeTab !== 'account' && activeTab !== 'allergy' && (
+              {activeTab !== 'account' && activeTab !== 'allergy' && activeTab !== 'disliked' && (
                 <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
                   <button
                     className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
@@ -484,6 +619,18 @@ const Settings: React.FC = () => {
           onClose={() => setEditingAllergy(null)}
           onSubmit={handleUpdateAllergy}
           allergy={editingAllergy}
+        />
+        <AddDislikedModal
+          isOpen={isAddDislikedOpen}
+          onClose={() => setIsAddDislikedOpen(false)}
+          onSubmit={handleAddDisliked}
+          existingDisliked={dislikedIngredients}
+        />
+        <EditDislikedModal
+          isOpen={!!editingDisliked}
+          onClose={() => setEditingDisliked(null)}
+          onSubmit={handleUpdateDisliked}
+          disliked={editingDisliked}
         />
       </div>
     </div>
