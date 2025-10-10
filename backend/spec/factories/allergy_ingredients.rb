@@ -3,20 +3,7 @@ FactoryBot.define do
     association :user
     association :ingredient
 
-    severity { :mild }
     note { Faker::Lorem.sentence }
-
-    trait :mild do
-      severity { :mild }
-    end
-
-    trait :moderate do
-      severity { :moderate }
-    end
-
-    trait :severe do
-      severity { :severe }
-    end
 
     trait :without_note do
       note { nil }
