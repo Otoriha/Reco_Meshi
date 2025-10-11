@@ -13,7 +13,8 @@ import type {
 } from '../types/shoppingList'
 
 // JSON:API正規化ユーティリティ
-function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): Record<string, unknown> {
+// 型安全性のため unknown を返し、呼び出し側で適切な型にキャストする
+function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): unknown {
   const normalized: Record<string, unknown> = {
     id: Number(resource.id),
     ...convertKeysFromSnakeCase(resource.attributes)
@@ -27,8 +28,8 @@ function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiRe
           // 複数のリレーション
           normalized[convertKeyFromSnakeCase(key)] = relationship.data
             .map((rel) => findIncludedResource(rel.type, rel.id, included))
-            .filter(Boolean)
-            .map((res: JsonApiResource) => normalizeJsonApiResource(res, included))
+            .filter((res): res is JsonApiResource => res !== null)
+            .map((res) => normalizeJsonApiResource(res, included))
         } else {
           // 単一のリレーション
           const relatedResource = findIncludedResource(
