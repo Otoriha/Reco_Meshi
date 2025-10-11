@@ -204,7 +204,6 @@ RSpec.describe "Api::V1::Users::AllergyIngredients", type: :request do
       body = JSON.parse(response.body)
       expect(body["errors"]["note"]).to include("は500文字以内で入力してください")
     end
-
   end
 
   describe "DELETE /api/v1/users/allergy_ingredients/:id" do
