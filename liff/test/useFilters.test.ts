@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useFilters } from '../src/hooks/useFilters'
 import type { RecipeHistory } from '../src/types/recipe'

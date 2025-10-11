@@ -7,8 +7,8 @@ import { mockLiff } from './setup'
 const mockedAxios = vi.mocked(axios)
 
 describe('API Client', () => {
-  let mockApiInstance: any
-  let mockPlainInstance: any
+  let mockApiInstance: unknown
+  let mockPlainInstance: unknown
 
   beforeEach(() => {
     vi.clearAllMocks()

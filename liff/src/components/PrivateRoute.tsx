@@ -5,6 +5,15 @@ import { useAuth } from '../hooks/useAuth'
 const PrivateRoute: React.FC = () => {
   const { isInitialized, isAuthenticated, isInClient, login } = useAuth()
 
+  // フックは常に同じ順序で呼ばれる必要があるため、条件分岐の前に配置
+  useLayoutEffect(() => {
+    console.log('PrivateRoute状態チェック:', { isAuthenticated, isInitialized, isInClient })
+    if (!isAuthenticated && isInitialized && isInClient) {
+      console.log('PrivateRoute: 未認証のためlogin()実行')
+      login()
+    }
+  }, [isAuthenticated, isInitialized, isInClient, login])
+
   if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -28,14 +37,6 @@ const PrivateRoute: React.FC = () => {
       </div>
     )
   }
-
-  useLayoutEffect(() => {
-    console.log('PrivateRoute状態チェック:', { isAuthenticated, isInitialized, isInClient })
-    if (!isAuthenticated && isInitialized && isInClient) {
-      console.log('PrivateRoute: 未認証のためlogin()実行')
-      login()
-    }
-  }, [isAuthenticated, isInitialized, isInClient, login])
 
   console.log('PrivateRoute最終判定:', { isAuthenticated })
   if (!isAuthenticated) {

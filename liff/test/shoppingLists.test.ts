@@ -8,8 +8,7 @@ import {
 } from '../src/api/shoppingLists'
 import type {
   ShoppingListsResponse,
-  ShoppingListResponse,
-  JsonApiResource
+  ShoppingListResponse
 } from '../src/types/shoppingList'
 
 // APIクライアントのモック

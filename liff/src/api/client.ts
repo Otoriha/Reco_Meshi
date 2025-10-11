@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
 import liff from '@line/liff'
 
 const baseURL = import.meta.env.VITE_API_URL as string | undefined
@@ -18,8 +19,16 @@ export const setAccessToken = (token: string | null) => {
 
 export const apiClient = axios.create({ baseURL: apiBaseURL })
 
-apiClient.interceptors.request.use(async (config) => {
-  if (!config.headers) config.headers = {} as any
+// リトライフラグを持つ拡張型
+interface RetryableAxiosRequestConfig extends AxiosRequestConfig {
+  __isRetry?: boolean
+}
+
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  if (!config.headers) {
+    // TypeScriptの型エラーを避けるため、ヘッダーを初期化
+    config.headers = {} as InternalAxiosRequestConfig['headers']
+  }
   if (accessToken) {
     config.headers['Authorization'] = `Bearer ${accessToken}`
   }
@@ -29,8 +38,8 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
-    const original = error.config
-    const alreadyRetried = original && (original as any).__isRetry
+    const original = error.config as RetryableAxiosRequestConfig | undefined
+    const alreadyRetried = original && original.__isRetry
     if (!original || alreadyRetried) {
       return Promise.reject(error)
     }
@@ -49,13 +58,15 @@ apiClient.interceptors.response.use(
         const data = res.data
         if (!data?.token) throw new Error('JWT未取得')
         setAccessToken(data.token)
-        ;(original as any).__isRetry = true
+        original.__isRetry = true
         return apiClient.request(original)
-      } catch (e) {
+      } catch {
         // 再取得失敗時はログイン誘導
         try {
           liff.login({ redirectUri: window.location.href })
-        } catch (_) {}
+        } catch {
+          // ログイン誘導に失敗した場合は何もしない
+        }
       }
     }
     return Promise.reject(error)

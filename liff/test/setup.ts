@@ -93,9 +93,7 @@ const createFullMockAxiosInstance = () => ({
   interceptors: mockInterceptors,
 })
 
-let axiosCreateCallCount = 0
 const mockAxiosCreate = vi.fn().mockImplementation(() => {
-  axiosCreateCallCount++
   return createFullMockAxiosInstance()
 })
 
@@ -163,13 +161,16 @@ if (!('clipboard' in navigator)) {
   }
 } else {
   // 既存がある場合もテスト安定のためモック化
+  // @ts-expect-error - テストのためのモック設定
   vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({
     writeText: vi.fn().mockResolvedValue(undefined),
     readText: vi.fn().mockResolvedValue(''),
-  } as any)
+  })
 }
 
 // 一部ライブラリが古いAPIを呼ぶケースのフォールバック
-if (!(document as any).execCommand) {
-  ;(document as any).execCommand = vi.fn().mockReturnValue(true)
+// @ts-expect-error - documentへのexecCommand追加（非推奨だが互換性のため）
+if (!(document as {execCommand?: unknown}).execCommand) {
+  // @ts-expect-error - documentへのexecCommand追加（非推奨だが互換性のため）
+  ;(document as {execCommand?: unknown}).execCommand = vi.fn().mockReturnValue(true)
 }

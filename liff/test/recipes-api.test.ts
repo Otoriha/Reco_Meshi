@@ -95,7 +95,7 @@ describe('recipes API', () => {
   })
 
   it('APIのsuccess=false時はエラーを投げる', async () => {
-    mockApiClient.get.mockResolvedValueOnce({ data: { success: false, data: [] } } as any)
+    mockApiClient.get.mockResolvedValueOnce({ data: { success: false, data: [] } } as unknown)
     await expect(recipesApi.listRecipes()).rejects.toThrow()
   })
 })
