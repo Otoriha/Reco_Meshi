@@ -98,7 +98,10 @@ jobs:
           bundler-cache: true
 
       - name: Setup database
-        run: bin/rails db:prepare
+        run: |
+          bin/rails db:create
+          bin/rails db:environment:set RAILS_ENV=test
+          bin/rails db:schema:load
 
       - name: Run tests
         run: bin/rspec
