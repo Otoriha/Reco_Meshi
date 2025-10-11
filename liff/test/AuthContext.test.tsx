@@ -46,17 +46,17 @@ describe('AuthContext', () => {
     mockLiff.isLoggedIn.mockReturnValue(true)
     const futureExp = Math.floor(Date.now() / 1000) + 3600
     mockLiff.getIDToken.mockReturnValue('mock-id-token')
-    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as any)
+    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as unknown)
 
     // axiosPlain.post をURLで分岐するようにモック
     const { axiosPlain } = await import('../src/api/client')
     if ('mockRestore' in axiosPlain.post) {
-      // @ts-ignore
+      // @ts-expect-error - テストのための型キャスト
       axiosPlain.post.mockRestore()
     }
     vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
-        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as unknown)
       }
       return Promise.resolve({
         data: {
@@ -67,7 +67,7 @@ describe('AuthContext', () => {
             pictureUrl: 'https://example.com/avatar.jpg',
           },
         },
-      } as any)
+      } as unknown)
     })
 
     // 念のため、axios.createベースの呼び出しにも成功レスポンスを用意
@@ -87,7 +87,7 @@ describe('AuthContext', () => {
           },
         })
       }),
-    } as any)
+    } as unknown)
   })
 
   test('正常初期化後、認証済みユーザーが表示される', async () => {
@@ -170,14 +170,14 @@ describe('AuthContext', () => {
     const { axiosPlain } = await import('../src/api/client')
     vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
-        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as unknown)
       }
       return Promise.resolve({
         data: {
           token: 'mock-jwt-token',
           user: { userId: 'mock-user-id', displayName: 'Mock User' },
         },
-      } as any)
+      } as unknown)
     })
 
     renderWithProvider(<TestComponent />)
@@ -199,7 +199,7 @@ describe('AuthContext', () => {
 
   test('環境変数未設定時はエラー', async () => {
     // VITE_LIFF_IDを削除
-    vi.stubEnv('VITE_LIFF_ID', undefined as any)
+    vi.stubEnv('VITE_LIFF_ID', undefined as unknown)
     
     renderWithProvider(<TestComponent />)
     

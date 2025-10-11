@@ -18,7 +18,7 @@ const mockUpdateUserIngredient = vi.mocked(ingredientsApi.updateUserIngredient)
 const mockDeleteUserIngredient = vi.mocked(ingredientsApi.deleteUserIngredient)
 
 // window.confirmをモック（安全にプロパティを差し替え）
-let confirmSpy: any
+let confirmSpy: unknown
 
 // テストデータ
 const mockUserIngredient: UserIngredient = {
@@ -86,7 +86,7 @@ describe('Ingredients Component', () => {
     vi.clearAllMocks()
     // window.confirm を安全にモック
     if ('confirm' in window) {
-      // @ts-ignore - vitestの型互換でspyOn使用
+      // @ts-expect-error - vitestの型互換でspyOn使用
       confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     } else {
       Object.defineProperty(window, 'confirm', {
@@ -94,7 +94,7 @@ describe('Ingredients Component', () => {
         writable: true,
         configurable: true,
       })
-      confirmSpy = window.confirm as any
+      confirmSpy = window.confirm as unknown
     }
   })
 
@@ -293,7 +293,7 @@ describe('Ingredients Component', () => {
     })
 
     it('削除確認でキャンセル', async () => {
-      ;(confirmSpy as any).mockReturnValue(false)
+      ;(confirmSpy as unknown).mockReturnValue(false)
 
       render(<Ingredients />, { wrapper: IngredientsWrapper })
 
@@ -309,7 +309,7 @@ describe('Ingredients Component', () => {
     })
 
     it('削除実行の成功', async () => {
-      ;(confirmSpy as any).mockReturnValue(true)
+      ;(confirmSpy as unknown).mockReturnValue(true)
       mockDeleteUserIngredient.mockResolvedValue(undefined)
 
       render(<Ingredients />, { wrapper: IngredientsWrapper })
@@ -341,7 +341,7 @@ describe('Ingredients Component', () => {
         },
       }
       mockGetUserIngredients.mockResolvedValue(singleItemResponse)
-      ;(confirmSpy as any).mockReturnValue(true)
+      ;(confirmSpy as unknown).mockReturnValue(true)
       mockDeleteUserIngredient.mockResolvedValue(undefined)
 
       render(<Ingredients />, { wrapper: IngredientsWrapper })
@@ -361,7 +361,7 @@ describe('Ingredients Component', () => {
     })
 
     it('削除APIエラーの処理', async () => {
-      ;(confirmSpy as any).mockReturnValue(true)
+      ;(confirmSpy as unknown).mockReturnValue(true)
       mockDeleteUserIngredient.mockRejectedValue(new Error('Delete failed'))
 
       render(<Ingredients />, { wrapper: IngredientsWrapper })

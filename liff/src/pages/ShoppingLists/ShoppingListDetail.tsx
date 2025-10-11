@@ -34,6 +34,7 @@ const ShoppingListDetail: React.FC = () => {
 
   useEffect(() => {
     fetchShoppingList()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const handleItemCheck = async (item: ShoppingListItem, checked: boolean) => {
@@ -86,9 +87,9 @@ const ShoppingListDetail: React.FC = () => {
           canBeCompleted: serverItems.every(i => i.isChecked) && serverItems.length > 0
         }
       })
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e)
-      
+
       // エラー時のロールバック
       const originalItems = shoppingList.shoppingListItems?.map(i =>
         i.id === item.id ? item : i
@@ -103,7 +104,9 @@ const ShoppingListDetail: React.FC = () => {
       } : null)
 
       // 409エラー（楽観的ロック）の場合は再取得を促す
-      if (e.response?.status === 409) {
+      if (e && typeof e === 'object' && 'response' in e &&
+          e.response && typeof e.response === 'object' && 'status' in e.response &&
+          e.response.status === 409) {
         setError('他のユーザーによって更新されています。画面を再読み込みして最新の状態を確認してください。')
       } else {
         setError('アイテムの更新に失敗しました。')

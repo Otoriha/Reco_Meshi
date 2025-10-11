@@ -21,17 +21,17 @@ describe('useAuth', () => {
     // IDトークン・デコード済みトークンの形を明示（有効期限は将来時刻）
     const futureExp = Math.floor(Date.now() / 1000) + 3600
     mockLiff.getIDToken.mockReturnValue('mock-id-token')
-    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as any)
+    mockLiff.getDecodedIDToken.mockReturnValue({ exp: futureExp } as unknown)
 
     // axiosPlain.post をURLに応じて分岐モック
     const { axiosPlain } = await import('../src/api/client')
     if ('mockRestore' in axiosPlain.post) {
-      // @ts-ignore
+      // @ts-expect-error - テストのための型キャスト
       axiosPlain.post.mockRestore()
     }
     vi.spyOn(axiosPlain, 'post').mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('/auth/generate_nonce')) {
-        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as any)
+        return Promise.resolve({ data: { nonce: 'mock-nonce' } } as unknown)
       }
       if (typeof url === 'string' && url.includes('/auth/line_login')) {
         return Promise.resolve({
@@ -43,9 +43,9 @@ describe('useAuth', () => {
               pictureUrl: 'https://example.com/avatar.jpg',
             },
           },
-        } as any)
+        } as unknown)
       }
-      return Promise.resolve({ data: {} } as any)
+      return Promise.resolve({ data: {} } as unknown)
     })
 
     // 直接axios.createを呼ぶ箇所があっても成功するよう一応モック
@@ -65,7 +65,7 @@ describe('useAuth', () => {
           },
         })
       }),
-    } as any)
+    } as unknown)
   })
 
   test('AuthProviderなしで使用するとエラー', () => {

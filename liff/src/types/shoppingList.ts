@@ -55,15 +55,17 @@ export interface Ingredient {
 export interface JsonApiResource {
   id: string
   type: string
-  attributes: Record<string, any>
-  relationships?: Record<string, any>
+  attributes: Record<string, unknown>
+  relationships?: Record<string, {
+    data?: { type: string; id: string } | Array<{ type: string; id: string }>
+  }>
 }
 
 export interface JsonApiResponse<T = JsonApiResource> {
   data: T | T[]
   included?: JsonApiResource[]
-  meta?: Record<string, any>
-  links?: Record<string, any>
+  meta?: Record<string, unknown>
+  links?: Record<string, unknown>
 }
 
 // 一覧取得時のレスポンス型
@@ -118,7 +120,7 @@ export interface BulkUpdateShoppingListItemsResponse {
 export interface ApiError {
   errors: Array<{
     detail: string
-    source?: Record<string, any>
+    source?: Record<string, unknown>
   }>
 }
 

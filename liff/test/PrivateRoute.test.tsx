@@ -38,7 +38,7 @@ describe('PrivateRoute', () => {
           }
         }
       })
-    } as any)
+    } as unknown)
   })
 
   test('初期化中はローディング画面を表示', () => {
@@ -83,7 +83,7 @@ describe('PrivateRoute', () => {
     const mockAxiosInstance = {
       post: vi.fn().mockRejectedValue(new Error('JWT exchange failed'))
     }
-    mockedAxios.create.mockReturnValue(mockAxiosInstance as any)
+    mockedAxios.create.mockReturnValue(mockAxiosInstance as unknown)
     
     const { container } = renderWithRouter(['/protected'])
     
@@ -120,7 +120,7 @@ describe('PrivateRoute', () => {
         token: 'mock-jwt-token',
         user: { userId: 'mock-user-id', displayName: 'Mock User' },
       },
-    } as any)
+    } as unknown)
 
     // 単一のツリー内で、初期化完了後にlogoutを発火してPrivateRouteのlogin誘導を検証
     const LogoutAfterInit = () => {
@@ -131,6 +131,7 @@ describe('PrivateRoute', () => {
           mockLiff.isLoggedIn.mockReturnValue(false)
           auth.logout()
         }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [auth.isInitialized, auth.isAuthenticated])
       return null
     }

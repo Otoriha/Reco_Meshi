@@ -252,8 +252,8 @@ describe('useRecipeHistory', () => {
   })
 
   it('古いレスポンスは破棄される（レスポンス順序逆転問題の回避）', async () => {
-    let firstRequestResolver: any
-    let secondRequestResolver: any
+    let firstRequestResolver: unknown
+    let secondRequestResolver: unknown
 
     const firstRequest = new Promise(resolve => {
       firstRequestResolver = resolve

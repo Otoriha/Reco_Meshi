@@ -13,20 +13,20 @@ import type {
 } from '../types/shoppingList'
 
 // JSON:API正規化ユーティリティ
-function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): Record<string, any> {
-  const normalized: Record<string, any> = {
+function normalizeJsonApiResource(resource: JsonApiResource, included: JsonApiResource[] = []): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {
     id: Number(resource.id),
     ...convertKeysFromSnakeCase(resource.attributes)
   }
 
   // リレーションシップの処理
   if (resource.relationships) {
-    Object.entries(resource.relationships).forEach(([key, relationship]: [string, any]) => {
+    Object.entries(resource.relationships).forEach(([key, relationship]) => {
       if (relationship.data) {
         if (Array.isArray(relationship.data)) {
           // 複数のリレーション
           normalized[convertKeyFromSnakeCase(key)] = relationship.data
-            .map((rel: any) => findIncludedResource(rel.type, rel.id, included))
+            .map((rel) => findIncludedResource(rel.type, rel.id, included))
             .filter(Boolean)
             .map((res: JsonApiResource) => normalizeJsonApiResource(res, included))
         } else {
@@ -51,8 +51,8 @@ function findIncludedResource(type: string, id: string, included: JsonApiResourc
   return included.find(res => res.type === type && res.id === id) || null
 }
 
-function convertKeysFromSnakeCase(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {}
+function convertKeysFromSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
   Object.entries(obj).forEach(([key, value]) => {
     result[convertKeyFromSnakeCase(key)] = value
   })
@@ -63,8 +63,8 @@ function convertKeyFromSnakeCase(key: string): string {
   return key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
 }
 
-function convertKeysToSnakeCase(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {}
+function convertKeysToSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
   Object.entries(obj).forEach(([key, value]) => {
     result[convertKeyToSnakeCase(key)] = value
   })

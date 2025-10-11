@@ -17,6 +17,7 @@ type AuthContextType = {
   logout: () => void
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const SESSION_USER_KEY = 'liff_user'
@@ -88,7 +89,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // LIFFからログアウトしてから再ログイン
         try {
           liff.logout()
-        } catch (_) {}
+        } catch {
+          // ログアウトエラーは無視
+        }
         // 少し待ってから再ログイン
         setTimeout(() => {
           liff.login({ redirectUri: window.location.href })
@@ -111,7 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       if (!nonce) {
         console.warn('nonce未取得のため再ログインを促します')
-        try { liff.logout() } catch {}
+        try {
+          liff.logout()
+        } catch {
+          // ログアウトエラーは無視
+        }
         liff.login({ redirectUri: window.location.href })
         return false
       }
@@ -202,7 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsInitialized(true)
           return
         }
-      } catch (e) {
+      } catch {
         console.log('初期化時: IDトークン解析失敗、認証なしで継続')
         setIsAuthenticated(false)
         setIsInitialized(true)
@@ -241,7 +248,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     try {
       liff.logout()
-    } catch (_) {}
+    } catch {
+      // ログアウトエラーは無視
+    }
     setAccessToken(null)
     setIsAuthenticated(false)
     setUser(null)
