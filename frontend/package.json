@@ -14,7 +14,7 @@
     "env:prod": "cp .env.production .env.local && echo 'Switched to production environment'"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.13",
+    "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "react": "^19.1.0",
