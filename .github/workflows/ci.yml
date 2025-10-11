@@ -8,6 +8,9 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: Checkout code
@@ -15,17 +18,20 @@ jobs:
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
+        env:
+          BUNDLE_GEMFILE: backend/Gemfile
         with:
-          ruby-version: .ruby-version
+          ruby-version: '3.2.0'
           bundler-cache: true
-          working-directory: backend
 
       - name: Scan for common Rails security vulnerabilities using static analysis
-        working-directory: backend
         run: bin/brakeman --no-pager
 
   lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - name: Checkout code
@@ -33,17 +39,20 @@ jobs:
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
+        env:
+          BUNDLE_GEMFILE: backend/Gemfile
         with:
-          ruby-version: .ruby-version
+          ruby-version: '3.2.0'
           bundler-cache: true
-          working-directory: backend
 
       - name: Lint code for consistent style
-        working-directory: backend
         run: bin/rubocop -f github
 
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     services:
       postgres:
@@ -82,17 +91,14 @@ jobs:
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
+        env:
+          BUNDLE_GEMFILE: backend/Gemfile
         with:
-          ruby-version: .ruby-version
+          ruby-version: '3.2.0'
           bundler-cache: true
-          working-directory: backend
 
       - name: Setup database
-        working-directory: backend
-        run: |
-          bin/rails db:create
-          bin/rails db:schema:load
+        run: bin/rails db:prepare
 
       - name: Run tests
-        working-directory: backend
         run: bin/rspec
