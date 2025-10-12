@@ -174,3 +174,54 @@ if (!(document as {execCommand?: unknown}).execCommand) {
   // @ts-expect-error - documentへのexecCommand追加（非推奨だが互換性のため）
   ;(document as {execCommand?: unknown}).execCommand = vi.fn().mockReturnValue(true)
 }
+
+// FormDataのモック（画像認識API用）
+if (typeof global.FormData === 'undefined') {
+  global.FormData = class FormData {
+    private data: Map<string, unknown> = new Map()
+
+    append(key: string, value: unknown) {
+      this.data.set(key, value)
+    }
+
+    get(key: string) {
+      return this.data.get(key)
+    }
+
+    has(key: string) {
+      return this.data.has(key)
+    }
+
+    delete(key: string) {
+      this.data.delete(key)
+    }
+  } as unknown as typeof FormData
+}
+
+// Fileのモック（画像認識API用）
+if (typeof global.File === 'undefined') {
+  global.File = class File {
+    name: string
+    size: number
+    type: string
+
+    constructor(bits: BlobPart[], filename: string, options?: FilePropertyBag) {
+      this.name = filename
+      this.size = bits.reduce((acc, bit) => acc + (typeof bit === 'string' ? bit.length : 0), 0)
+      this.type = options?.type || ''
+    }
+  } as unknown as typeof File
+}
+
+// Blobのモック（画像認識API用）
+if (typeof global.Blob === 'undefined') {
+  global.Blob = class Blob {
+    size: number
+    type: string
+
+    constructor(parts?: BlobPart[], options?: BlobPropertyBag) {
+      this.size = parts?.reduce((acc, part) => acc + (typeof part === 'string' ? part.length : 0), 0) || 0
+      this.type = options?.type || ''
+    }
+  } as unknown as typeof Blob
+}
