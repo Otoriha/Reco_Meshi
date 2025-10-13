@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import Ingredients from '../src/pages/Ingredients/Ingredients'
 import * as ingredientsApi from '../src/api/ingredients'
+import * as imageRecognitionApi from '../src/api/imageRecognition'
 import type { UserIngredientGroupedResponse, UserIngredient } from '../src/types/ingredient'
+import { mockLiff } from './setup'
 
 // API関数をモック
 vi.mock('../src/api/ingredients', () => ({
@@ -13,9 +15,20 @@ vi.mock('../src/api/ingredients', () => ({
   deleteUserIngredient: vi.fn(),
 }))
 
+vi.mock('../src/api/imageRecognition', () => ({
+  imageRecognitionApi: {
+    recognizeIngredients: vi.fn(),
+    recognizeMultipleIngredients: vi.fn(),
+  },
+}))
+
 const mockGetUserIngredients = vi.mocked(ingredientsApi.getUserIngredients)
 const mockUpdateUserIngredient = vi.mocked(ingredientsApi.updateUserIngredient)
 const mockDeleteUserIngredient = vi.mocked(ingredientsApi.deleteUserIngredient)
+const mockRecognizeIngredients = vi.mocked(imageRecognitionApi.imageRecognitionApi.recognizeIngredients)
+const mockRecognizeMultipleIngredients = vi.mocked(
+  imageRecognitionApi.imageRecognitionApi.recognizeMultipleIngredients
+)
 
 // window.confirmをモック（安全にプロパティを差し替え）
 let confirmSpy: unknown
@@ -401,6 +414,245 @@ describe('Ingredients Component', () => {
       await waitFor(() => {
         expect(screen.getByText('Unknown Ingredient')).toBeInTheDocument()
         expect(screen.getByText('その他')).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('画像認識機能', () => {
+    beforeEach(async () => {
+      mockGetUserIngredients.mockResolvedValue(mockGroupedResponse)
+      // デフォルトでLINEアプリ内とする
+      mockLiff.isInClient.mockReturnValue(true)
+    })
+
+    it('LIFF環境チェックに応じたボタン文言の表示（LINEアプリ内）', async () => {
+      mockLiff.isInClient.mockReturnValue(true)
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラで食材を追加')).toBeInTheDocument()
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+        expect(
+          screen.getByText('冷蔵庫の写真を撮影すると、AIが自動で食材を認識します。')
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('LIFF環境チェックに応じたボタン文言の表示（ブラウザ）', async () => {
+      mockLiff.isInClient.mockReturnValue(false)
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('写真から食材を追加')).toBeInTheDocument()
+        expect(screen.getByText('写真を選択')).toBeInTheDocument()
+        expect(
+          screen.getByText('冷蔵庫の写真を選択すると、AIが自動で食材を認識します。')
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('単一画像アップロードの成功', async () => {
+      mockLiff.isInClient.mockReturnValue(false)
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      mockRecognizeIngredients.mockResolvedValue({
+        success: true,
+        recognized_ingredients: [
+          { name: 'トマト', confidence: 0.95 },
+          { name: 'きゅうり', confidence: 0.88 },
+        ],
+      })
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('写真を選択')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: '写真を選択' }).previousElementSibling as HTMLInputElement
+
+      // ファイル選択をシミュレート
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(mockRecognizeIngredients).toHaveBeenCalledWith(mockFile)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('識別された食材: トマト(95%)、きゅうり(88%)')).toBeInTheDocument()
+      })
+
+      // 在庫リストが再取得されることを確認
+      expect(mockGetUserIngredients).toHaveBeenCalledTimes(2)
+    })
+
+    it('複数画像アップロードの成功', async () => {
+      const mockFile1 = new File(['test1'], 'test1.jpg', { type: 'image/jpeg' })
+      const mockFile2 = new File(['test2'], 'test2.jpg', { type: 'image/jpeg' })
+      mockRecognizeMultipleIngredients.mockResolvedValue({
+        success: true,
+        recognized_ingredients: [{ name: 'にんじん', confidence: 0.92 }],
+      })
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: 'カメラ起動' }).previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile1, mockFile2],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(mockRecognizeMultipleIngredients).toHaveBeenCalledWith([mockFile1, mockFile2])
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('識別された食材: にんじん(92%)')).toBeInTheDocument()
+      })
+    })
+
+    it('食材が認識できなかった場合のメッセージ表示', async () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      mockRecognizeIngredients.mockResolvedValue({
+        success: true,
+        recognized_ingredients: [],
+      })
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: 'カメラ起動' }).previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(screen.getByText('食材を識別できませんでした。写真を確認してください。')).toBeInTheDocument()
+      })
+    })
+
+    it('ファイルサイズが20MBを超える場合のエラー', async () => {
+      const largeFile = new File(['x'.repeat(21 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' })
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: 'カメラ起動' }).previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [largeFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(screen.getByText('ファイルサイズは20MB以下にしてください。')).toBeInTheDocument()
+      })
+
+      expect(mockRecognizeIngredients).not.toHaveBeenCalled()
+    })
+
+    it('画像認識APIエラーの処理', async () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      mockRecognizeIngredients.mockRejectedValue(new Error('Network error'))
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: 'カメラ起動' }).previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(screen.getByText('画像のアップロードに失敗しました。通信環境をご確認ください。')).toBeInTheDocument()
+      })
+    })
+
+    it('画像認識失敗時のレスポンス処理', async () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      mockRecognizeIngredients.mockResolvedValue({
+        success: false,
+        recognized_ingredients: [],
+        message: 'ファイル形式が不正です',
+      })
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const fileInput = screen.getByRole('button', { name: 'カメラ起動' }).previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(screen.getByText('ファイル形式が不正です')).toBeInTheDocument()
+      })
+    })
+
+    it('アップロード中はボタンが無効化される', async () => {
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' })
+      mockRecognizeIngredients.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ success: true, recognized_ingredients: [] }), 100))
+      )
+
+      render(<Ingredients />, { wrapper: IngredientsWrapper })
+
+      await waitFor(() => {
+        expect(screen.getByText('カメラ起動')).toBeInTheDocument()
+      })
+
+      const button = screen.getByRole('button', { name: 'カメラ起動' })
+      const fileInput = button.previousElementSibling as HTMLInputElement
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [mockFile],
+        writable: false,
+      })
+
+      fireEvent.change(fileInput)
+
+      await waitFor(() => {
+        expect(screen.getByText('アップロード中...')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'アップロード中...' })).toBeDisabled()
       })
     })
   })

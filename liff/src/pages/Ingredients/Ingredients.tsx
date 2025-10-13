@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import liff from '@line/liff'
 import type { UserIngredient, UserIngredientGroupedResponse } from '../../types/ingredient'
 import { deleteUserIngredient, getUserIngredients, updateUserIngredient } from '../../api/ingredients'
+import { imageRecognitionApi } from '../../api/imageRecognition'
 
 const Ingredients: React.FC = () => {
   const [groups, setGroups] = useState<Record<string, UserIngredient[]>>({})
@@ -8,6 +10,12 @@ const Ingredients: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editValue, setEditValue] = useState<{ quantity: number }>({ quantity: 0 })
+
+  // 画像認識関連の状態
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
+  const [isInLiffClient, setIsInLiffClient] = useState(false)
 
   const totalCount = useMemo(() => {
     return Object.values(groups).reduce((sum, arr) => sum + arr.length, 0)
@@ -29,7 +37,61 @@ const Ingredients: React.FC = () => {
 
   useEffect(() => {
     fetchData()
+    // LIFF環境チェック
+    setIsInLiffClient(liff.isInClient())
   }, [])
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    // ファイルサイズチェック（20MB制限）
+    const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+    const oversizedFiles = Array.from(files).filter((file) => file.size > MAX_FILE_SIZE)
+    if (oversizedFiles.length > 0) {
+      setError('ファイルサイズは20MB以下にしてください。')
+      event.target.value = ''
+      return
+    }
+
+    setIsUploading(true)
+    setUploadMessage(null)
+    setError(null)
+
+    try {
+      const images = Array.from(files)
+      const response =
+        images.length === 1
+          ? await imageRecognitionApi.recognizeIngredients(images[0])
+          : await imageRecognitionApi.recognizeMultipleIngredients(images)
+
+      if (response.success) {
+        const recognized = response.recognized_ingredients
+          .map((ingredient) => `${ingredient.name}(${Math.round(ingredient.confidence * 100)}%)`)
+          .join('、')
+        setUploadMessage(
+          recognized.length > 0
+            ? `識別された食材: ${recognized}`
+            : '食材を識別できませんでした。写真を確認してください。'
+        )
+        // 在庫リストを再取得
+        await fetchData()
+      } else {
+        setError(response.message ?? '画像の認識に失敗しました。')
+      }
+    } catch (e) {
+      console.error(e)
+      setError('画像のアップロードに失敗しました。通信環境をご確認ください。')
+    } finally {
+      setIsUploading(false)
+      // 同じファイルを再度選択できるようにするために値をリセット
+      event.target.value = ''
+    }
+  }
 
   const startEdit = (item: UserIngredient) => {
     setEditingId(item.id)
@@ -92,6 +154,42 @@ const Ingredients: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">食材リスト</h1>
+
+        {/* 画像認識セクション */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            {isInLiffClient ? 'カメラで食材を追加' : '写真から食材を追加'}
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            {isInLiffClient
+              ? '冷蔵庫の写真を撮影すると、AIが自動で食材を認識します。'
+              : '冷蔵庫の写真を選択すると、AIが自動で食材を認識します。'}
+          </p>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <button
+            onClick={handleImageUpload}
+            className="w-full bg-green-600 text-white px-4 py-3 rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={isUploading}
+          >
+            {isUploading ? 'アップロード中...' : isInLiffClient ? 'カメラ起動' : '写真を選択'}
+          </button>
+
+          {uploadMessage && (
+            <div className="mt-4 p-3 rounded bg-green-50 text-green-700 border border-green-200">
+              {uploadMessage}
+            </div>
+          )}
+        </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
           {loading && <p className="text-gray-600">読み込み中...</p>}
