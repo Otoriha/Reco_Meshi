@@ -75,11 +75,14 @@ class MessageResponseService
       messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
       result = llm_service.generate(messages: messages, response_format: :json)
 
+      # レシピをDBに保存
+      recipe = save_recipe_to_db(user, result.text, ingredients)
+
       # 環境変数によるFlex切り替え
       if flex_enabled?
-        create_flex_recipe_message(result.text)
+        create_flex_recipe_message(result.text, recipe)
       else
-        text = format_recipe_text(result.text)
+        text = format_recipe_text(result.text, recipe)
         @line_bot_service.create_text_message(text)
       end
     rescue => e
@@ -100,9 +103,10 @@ class MessageResponseService
           messages = PromptTemplateService.recipe_generation(ingredients: ingredients)
           result = alt.generate(messages: messages, response_format: :json)
 
-          # フォールバック時もFlex切り替えを適用
-          return flex_enabled? ? create_flex_recipe_message(result.text) :
-                                (@line_bot_service.create_text_message(format_recipe_text(result.text)))
+          # フォールバック時もレシピを保存してFlex切り替えを適用
+          fallback_recipe = save_recipe_to_db(user, result.text, ingredients)
+          return flex_enabled? ? create_flex_recipe_message(result.text, fallback_recipe) :
+                                (@line_bot_service.create_text_message(format_recipe_text(result.text, fallback_recipe)))
         end
       rescue => e2
         Rails.logger.error "LLM Fallback Error: #{e2.message}"
@@ -118,7 +122,7 @@ class MessageResponseService
     end
   end
 
-  def format_recipe_text(json_text)
+  def format_recipe_text(json_text, recipe = nil)
     data = JSON.parse(json_text) rescue nil
     return json_text unless data.is_a?(Hash)
 
@@ -146,7 +150,12 @@ class MessageResponseService
       end
     end
     lines << ""
-    lines << "詳しい作り方はLIFFアプリでご確認ください！"
+    if recipe&.id
+      lines << "詳しい作り方はLIFFアプリでご確認ください！"
+      lines << @line_bot_service.generate_liff_url("/recipes/#{recipe.id}")
+    else
+      lines << "詳しい作り方はLIFFアプリでご確認ください！"
+    end
     lines.join("\n")
   end
 
@@ -313,7 +322,7 @@ class MessageResponseService
     !!ActiveModel::Type::Boolean.new.cast(ENV["LINE_FLEX_ENABLED"])
   end
 
-  def create_flex_recipe_message(json_text)
+  def create_flex_recipe_message(json_text, recipe = nil)
     data = JSON.parse(json_text)
 
     title = data["title"].to_s.strip
@@ -410,7 +419,13 @@ class MessageResponseService
       }
     end
 
-    # フッターにLIFFリンクを追加
+    # フッターにLIFFリンクを追加（レシピIDがあれば詳細ページへ）
+    liff_url = if recipe&.id
+                 @line_bot_service.generate_liff_url("/recipes/#{recipe.id}")
+               else
+                 @line_bot_service.generate_liff_url("/recipes")
+               end
+
     bubble[:footer] = {
       type: "box",
       layout: "vertical",
@@ -422,7 +437,7 @@ class MessageResponseService
           action: {
             type: "uri",
             label: "詳しく見る",
-            uri: @line_bot_service.generate_liff_url("/recipes")
+            uri: liff_url
           }
         }
       ]
@@ -436,7 +451,7 @@ class MessageResponseService
   rescue => e
     Rails.logger.error "Flex message creation failed: #{e.message}"
     # その他のエラー時もテキストメッセージにフォールバック
-    text = format_recipe_text(json_text)
+    text = format_recipe_text(json_text, recipe)
     @line_bot_service.create_text_message(text)
   end
 
@@ -450,5 +465,102 @@ class MessageResponseService
     else
       quantity.to_s
     end
+  end
+
+  def save_recipe_to_db(user, json_text, used_ingredients)
+    data = JSON.parse(json_text)
+
+    # 調理時間を分単位に変換
+    cooking_time = extract_cooking_time(data["time"])
+
+    # 難易度を正規化
+    difficulty = normalize_difficulty(data["difficulty"])
+
+    # AIプロバイダーを取得
+    provider_config = Rails.application.config.x.llm
+    ai_provider = provider_config.is_a?(Hash) ? provider_config[:provider] : provider_config&.provider
+    ai_provider ||= "openai"
+
+    # レシピ作成
+    recipe = Recipe.create!(
+      user: user,
+      title: data["title"].to_s.strip.presence || "おすすめレシピ",
+      cooking_time: cooking_time,
+      difficulty: difficulty,
+      steps: Array(data["steps"]),
+      ai_provider: ai_provider,
+      servings: data["servings"] || 2
+    )
+
+    # レシピ食材を作成
+    Array(data["ingredients"]).each do |ing_data|
+      name = (ing_data["name"] || ing_data[:name]).to_s.strip
+      amount_str = (ing_data["amount"] || ing_data[:amount]).to_s.strip
+
+      next if name.blank?
+
+      # 食材マスタから検索
+      ingredient = Ingredient.find_by("LOWER(name) = ?", name.downcase) ||
+                   Ingredient.find_by("name ILIKE ?", "%#{name}%")
+
+      # 数量と単位をパース
+      amount, unit = parse_amount_and_unit(amount_str)
+
+      RecipeIngredient.create!(
+        recipe: recipe,
+        ingredient: ingredient,
+        ingredient_name: name,
+        amount: amount,
+        unit: unit,
+        is_optional: false
+      )
+    end
+
+    recipe
+  rescue JSON::ParserError => e
+    Rails.logger.error "Recipe save failed (JSON parse error): #{e.message}"
+    nil
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "Recipe save failed (validation error): #{e.message}"
+    nil
+  rescue => e
+    Rails.logger.error "Recipe save failed: #{e.class}: #{e.message}"
+    nil
+  end
+
+  def extract_cooking_time(time_str)
+    return 30 if time_str.blank?
+
+    # "約15分", "15分", "1時間30分" などをパース
+    time_str = time_str.to_s
+    hours = time_str.match(/(\d+)時間/)&.captures&.first.to_i || 0
+    minutes = time_str.match(/(\d+)分/)&.captures&.first.to_i || 0
+
+    total_minutes = (hours * 60) + minutes
+    total_minutes > 0 ? total_minutes : 30
+  end
+
+  def normalize_difficulty(diff_str)
+    return nil if diff_str.blank?
+
+    diff_str = diff_str.to_s.downcase
+    return "easy" if diff_str.include?("easy") || diff_str.include?("簡単") || diff_str.include?("★")
+    return "medium" if diff_str.include?("medium") || diff_str.include?("普通") || diff_str.include?("★★")
+    return "hard" if diff_str.include?("hard") || diff_str.include?("難しい") || diff_str.include?("★★★")
+
+    nil
+  end
+
+  def parse_amount_and_unit(amount_str)
+    return [ nil, nil ] if amount_str.blank?
+
+    # "2個", "100g", "大さじ1" などをパース
+    match = amount_str.match(/^([\d.]+)(.*)$/)
+    return [ nil, amount_str ] unless match
+
+    amount = match[1].to_f
+    unit = match[2].strip.presence
+
+    [ amount, unit ]
   end
 end
