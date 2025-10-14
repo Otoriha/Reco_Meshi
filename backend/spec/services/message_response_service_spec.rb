@@ -38,7 +38,22 @@ RSpec.describe MessageResponseService do
         )
       end
 
+      # ユーザーと食材のモックを追加
+      let(:user) { create(:user) }
+      let(:line_account) { create(:line_account, user: user, line_user_id: 'test_recipe_user') }
+      let!(:ingredient_potato) { create(:ingredient, name: 'じゃがいも', unit: '個') }
+      let!(:ingredient_onion) { create(:ingredient, name: '玉ねぎ', unit: '個') }
+      let!(:ingredient_carrot) { create(:ingredient, name: '人参', unit: '本') }
+      let!(:ingredient_pork) { create(:ingredient, name: '豚肉', unit: 'g') }
+
       before do
+        # ユーザーと食材を関連付け
+        line_account
+        create(:user_ingredient, user: user, ingredient: ingredient_potato, quantity: 3, status: 'available')
+        create(:user_ingredient, user: user, ingredient: ingredient_onion, quantity: 1, status: 'available')
+        create(:user_ingredient, user: user, ingredient: ingredient_carrot, quantity: 1, status: 'available')
+        create(:user_ingredient, user: user, ingredient: ingredient_pork, quantity: 200, status: 'available')
+
         Rails.application.config.x.llm = {
           provider: 'openai',
           timeout_ms: 15000,
@@ -53,6 +68,7 @@ RSpec.describe MessageResponseService do
           system: 'You are a chef',
           user: 'Create a recipe with: 玉ねぎ, 人参, じゃがいも, 豚肉'
         })
+        allow(line_bot_service).to receive(:generate_liff_url).and_return('https://liff.line.me/test-id/recipes/1')
       end
 
       context 'when LLM service succeeds' do
@@ -65,7 +81,7 @@ RSpec.describe MessageResponseService do
             a_string_including('🍳 今ある食材でのレシピ提案')
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'calls LLM service with correct parameters' do
@@ -77,7 +93,7 @@ RSpec.describe MessageResponseService do
             response_format: :json
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'formats LLM response correctly' do
@@ -87,7 +103,7 @@ RSpec.describe MessageResponseService do
             )
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'includes ingredients and steps from LLM response' do
@@ -101,7 +117,7 @@ RSpec.describe MessageResponseService do
             )
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
       end
 
@@ -124,20 +140,20 @@ RSpec.describe MessageResponseService do
             a_string_including('豚肉と野菜の炒め物')
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'logs the error' do
           expect(Rails.logger).to receive(:error).with('LLM API Error: API Error')
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'instruments llm.error for primary failure' do
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.error', hash_including(provider: 'openai', error_class: 'StandardError')
           )
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
       end
 
@@ -160,7 +176,7 @@ RSpec.describe MessageResponseService do
             response_format: :json
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'returns successful response from fallback' do
@@ -168,7 +184,7 @@ RSpec.describe MessageResponseService do
             a_string_including('「肉じゃが」')
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'instruments llm.error for primary and llm.fallback for switching' do
@@ -178,7 +194,7 @@ RSpec.describe MessageResponseService do
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.fallback', { from: 'openai', to: 'gemini' }
           )
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
       end
 
@@ -198,14 +214,14 @@ RSpec.describe MessageResponseService do
             )
           )
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'logs both errors' do
           expect(Rails.logger).to receive(:error).with('LLM API Error: Primary API Error')
           expect(Rails.logger).to receive(:error).with('LLM Fallback Error: Fallback API Error')
 
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
 
         it 'instruments primary error, fallback attempt, then fallback error' do
@@ -218,7 +234,7 @@ RSpec.describe MessageResponseService do
           expect(ActiveSupport::Notifications).to receive(:instrument).with(
             'llm.error', hash_including(provider: 'gemini')
           )
-          service.generate_response(:recipe)
+          service.generate_response(:recipe, 'test_recipe_user')
         end
       end
     end
@@ -647,7 +663,15 @@ RSpec.describe MessageResponseService do
     let(:mock_llm_service) { instance_double(Llm::OpenaiService) }
     let(:mock_llm_result) { double('LlmResult', text: '{"title":"肉じゃが","time":"約25分"}') }
 
+    # ユーザーと食材のモックを追加
+    let(:user) { create(:user) }
+    let(:line_account) { create(:line_account, user: user, line_user_id: 'test_flex_user') }
+    let!(:ingredient) { create(:ingredient, name: '玉ねぎ', unit: '個') }
+
     before do
+      line_account
+      create(:user_ingredient, user: user, ingredient: ingredient, quantity: 1, status: 'available')
+
       allow(Rails.application.config.x.llm).to receive(:is_a?).and_return(false)
       allow(Rails.application.config.x.llm).to receive(:provider).and_return('openai')
       allow(Llm::Factory).to receive(:build).and_return(mock_llm_service)
@@ -666,7 +690,7 @@ RSpec.describe MessageResponseService do
         expect(line_bot_service).to receive(:create_flex_message)
         expect(line_bot_service).not_to receive(:create_text_message)
 
-        service.generate_response(:recipe)
+        service.generate_response(:recipe, 'test_flex_user')
       end
     end
 
@@ -681,16 +705,25 @@ RSpec.describe MessageResponseService do
         )
         expect(line_bot_service).not_to receive(:create_flex_message)
 
-        service.generate_response(:recipe)
+        service.generate_response(:recipe, 'test_flex_user')
       end
     end
   end
 
   describe 'message content validation' do
+    # ユーザーと食材のモックを追加
+    let(:user) { create(:user) }
+    let(:line_account) { create(:line_account, user: user, line_user_id: 'test_validation_user') }
+    let!(:ingredient) { create(:ingredient, name: 'テスト食材', unit: 'g') }
+
     before do
+      line_account
+      create(:user_ingredient, user: user, ingredient: ingredient, quantity: 100, status: 'available')
+
       # Ensure no real LLM calls occur in these generic content tests
       allow(Llm::Factory).to receive(:build).and_raise(StandardError.new('Disabled in content validation'))
     end
+
     it 'greeting message contains welcome text' do
       expect(line_bot_service).to receive(:create_text_message) do |message|
         expect(message).to include('ようこそ')
@@ -708,14 +741,14 @@ RSpec.describe MessageResponseService do
         mock_message
       end
 
-      service.generate_response(:recipe)
+      service.generate_response(:recipe, 'test_validation_user')
     end
 
     it 'ingredients message contains proper formatting' do
-      user = create(:user)
-      ingredient = create(:ingredient, name: 'テスト食材', unit: 'g')
-      line_account = create(:line_account, user: user, line_user_id: 'test_user_formatting')
-      create(:user_ingredient, user: user, ingredient: ingredient,
+      test_user = create(:user)
+      test_ingredient = create(:ingredient, name: 'テスト食材2', unit: 'g')
+      test_line_account = create(:line_account, user: test_user, line_user_id: 'test_user_formatting')
+      create(:user_ingredient, user: test_user, ingredient: test_ingredient,
              quantity: 100, status: 'available',
              expiry_date: 3.days.from_now.to_date)
 
