@@ -8,7 +8,7 @@ class MessageResponseService
     when :greeting
       create_greeting_message
     when :recipe
-      create_recipe_suggestion_message
+      create_recipe_suggestion_message(user_id)
     when :ingredients
       create_ingredients_list_message(user_id)
     when :shopping
@@ -40,9 +40,34 @@ class MessageResponseService
     )
   end
 
-  def create_recipe_suggestion_message
-    # 現在はモック食材。後続Issueでユーザー在庫と連携
-    ingredients = [ "玉ねぎ", "人参", "じゃがいも", "豚肉" ]
+  def create_recipe_suggestion_message(line_user_id = nil)
+    # ユーザーの実際の在庫食材を取得
+    user = resolve_user_from_line_id(line_user_id)
+
+    unless user
+      return @line_bot_service.create_text_message(
+        "🍳 レシピ提案機能をご利用いただくには、まずアプリでアカウント登録を行ってください。\n\n" \
+        "Webアプリまたは「ヘルプ」コマンドでLIFFアプリへのリンクをご確認ください。"
+      )
+    end
+
+    # ユーザーの利用可能な食材を取得
+    user_ingredients = user.user_ingredients
+                          .joins(:ingredient)
+                          .where(status: "available")
+                          .includes(:ingredient)
+                          .order("ingredients.name ASC")
+                          .limit(20)
+
+    if user_ingredients.empty?
+      return @line_bot_service.create_text_message(
+        "🍳 レシピを提案するための食材がありません。\n\n" \
+        "冷蔵庫の写真を送っていただくか、LIFFアプリで食材を登録してください。"
+      )
+    end
+
+    # 食材名の配列を作成
+    ingredients = user_ingredients.map { |ui| ui.ingredient&.name }.compact
 
     begin
       primary_provider = (Rails.application.config.x.llm.is_a?(Hash) ? Rails.application.config.x.llm[:provider] : Rails.application.config.x.llm&.provider)
