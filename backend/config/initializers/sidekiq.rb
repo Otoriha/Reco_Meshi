@@ -9,6 +9,9 @@ redis_config = {
 Sidekiq.configure_server do |config|
   config.redis = redis_config
 
+  # デフォルトのリトライ回数を制限（無限リトライ防止）
+  config.default_job_options = { 'retry' => 3 }
+
   # Production環境でのキュー設定
   if Rails.env.production?
     config.queues = %w[reco_meshi_production_default reco_meshi_production_mailers]

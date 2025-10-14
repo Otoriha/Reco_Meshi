@@ -1,6 +1,9 @@
 class ImageRecognitionJob < ApplicationJob
   queue_as :default
 
+  # Sidekiqのデフォルトリトライを上書き（最大3回まで）
+  sidekiq_options retry: 3
+
   # Sidekiqリトライ設定
   retry_on Google::Cloud::DeadlineExceededError, wait: :polynomially_longer, attempts: 3
   retry_on Google::Cloud::UnavailableError, wait: :polynomially_longer, attempts: 3
@@ -61,7 +64,8 @@ class ImageRecognitionJob < ApplicationJob
 
       # 最終失敗時のエラーメッセージ
       send_error_message(line_bot_service, line_user_id, "画像解析中にエラーが発生しました。しばらく経ってから再度お試しください。")
-      raise e # Sidekiqのログに残すために再発生
+
+      # raise eを削除（エラーは既にログに記録済み、無限リトライを防ぐ）
     end
   end
 
