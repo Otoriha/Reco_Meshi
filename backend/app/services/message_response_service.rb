@@ -481,39 +481,44 @@ class MessageResponseService
     ai_provider = provider_config.is_a?(Hash) ? provider_config[:provider] : provider_config&.provider
     ai_provider ||= "openai"
 
-    # レシピ作成
-    recipe = Recipe.create!(
-      user: user,
-      title: data["title"].to_s.strip.presence || "おすすめレシピ",
-      cooking_time: cooking_time,
-      difficulty: difficulty,
-      steps: Array(data["steps"]),
-      ai_provider: ai_provider,
-      servings: data["servings"] || 2
-    )
-
-    # レシピ食材を作成
-    Array(data["ingredients"]).each do |ing_data|
-      name = (ing_data["name"] || ing_data[:name]).to_s.strip
-      amount_str = (ing_data["amount"] || ing_data[:amount]).to_s.strip
-
-      next if name.blank?
-
-      # 食材マスタから検索
-      ingredient = Ingredient.find_by("LOWER(name) = ?", name.downcase) ||
-                   Ingredient.find_by("name ILIKE ?", "%#{name}%")
-
-      # 数量と単位をパース
-      amount, unit = parse_amount_and_unit(amount_str)
-
-      RecipeIngredient.create!(
-        recipe: recipe,
-        ingredient: ingredient,
-        ingredient_name: name,
-        amount: amount,
-        unit: unit,
-        is_optional: false
+    # トランザクションでレシピと食材を一括作成
+    recipe = ActiveRecord::Base.transaction do
+      # レシピ作成
+      new_recipe = Recipe.create!(
+        user: user,
+        title: data["title"].to_s.strip.presence || "おすすめレシピ",
+        cooking_time: cooking_time,
+        difficulty: difficulty,
+        steps: Array(data["steps"]),
+        ai_provider: ai_provider,
+        servings: data["servings"] || 2
       )
+
+      # レシピ食材を作成
+      Array(data["ingredients"]).each do |ing_data|
+        name = (ing_data["name"] || ing_data[:name]).to_s.strip
+        amount_str = (ing_data["amount"] || ing_data[:amount]).to_s.strip
+
+        next if name.blank?
+
+        # 食材マスタから検索
+        ingredient = Ingredient.find_by("LOWER(name) = ?", name.downcase) ||
+                     Ingredient.find_by("name ILIKE ?", "%#{name}%")
+
+        # 数量と単位をパース
+        amount, unit = parse_amount_and_unit(amount_str)
+
+        RecipeIngredient.create!(
+          recipe: new_recipe,
+          ingredient: ingredient,
+          ingredient_name: name,
+          amount: amount,
+          unit: unit,
+          is_optional: false
+        )
+      end
+
+      new_recipe
     end
 
     recipe
@@ -544,9 +549,10 @@ class MessageResponseService
     return nil if diff_str.blank?
 
     diff_str = diff_str.to_s.downcase
-    return "easy" if diff_str.include?("easy") || diff_str.include?("簡単") || diff_str.include?("★")
-    return "medium" if diff_str.include?("medium") || diff_str.include?("普通") || diff_str.include?("★★")
+    # 長い文字列から先に判定（★★★、★★、★の順）
     return "hard" if diff_str.include?("hard") || diff_str.include?("難しい") || diff_str.include?("★★★")
+    return "medium" if diff_str.include?("medium") || diff_str.include?("普通") || diff_str.include?("★★")
+    return "easy" if diff_str.include?("easy") || diff_str.include?("簡単") || diff_str.include?("★")
 
     nil
   end
