@@ -36,6 +36,7 @@ Rails.application.routes.draw do
         post "line_link", to: "line_auth#line_link"
         get "line_profile", to: "line_auth#line_profile"
         post "generate_nonce", to: "line_auth#generate_nonce"
+        post "line/exchange", to: "line_token#exchange"
       end
 
       # LINE Bot Webhook

@@ -70,7 +70,8 @@ class Api::V1::Auth::LineAuthController < ApplicationController
   end
 
   def generate_nonce
-    nonce = NonceStore.generate_and_store(session.id)
+    # セッションレス化: session.idを渡さない
+    nonce = NonceStore.generate_and_store
     render json: { nonce: nonce }, status: :ok
   end
 

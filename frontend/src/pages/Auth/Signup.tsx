@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signup } from '../../api/auth';
+import { signup, generateLineNonce } from '../../api/auth';
 import { isSafeNextPath } from '../../utils/validation';
+import { generateState } from '../../utils/crypto';
 
 const isConfirmableEnabled = import.meta.env.VITE_CONFIRMABLE_ENABLED === 'true';
 
@@ -118,10 +119,10 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
   // フォーム送信
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // 成功メッセージをクリア
     setSuccessMessage('');
-    
+
     // バリデーション
     if (!validateForm()) {
       return;
@@ -141,7 +142,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
       if (isConfirmableEnabled) {
         // 確認メール有効時：確認メールメッセージ表示、ログイン画面へ遷移
         setSuccessMessage('登録完了しました。確認メールをご確認ください。');
-        
+
         // 2秒後にログイン画面へ遷移
         setTimeout(() => {
           onSignupSuccess?.();
@@ -150,7 +151,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
       } else {
         // 確認メール無効時：自動ログイン（トークンは既にauth.tsで保存済み）
         setSuccessMessage('登録完了しました。自動的にログインします。');
-        
+
         // 1秒後に自動ログイン状態へ遷移
         setTimeout(() => {
           onSignupSuccess?.();
@@ -165,6 +166,40 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
       const errorMessage = error instanceof Error ? error.message : '登録に失敗しました。';
       setErrors({ general: errorMessage });
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // LINEログイン（新規登録も同じフローで処理される）
+  const handleLineLogin = async () => {
+    try {
+      setIsLoading(true);
+      setErrors(prev => ({ ...prev, general: undefined }));
+
+      // 1. バックエンドからノンスを取得
+      const nonce = await generateLineNonce();
+
+      // 2. stateを生成
+      const state = generateState();
+
+      // 3. sessionStorageに保存
+      sessionStorage.setItem('line_nonce', nonce);
+      sessionStorage.setItem('line_state', state);
+
+      // 4. LINE認証ページへリダイレクト
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: import.meta.env.VITE_LINE_CHANNEL_ID,
+        redirect_uri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL,
+        state: state,
+        scope: 'openid profile email',
+        nonce: nonce
+      });
+
+      window.location.href = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+    } catch (err) {
+      console.error('LINE login preparation failed:', err);
+      setErrors({ general: 'LINEログインの準備に失敗しました' });
       setIsLoading(false);
     }
   };
@@ -301,6 +336,7 @@ const Signup: React.FC<SignupProps> = ({ onSwitchToLogin, onSignupSuccess }) => 
           {/* LINE登録ボタン */}
           <button
             type="button"
+            onClick={handleLineLogin}
             className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-3 flex items-center justify-center"
             disabled={isLoading}
           >
