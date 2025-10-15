@@ -36,7 +36,10 @@ export interface AuthError {
   status?: {
     message: string;
   };
-  error?: string;
+  error?: string | {
+    code: string;
+    message: string;
+  };
 }
 
 export const signup = async (data: SignupData): Promise<UserData | void> => {
@@ -84,7 +87,12 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       }
       // その他のエラー
       if (errorData.error) {
-        throw new Error(errorData.error);
+        if (typeof errorData.error === 'object' && errorData.error.message) {
+          throw new Error(errorData.error.message);
+        }
+        if (typeof errorData.error === 'string') {
+          throw new Error(errorData.error);
+        }
       }
     }
     throw new Error('サインアップに失敗しました。もう一度お試しください。');
@@ -129,7 +137,12 @@ export const login = async (data: LoginData): Promise<UserData> => {
       const errorData = error.response.data as AuthError;
       // ログインエラー（401）はerrorフィールドに含まれる
       if (errorData.error) {
-        throw new Error(errorData.error);
+        if (typeof errorData.error === 'object' && errorData.error.message) {
+          throw new Error(errorData.error.message);
+        }
+        if (typeof errorData.error === 'string') {
+          throw new Error(errorData.error);
+        }
       }
       if (errorData.status?.message) {
         throw new Error(errorData.status.message);
@@ -173,4 +186,53 @@ export const clearAuth = (): void => {
 
   // AuthContextに認証状態の変更を通知
   dispatchAuthTokenChanged({ isLoggedIn: false, user: null });
+};
+
+// LINE Login: ノンス生成（バックエンドから取得）
+export const generateLineNonce = async (): Promise<string> => {
+  const response = await apiClient.post('/auth/generate_nonce');
+  return response.data.nonce;
+};
+
+export interface LineExchangeData {
+  code: string;
+  nonce: string;
+  redirectUri: string;
+}
+
+// LINE Login: 認可コードをIDトークンに交換してログイン
+export const lineLoginWithCode = async (data: LineExchangeData): Promise<UserData> => {
+  try {
+    const response = await apiClient.post('/auth/line/exchange', {
+      code: data.code,
+      nonce: data.nonce,
+      redirect_uri: data.redirectUri
+    });
+
+    const token = response.data.token;
+    const userData = response.data.user;
+
+    // JWTトークンとユーザー情報を保存
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userData', JSON.stringify(userData));
+
+    // AuthContextに認証状態の変更を通知
+    dispatchAuthTokenChanged({
+      isLoggedIn: true,
+      user: userData
+    });
+
+    return userData;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      const errorData = error.response.data as AuthError;
+      if (typeof errorData.error === 'object' && errorData.error?.message) {
+        throw new Error(errorData.error.message);
+      }
+      if (typeof errorData.error === 'string') {
+        throw new Error(errorData.error);
+      }
+    }
+    throw new Error('LINEログインに失敗しました。もう一度お試しください。');
+  }
 };

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { login as loginApi } from '../../api/auth';
+import { login as loginApi, generateLineNonce } from '../../api/auth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { isSafeNextPath } from '../../utils/validation';
+import { generateState } from '../../utils/crypto';
 
 type LoginProps = {
   onSwitchToSignup?: () => void;
@@ -44,6 +45,39 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLineLogin = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // 1. バックエンドからノンスを取得
+      const nonce = await generateLineNonce();
+
+      // 2. stateを生成
+      const state = generateState();
+
+      // 3. sessionStorageに保存
+      sessionStorage.setItem('line_nonce', nonce);
+      sessionStorage.setItem('line_state', state);
+
+      // 4. LINE認証ページへリダイレクト
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: import.meta.env.VITE_LINE_CHANNEL_ID,
+        redirect_uri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL,
+        state: state,
+        scope: 'openid profile email',
+        nonce: nonce
+      });
+
+      window.location.href = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+    } catch (err) {
+      console.error('LINE login preparation failed:', err);
+      setError('LINEログインの準備に失敗しました');
       setIsLoading(false);
     }
   };
@@ -134,6 +168,7 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
           {/* LINEログインボタン */}
           <button
             type="button"
+            onClick={handleLineLogin}
             className="w-full bg-white border border-gray-300 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium mb-3 flex items-center justify-center"
             disabled={isLoading}
           >

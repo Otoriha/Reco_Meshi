@@ -20,7 +20,8 @@ class NonceStore
 
   def generate_and_store(session_id = nil)
     nonce = SecureRandom.uuid
-    key = cache_key(nonce, session_id)
+    # session_idは後方互換性のため残すが使用しない（セッションレス化）
+    key = cache_key(nonce)
 
     Rails.cache.write(key, Time.current.to_i, expires_in: NONCE_TTL)
 
@@ -28,7 +29,8 @@ class NonceStore
   end
 
   def verify_and_consume(nonce, session_id = nil)
-    key = cache_key(nonce, session_id)
+    # session_idは後方互換性のため残すが使用しない（セッションレス化）
+    key = cache_key(nonce)
 
     # Check if nonce exists
     stored_time = Rails.cache.read(key)
@@ -54,8 +56,8 @@ class NonceStore
 
   private
 
-  def cache_key(nonce, session_id = nil)
-    base_key = "#{NONCE_PREFIX}#{nonce}"
-    session_id ? "#{base_key}:#{session_id}" : base_key
+  def cache_key(nonce)
+    # セッションレス化: session_idを使わないシンプルなキー
+    "#{NONCE_PREFIX}#{nonce}"
   end
 end
