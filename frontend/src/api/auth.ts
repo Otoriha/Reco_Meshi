@@ -87,7 +87,12 @@ export const signup = async (data: SignupData): Promise<UserData | void> => {
       }
       // その他のエラー
       if (errorData.error) {
-        throw new Error(errorData.error);
+        if (typeof errorData.error === 'object' && errorData.error.message) {
+          throw new Error(errorData.error.message);
+        }
+        if (typeof errorData.error === 'string') {
+          throw new Error(errorData.error);
+        }
       }
     }
     throw new Error('サインアップに失敗しました。もう一度お試しください。');
@@ -132,7 +137,12 @@ export const login = async (data: LoginData): Promise<UserData> => {
       const errorData = error.response.data as AuthError;
       // ログインエラー（401）はerrorフィールドに含まれる
       if (errorData.error) {
-        throw new Error(errorData.error);
+        if (typeof errorData.error === 'object' && errorData.error.message) {
+          throw new Error(errorData.error.message);
+        }
+        if (typeof errorData.error === 'string') {
+          throw new Error(errorData.error);
+        }
       }
       if (errorData.status?.message) {
         throw new Error(errorData.status.message);
