@@ -422,9 +422,9 @@ class MessageResponseService
     # フッターにLIFFリンクを追加（レシピIDがあれば詳細ページへ）
     liff_url = if recipe&.id
                  @line_bot_service.generate_liff_url("/recipes/#{recipe.id}")
-               else
+    else
                  @line_bot_service.generate_liff_url("/recipes")
-               end
+    end
 
     bubble[:footer] = {
       type: "box",
