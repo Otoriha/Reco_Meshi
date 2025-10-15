@@ -8,6 +8,16 @@ class LineTokenExchangeService
   end
 
   def exchange_code_for_token(code:, redirect_uri:)
+    # パラメータバリデーション
+    if code.blank? || redirect_uri.blank?
+      raise ArgumentError, "Code and redirect_uri are required"
+    end
+
+    # 環境変数バリデーション
+    if ENV["LINE_CHANNEL_ID"].blank? || ENV["LINE_CHANNEL_SECRET"].blank?
+      raise ArgumentError, "LINE_CHANNEL_ID and LINE_CHANNEL_SECRET must be set"
+    end
+
     response = Faraday.post(TOKEN_ENDPOINT) do |req|
       req.headers["Content-Type"] = "application/x-www-form-urlencoded"
       req.body = URI.encode_www_form({

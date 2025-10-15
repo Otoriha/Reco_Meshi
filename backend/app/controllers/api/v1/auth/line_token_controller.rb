@@ -35,11 +35,24 @@ class Api::V1::Auth::LineTokenController < ApplicationController
       user: user_response(user),
       lineAccount: line_account_response(line_account)
     }, status: :ok
-  rescue LineTokenExchangeService::ExchangeError, LineAuthService::AuthenticationError => e
-    Rails.logger.error "LINE認証エラー: #{e.message}"
+  rescue LineTokenExchangeService::ExchangeError => e
+    Rails.logger.error "LINEトークン交換エラー: #{e.message}"
     render json: {
       error: {
-        code: "authentication_failed",
+        code: "token_exchange_failed",
+        message: e.message
+      }
+    }, status: :unauthorized
+  rescue LineAuthService::AuthenticationError => e
+    Rails.logger.error "LINE認証エラー: #{e.message}"
+    error_code = if e.message.include?("Nonce")
+      "nonce_mismatch"
+    else
+      "invalid_token"
+    end
+    render json: {
+      error: {
+        code: error_code,
         message: e.message
       }
     }, status: :unauthorized
