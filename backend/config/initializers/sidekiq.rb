@@ -10,7 +10,7 @@ Sidekiq.configure_server do |config|
   config.redis = redis_config
 
   # デフォルトのリトライ回数を制限（無限リトライ防止）
-  config.default_job_options = { 'retry' => 3 }
+  config.default_job_options = { retry: 3 }
 
   # Production環境でのキュー設定
   if Rails.env.production?
