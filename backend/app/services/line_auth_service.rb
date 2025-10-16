@@ -16,7 +16,7 @@ class LineAuthService
     end
 
     # Verify ID token
-    Rails.logger.info "JWT検証開始 - aud: #{ENV['LINE_CHANNEL_ID']}, nonce: #{nonce}"
+    Rails.logger.info "JWT検証開始 - aud: #{ENV['LINE_LOGIN_CHANNEL_ID']}, nonce: #{nonce}"
     Rails.logger.info "現在時刻: #{Time.current.to_i}"
 
     # トークンの詳細を確認
@@ -29,7 +29,7 @@ class LineAuthService
 
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV["LINE_CHANNEL_ID"], # IDトークンのaudはチャネルID
+      aud: ENV["LINE_LOGIN_CHANNEL_ID"], # IDトークンのaudはチャネルID（LINE Login用）
       nonce: nonce.present? ? nonce : nil # Skip nonce validation if empty
     )
     Rails.logger.info "JWT検証成功"
@@ -54,7 +54,7 @@ class LineAuthService
     # Verify ID token
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV["LINE_CHANNEL_ID"], # IDトークンのaudはチャネルID
+      aud: ENV["LINE_LOGIN_CHANNEL_ID"], # IDトークンのaudはチャネルID（LINE Login用）
       nonce: nonce.present? ? nonce : nil # Skip nonce validation if empty
     )
 
