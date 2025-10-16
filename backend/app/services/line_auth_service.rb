@@ -21,8 +21,12 @@ class LineAuthService
 
     # トークンの詳細を確認
     begin
-      header, payload = JWT.decode(id_token, nil, false)
-      Rails.logger.info "トークン詳細 - exp: #{payload['exp']}, iat: #{payload['iat']}, 現在時刻との差: #{payload['exp'] - Time.current.to_i}秒"
+      payload, header = JWT.decode(id_token, nil, false)
+      Rails.logger.info "トークンヘッダー: #{header.inspect}"
+      Rails.logger.info "トークンペイロード: #{payload.inspect}"
+      if payload['exp']
+        Rails.logger.info "トークン詳細 - exp: #{payload['exp']}, iat: #{payload['iat']}, 現在時刻との差: #{payload['exp'] - Time.current.to_i}秒"
+      end
     rescue => e
       Rails.logger.warn "トークン詳細取得エラー: #{e.message}"
     end
