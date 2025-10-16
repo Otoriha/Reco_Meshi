@@ -16,9 +16,11 @@ class LineAuthService
     end
 
     # Verify ID token
+    # LINE_LOGIN_CHANNEL_IDが優先、なければLINE_CHANNEL_IDにフォールバック
+    channel_id = ENV["LINE_LOGIN_CHANNEL_ID"].presence || ENV["LINE_CHANNEL_ID"]
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV["LINE_LOGIN_CHANNEL_ID"], # IDトークンのaudはチャネルID（LINE Login用）
+      aud: channel_id, # IDトークンのaudはチャネルID（LINE Login用）
       nonce: nonce.present? ? nonce : nil # Skip nonce validation if empty
     )
 
@@ -40,9 +42,11 @@ class LineAuthService
     end
 
     # Verify ID token
+    # LINE_LOGIN_CHANNEL_IDが優先、なければLINE_CHANNEL_IDにフォールバック
+    channel_id = ENV["LINE_LOGIN_CHANNEL_ID"].presence || ENV["LINE_CHANNEL_ID"]
     line_user_info = JwtVerifier.verify_id_token(
       id_token: id_token,
-      aud: ENV["LINE_LOGIN_CHANNEL_ID"], # IDトークンのaudはチャネルID（LINE Login用）
+      aud: channel_id, # IDトークンのaudはチャネルID（LINE Login用）
       nonce: nonce.present? ? nonce : nil # Skip nonce validation if empty
     )
 
