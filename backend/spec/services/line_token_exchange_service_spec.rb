@@ -10,8 +10,8 @@ RSpec.describe LineTokenExchangeService do
   before do
     # 環境変数をモック
     allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with('LINE_CHANNEL_ID').and_return('test-channel-id')
-    allow(ENV).to receive(:[]).with('LINE_CHANNEL_SECRET').and_return('test-channel-secret')
+    allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_ID').and_return('test-channel-id')
+    allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_SECRET').and_return('test-channel-secret')
   end
 
   describe '#exchange_code_for_token' do
@@ -95,13 +95,13 @@ RSpec.describe LineTokenExchangeService do
     context '環境変数が設定されていない場合' do
       before do
         allow(ENV).to receive(:[]).and_call_original
-        allow(ENV).to receive(:[]).with('LINE_CHANNEL_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_ID').and_return(nil)
       end
 
       it 'ArgumentErrorを発生させること' do
         expect {
           service.exchange_code_for_token(code: code, redirect_uri: redirect_uri)
-        }.to raise_error(ArgumentError, 'LINE_CHANNEL_ID and LINE_CHANNEL_SECRET must be set')
+        }.to raise_error(ArgumentError, 'LINE_LOGIN_CHANNEL_ID and LINE_LOGIN_CHANNEL_SECRET must be set')
       end
     end
   end

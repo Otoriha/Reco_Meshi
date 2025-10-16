@@ -14,8 +14,8 @@ class LineTokenExchangeService
     end
 
     # 環境変数バリデーション
-    if ENV["LINE_CHANNEL_ID"].blank? || ENV["LINE_CHANNEL_SECRET"].blank?
-      raise ArgumentError, "LINE_CHANNEL_ID and LINE_CHANNEL_SECRET must be set"
+    if ENV["LINE_LOGIN_CHANNEL_ID"].blank? || ENV["LINE_LOGIN_CHANNEL_SECRET"].blank?
+      raise ArgumentError, "LINE_LOGIN_CHANNEL_ID and LINE_LOGIN_CHANNEL_SECRET must be set"
     end
 
     response = Faraday.post(TOKEN_ENDPOINT) do |req|
@@ -24,8 +24,8 @@ class LineTokenExchangeService
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirect_uri,
-        client_id: ENV["LINE_CHANNEL_ID"],
-        client_secret: ENV["LINE_CHANNEL_SECRET"]
+        client_id: ENV["LINE_LOGIN_CHANNEL_ID"],
+        client_secret: ENV["LINE_LOGIN_CHANNEL_SECRET"]
       })
     end
 
