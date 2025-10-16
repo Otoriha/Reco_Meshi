@@ -22,12 +22,19 @@ class JwtVerifier
 
   def verify_id_token(id_token:, aud:, nonce: nil)
     header = decode_header(id_token)
-    kid = header["kid"]
+    alg = header["alg"]
 
-    raise InvalidTokenError, "Missing kid in token header" unless kid
-
-    public_key = get_public_key(kid)
-    payload = decode_and_verify_token(id_token, public_key, aud, nonce)
+    # HS256の場合はChannel Secretを使用、RS256の場合は公開鍵を使用
+    if alg == "HS256"
+      secret = ENV["LINE_LOGIN_CHANNEL_SECRET"]
+      raise InvalidTokenError, "LINE_LOGIN_CHANNEL_SECRET is not set" unless secret
+      payload = decode_and_verify_token_hs256(id_token, secret, aud, nonce)
+    else
+      kid = header["kid"]
+      raise InvalidTokenError, "Missing kid in token header" unless kid
+      public_key = get_public_key(kid)
+      payload = decode_and_verify_token(id_token, public_key, aud, nonce)
+    end
 
     {
       sub: payload["sub"],
@@ -105,6 +112,30 @@ class JwtVerifier
 
     payload, _ = JWT.decode(token, public_key, true, options)
 
+    verify_nonce(payload, nonce)
+
+    payload
+  end
+
+  def decode_and_verify_token_hs256(token, secret, aud, nonce)
+    options = {
+      algorithm: "HS256",
+      iss: ISSUER,
+      verify_iss: true,
+      aud: aud,
+      verify_aud: true,
+      verify_exp: true,
+      exp_leeway: CLOCK_SKEW.to_i
+    }
+
+    payload, _ = JWT.decode(token, secret, true, options)
+
+    verify_nonce(payload, nonce)
+
+    payload
+  end
+
+  def verify_nonce(payload, nonce)
     # Verify nonce only if both nonce is provided and token contains nonce
     if nonce.present? && payload["nonce"].present?
       if payload["nonce"] != nonce
@@ -114,7 +145,5 @@ class JwtVerifier
       # フロントエンドがnonceを送信したがIDトークンにnonceがない場合
       Rails.logger.warn "nonce検証スキップ: IDトークンにnonceが含まれていません"
     end
-
-    payload
   end
 end
