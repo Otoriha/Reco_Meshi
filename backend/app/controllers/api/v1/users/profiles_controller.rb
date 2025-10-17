@@ -3,10 +3,20 @@ class Api::V1::Users::ProfilesController < ApplicationController
 
   # GET /api/v1/users/profile
   def show
+    line_account_data = if current_user.line_account.present?
+                          {
+                            displayName: current_user.line_account.line_display_name,
+                            linkedAt: current_user.line_account.linked_at&.iso8601
+                          }
+    else
+                          nil
+    end
+
     render json: {
       name: current_user.name,
       email: current_user.email,
-      provider: current_user.provider
+      provider: current_user.provider,
+      lineAccount: line_account_data
     }
   end
 
