@@ -37,6 +37,10 @@ RSpec.describe "Api::V1::Users::Profiles", type: :request do
       expect(body["lineAccount"]).to be_present
       expect(body["lineAccount"]["displayName"]).to eq("テストユーザー")
       expect(body["lineAccount"]["linkedAt"]).to be_present
+      # ISO8601形式の検証
+      expect(body["lineAccount"]["linkedAt"]).to match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/)
+      # パース可能であることを確認
+      expect { Time.iso8601(body["lineAccount"]["linkedAt"]) }.not_to raise_error
     end
   end
 

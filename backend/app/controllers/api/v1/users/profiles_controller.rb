@@ -5,7 +5,7 @@ class Api::V1::Users::ProfilesController < ApplicationController
   def show
     line_account_data = if current_user.line_account.present?
                           {
-                            displayName: current_user.line_account.line_display_name,
+                            displayName: current_user.line_account.line_display_name.presence || "",
                             linkedAt: current_user.line_account.linked_at&.iso8601
                           }
     else
