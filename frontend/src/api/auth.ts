@@ -236,3 +236,40 @@ export const lineLoginWithCode = async (data: LineExchangeData): Promise<UserDat
     throw new Error('LINEログインに失敗しました。もう一度お試しください。');
   }
 };
+
+// LINE連携: 認可コードをIDトークンに交換して既存アカウントに連携
+export const lineLinkWithCode = async (data: LineExchangeData): Promise<UserData> => {
+  try {
+    const response = await apiClient.post('/auth/line/exchange_link', {
+      code: data.code,
+      nonce: data.nonce,
+      redirect_uri: data.redirectUri
+    });
+
+    const token = response.data.token;
+    const userData = response.data.user;
+
+    // JWTトークンとユーザー情報を更新
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userData', JSON.stringify(userData));
+
+    // AuthContextに認証状態の変更を通知
+    dispatchAuthTokenChanged({
+      isLoggedIn: true,
+      user: userData
+    });
+
+    return userData;
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.data) {
+      const errorData = error.response.data as AuthError;
+      if (typeof errorData.error === 'object' && errorData.error?.message) {
+        throw new Error(errorData.error.message);
+      }
+      if (typeof errorData.error === 'string') {
+        throw new Error(errorData.error);
+      }
+    }
+    throw new Error('LINE連携に失敗しました。もう一度お試しください。');
+  }
+};

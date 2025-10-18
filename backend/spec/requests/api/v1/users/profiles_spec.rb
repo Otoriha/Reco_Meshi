@@ -22,6 +22,25 @@ RSpec.describe "Api::V1::Users::Profiles", type: :request do
       expect(body["name"]).to eq(user.name)
       expect(body["email"]).to eq(user.email)
       expect(body["provider"]).to eq(user.provider)
+      expect(body["lineAccount"]).to be_nil
+    end
+
+    it "LINEアカウント連携済みの場合、LINE情報を含める" do
+      line_account = create(:line_account, user: user, line_user_id: "U123456789", line_display_name: "テストユーザー", linked_at: Time.current)
+      headers = auth_header_for(user)
+      get "/api/v1/users/profile", headers: headers, as: :json
+      expect(response).to have_http_status(:ok)
+      body = JSON.parse(response.body)
+      expect(body["name"]).to eq(user.name)
+      expect(body["email"]).to eq(user.email)
+      expect(body["provider"]).to eq(user.provider)
+      expect(body["lineAccount"]).to be_present
+      expect(body["lineAccount"]["displayName"]).to eq("テストユーザー")
+      expect(body["lineAccount"]["linkedAt"]).to be_present
+      # ISO8601形式の検証
+      expect(body["lineAccount"]["linkedAt"]).to match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/)
+      # パース可能であることを確認
+      expect { Time.iso8601(body["lineAccount"]["linkedAt"]) }.not_to raise_error
     end
   end
 

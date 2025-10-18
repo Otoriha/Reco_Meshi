@@ -13,6 +13,8 @@ import AddAllergyModal from '../../components/settings/AddAllergyModal';
 import EditAllergyModal from '../../components/settings/EditAllergyModal';
 import AddDislikedModal from '../../components/settings/AddDislikedModal';
 import EditDislikedModal from '../../components/settings/EditDislikedModal';
+import { generateLineNonce } from '../../api/auth';
+import { generateState } from '../../utils/crypto';
 
 type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked';
 
@@ -23,8 +25,9 @@ const Settings: React.FC = () => {
   const [allergies, setAllergies] = useState<AllergyIngredient[]>([]);
   const [dislikedIngredients, setDislikedIngredients] = useState<DislikedIngredient[]>([]);
   const [profileForm, setProfileForm] = useState({ name: '' });
-  const [loading, setLoading] = useState({ profile: true, settings: true, allergies: true, disliked: true, saving: false });
+  const [loading, setLoading] = useState({ profile: true, settings: true, allergies: true, disliked: true, saving: false, lineLinking: false });
   const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
+  const [error, setError] = useState('');
   const [isAddAllergyOpen, setIsAddAllergyOpen] = useState(false);
   const [editingAllergy, setEditingAllergy] = useState<AllergyIngredient | null>(null);
   const [isAddDislikedOpen, setIsAddDislikedOpen] = useState(false);
@@ -219,6 +222,40 @@ const Settings: React.FC = () => {
       } else {
         showToast('削除に失敗しました', 'error');
       }
+    }
+  };
+
+  const handleLineLink = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, lineLinking: true }));
+      setError('');
+
+      // 1. バックエンドからノンスを取得
+      const nonce = await generateLineNonce();
+
+      // 2. stateを生成
+      const state = generateState();
+
+      // 3. sessionStorageに保存（通常ログインと区別するため異なるキー名）
+      sessionStorage.setItem('line_link_nonce', nonce);
+      sessionStorage.setItem('line_link_state', state);
+
+      // 4. LINE認証ページへリダイレクト
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: import.meta.env.VITE_LINE_CHANNEL_ID,
+        redirect_uri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL,
+        state: state,
+        scope: 'openid profile email',
+        nonce: nonce
+      });
+
+      window.location.href = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+    } catch (err) {
+      console.error('LINE link preparation failed:', err);
+      setError('LINE連携の準備に失敗しました');
+      showToast('LINE連携の準備に失敗しました', 'error');
+      setLoading((prev) => ({ ...prev, lineLinking: false }));
     }
   };
 
@@ -493,10 +530,28 @@ const Settings: React.FC = () => {
             <div className="flex items-center gap-2">
               <div className="bg-green-500 text-white px-2 py-1 rounded text-sm font-bold">LINE</div>
               <span className="text-sm text-gray-600">
-                {profile?.provider === 'line' ? '連携済み' : '未連携'}
+                {profile?.provider === 'line' || profile?.lineAccount ? '連携済み' : '未連携'}
               </span>
             </div>
+            {profile?.provider !== 'line' && !profile?.lineAccount && (
+              <button
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-400"
+                onClick={handleLineLink}
+                disabled={loading.lineLinking}
+              >
+                {loading.lineLinking ? '処理中...' : 'LINEと連携'}
+              </button>
+            )}
           </div>
+          {(profile?.provider === 'line' || profile?.lineAccount) && (
+            <div className="mt-2 text-sm text-gray-600">
+              <p>表示名: {profile?.lineAccount?.displayName || 'N/A'}</p>
+              <p>連携日時: {profile?.lineAccount?.linkedAt ? new Date(profile.lineAccount.linkedAt).toLocaleString('ja-JP') : 'N/A'}</p>
+            </div>
+          )}
+          {error && (
+            <p className="mt-2 text-sm text-red-600">{error}</p>
+          )}
         </div>
 
         <div className="flex gap-4">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { lineLoginWithCode } from '../../api/auth';
+import { lineLoginWithCode, lineLinkWithCode } from '../../api/auth';
 
 const LineCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -28,40 +28,75 @@ const LineCallback: React.FC = () => {
         return;
       }
 
-      // 3. state検証（CSRF対策）
-      const savedState = sessionStorage.getItem('line_state');
-      if (state !== savedState) {
-        setError('認証状態が一致しません');
-        setTimeout(() => navigate('/login'), 3000);
-        return;
-      }
+      // 3. 分岐判定: line_link_nonce があれば連携フロー
+      const linkNonce = sessionStorage.getItem('line_link_nonce');
+      const linkState = sessionStorage.getItem('line_link_state');
+      const loginNonce = sessionStorage.getItem('line_nonce');
+      const loginState = sessionStorage.getItem('line_state');
 
-      // 4. nonce取得
-      const nonce = sessionStorage.getItem('line_nonce');
-      if (!nonce) {
-        setError('認証情報が見つかりません');
-        setTimeout(() => navigate('/login'), 3000);
-        return;
-      }
+      const isLinkFlow = !!linkNonce;
 
-      // 5. バックエンドでコード交換＆ログイン
-      try {
-        await lineLoginWithCode({
-          code,
-          nonce,
-          redirectUri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL
-        });
+      if (isLinkFlow) {
+        // ===== 連携フロー =====
+        // 4. state検証
+        if (state !== linkState) {
+          setError('認証状態が一致しません');
+          setTimeout(() => navigate('/settings'), 3000);
+          return;
+        }
 
-        // 6. クリーンアップ
-        sessionStorage.removeItem('line_nonce');
-        sessionStorage.removeItem('line_state');
+        try {
+          // 5. バックエンドでコード交換＆連携
+          await lineLinkWithCode({
+            code,
+            nonce: linkNonce,
+            redirectUri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL
+          });
 
-        // 7. ダッシュボードへリダイレクト
-        navigate('/dashboard', { replace: true });
-      } catch (err) {
-        console.error('LINE login failed:', err);
-        setError(err instanceof Error ? err.message : 'ログインに失敗しました');
-        setTimeout(() => navigate('/login'), 3000);
+          // 6. クリーンアップ
+          sessionStorage.removeItem('line_link_nonce');
+          sessionStorage.removeItem('line_link_state');
+
+          // 7. Settings画面へリダイレクト
+          navigate('/settings', {
+            replace: true,
+            state: { message: 'LINEアカウントと連携しました' }
+          });
+        } catch (err) {
+          console.error('LINE link failed:', err);
+          setError(err instanceof Error ? err.message : '連携に失敗しました');
+          setTimeout(() => navigate('/settings'), 3000);
+        }
+      } else {
+        // ===== 既存のログインフロー（変更なし） =====
+        if (state !== loginState) {
+          setError('認証状態が一致しません');
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
+
+        if (!loginNonce) {
+          setError('認証情報が見つかりません');
+          setTimeout(() => navigate('/login'), 3000);
+          return;
+        }
+
+        try {
+          await lineLoginWithCode({
+            code,
+            nonce: loginNonce,
+            redirectUri: import.meta.env.VITE_LINE_LOGIN_CALLBACK_URL
+          });
+
+          sessionStorage.removeItem('line_nonce');
+          sessionStorage.removeItem('line_state');
+
+          navigate('/dashboard', { replace: true });
+        } catch (err) {
+          console.error('LINE login failed:', err);
+          setError(err instanceof Error ? err.message : 'ログインに失敗しました');
+          setTimeout(() => navigate('/login'), 3000);
+        }
       }
     };
 

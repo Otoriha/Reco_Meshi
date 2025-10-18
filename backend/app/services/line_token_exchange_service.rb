@@ -13,9 +13,14 @@ class LineTokenExchangeService
       raise ArgumentError, "Code and redirect_uri are required"
     end
 
+    # 環境変数の取得（フォールバック対応）
+    # LINE_LOGIN_CHANNEL_IDが優先、なければLINE_CHANNEL_IDにフォールバック
+    channel_id = ENV["LINE_LOGIN_CHANNEL_ID"].presence || ENV["LINE_CHANNEL_ID"]
+    channel_secret = ENV["LINE_LOGIN_CHANNEL_SECRET"].presence || ENV["LINE_CHANNEL_SECRET"]
+
     # 環境変数バリデーション
-    if ENV["LINE_LOGIN_CHANNEL_ID"].blank? || ENV["LINE_LOGIN_CHANNEL_SECRET"].blank?
-      raise ArgumentError, "LINE_LOGIN_CHANNEL_ID and LINE_LOGIN_CHANNEL_SECRET must be set"
+    if channel_id.blank? || channel_secret.blank?
+      raise ArgumentError, "LINE_LOGIN_CHANNEL_ID (or LINE_CHANNEL_ID) and LINE_LOGIN_CHANNEL_SECRET (or LINE_CHANNEL_SECRET) must be set"
     end
 
     response = Faraday.post(TOKEN_ENDPOINT) do |req|
@@ -24,8 +29,8 @@ class LineTokenExchangeService
         grant_type: "authorization_code",
         code: code,
         redirect_uri: redirect_uri,
-        client_id: ENV["LINE_LOGIN_CHANNEL_ID"],
-        client_secret: ENV["LINE_LOGIN_CHANNEL_SECRET"]
+        client_id: channel_id,
+        client_secret: channel_secret
       })
     end
 

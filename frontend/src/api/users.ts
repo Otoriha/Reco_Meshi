@@ -1,9 +1,15 @@
 import { apiClient } from './client';
 
+export interface LineAccount {
+  displayName?: string;
+  linkedAt?: string;
+}
+
 export interface UserProfile {
   name: string;
   email: string;
   provider: string;
+  lineAccount?: LineAccount;
 }
 
 export interface UserSettings {
