@@ -58,6 +58,70 @@ class Api::V1::Auth::LineTokenController < ApplicationController
     }, status: :unauthorized
   end
 
+  def exchange_link
+    unless params[:code].present? && params[:nonce].present? && params[:redirect_uri].present?
+      return render json: {
+        error: {
+          code: "invalid_request",
+          message: "code, nonce, redirect_uriが必要です"
+        }
+      }, status: :bad_request
+    end
+
+    # 1. 認可コードをIDトークンに交換
+    token_response = LineTokenExchangeService.exchange_code_for_token(
+      code: params[:code],
+      redirect_uri: params[:redirect_uri]
+    )
+
+    # 2. 既存ユーザーにLINEアカウントを紐付け
+    result = LineAuthService.link_existing_user(
+      user: current_user,
+      id_token: token_response[:id_token],
+      nonce: params[:nonce]
+    )
+
+    user = result[:user]
+    line_account = result[:line_account]
+
+    # 3. 新しいJWT発行
+    token = generate_jwt_token(user)
+
+    render json: {
+      token: token,
+      user: user_response(user),
+      lineAccount: line_account_response(line_account),
+      message: "LINE account linked successfully"
+    }, status: :ok
+  rescue LineTokenExchangeService::ExchangeError => e
+    Rails.logger.error "LINEトークン交換エラー: #{e.message}"
+    render json: {
+      error: {
+        code: "token_exchange_failed",
+        message: e.message
+      }
+    }, status: :unauthorized
+  rescue LineAuthService::AuthenticationError => e
+    Rails.logger.error "LINE連携エラー: #{e.message}"
+
+    if e.message.include?("already linked to another user")
+      render json: {
+        error: {
+          code: "already_linked",
+          message: "このLINEアカウントは既に他のユーザーに連携されています"
+        }
+      }, status: :conflict
+    else
+      error_code = e.message.include?("Nonce") ? "nonce_mismatch" : "invalid_token"
+      render json: {
+        error: {
+          code: error_code,
+          message: e.message
+        }
+      }, status: :unauthorized
+    end
+  end
+
   private
 
   def generate_jwt_token(user)
