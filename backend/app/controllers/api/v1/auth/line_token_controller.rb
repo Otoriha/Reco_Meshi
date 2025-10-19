@@ -1,5 +1,5 @@
 class Api::V1::Auth::LineTokenController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:exchange]
+  skip_before_action :authenticate_user!, only: [ :exchange ]
 
   def exchange
     unless params[:code].present? && params[:nonce].present? && params[:redirect_uri].present?
