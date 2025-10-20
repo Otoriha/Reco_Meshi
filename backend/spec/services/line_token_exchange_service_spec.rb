@@ -101,7 +101,7 @@ RSpec.describe LineTokenExchangeService do
       it 'ArgumentErrorを発生させること' do
         expect {
           service.exchange_code_for_token(code: code, redirect_uri: redirect_uri)
-        }.to raise_error(ArgumentError, 'LINE_LOGIN_CHANNEL_ID and LINE_LOGIN_CHANNEL_SECRET must be set')
+        }.to raise_error(ArgumentError, 'LINE_LOGIN_CHANNEL_ID (or LINE_CHANNEL_ID) and LINE_LOGIN_CHANNEL_SECRET (or LINE_CHANNEL_SECRET) must be set')
       end
     end
   end

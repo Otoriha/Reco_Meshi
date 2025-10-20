@@ -176,12 +176,14 @@ RSpec.describe ShoppingListItem, type: :model do
 
     describe '#display_quantity_with_unit' do
       it 'displays whole numbers without decimals' do
-        item = create(:shopping_list_item, quantity: 3.0, unit: '個', ingredient_name: 'テスト')
+        ingredient = create(:ingredient, name: 'テスト', category: 'meat')
+        item = create(:shopping_list_item, quantity: 3.0, unit: '個', ingredient: ingredient)
         expect(item.display_quantity_with_unit).to eq('3個')
       end
 
       it 'displays decimals when present' do
-        item = create(:shopping_list_item, quantity: 2.5, unit: 'g', ingredient_name: 'テスト')
+        ingredient = create(:ingredient, name: 'テスト', category: 'vegetables')
+        item = create(:shopping_list_item, quantity: 2.5, unit: 'g', ingredient: ingredient)
         expect(item.display_quantity_with_unit).to eq('2.5g')
       end
     end

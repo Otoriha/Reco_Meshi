@@ -33,7 +33,7 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           allow(generator).to receive(:generate_from_ingredients)
             .with([ "玉ねぎ", "豚肉", "人参" ], {
               "cooking_time" => "30",
-              "difficulty_level" => "easy",
+              "difficulty" => "easy",
               "cuisine_type" => "和食",
               "dietary_restrictions" => [ "ベジタリアン" ]
             })
@@ -75,7 +75,7 @@ RSpec.describe "POST /api/v1/recipes/suggest", type: :request do
           allow(generator).to receive(:generate_from_user_ingredients)
             .with({
               "cooking_time" => "20",
-              "difficulty_level" => "medium"
+              "difficulty" => "medium"
             })
             .and_return(recipe)
 
