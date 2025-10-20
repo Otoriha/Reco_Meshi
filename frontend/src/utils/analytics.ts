@@ -1,4 +1,5 @@
 import ReactGA from 'react-ga4';
+import type { GtagFunction } from '../types/analytics';
 
 // 初期化済みフラグ（重複初期化防止）
 let isGAInitialized = false;

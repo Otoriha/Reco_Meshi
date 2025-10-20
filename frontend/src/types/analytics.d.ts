@@ -1,5 +1,5 @@
 // Consent Mode のパラメータ型
-type ConsentParams = {
+export type ConsentParams = {
   analytics_storage?: 'granted' | 'denied';
   ad_storage?: 'granted' | 'denied';
   ad_user_data?: 'granted' | 'denied';
@@ -8,7 +8,7 @@ type ConsentParams = {
 };
 
 // Gtag Config パラメータ型
-type GtagConfigParams = {
+export type GtagConfigParams = {
   page_path?: string;
   page_title?: string;
   send_page_view?: boolean;
@@ -16,7 +16,7 @@ type GtagConfigParams = {
 };
 
 // Gtag Event パラメータ型
-type GtagEventParams = {
+export type GtagEventParams = {
   event_category?: string;
   event_label?: string;
   value?: number;
@@ -24,7 +24,7 @@ type GtagEventParams = {
 };
 
 // Gtag関数のオーバーロード定義（anyを使用しない）
-type GtagFunction = {
+export type GtagFunction = {
   (command: 'consent', action: 'default' | 'update', params: ConsentParams): void;
   (command: 'config', targetId: string, config?: GtagConfigParams): void;
   (command: 'event', eventName: string, params?: GtagEventParams): void;
@@ -39,5 +39,3 @@ declare global {
     gtag?: GtagFunction;
   }
 }
-
-export {};

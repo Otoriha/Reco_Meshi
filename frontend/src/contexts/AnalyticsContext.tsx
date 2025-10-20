@@ -1,4 +1,6 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { grantConsent, revokeConsent } from '../utils/analytics';
 
 type ConsentStatus = 'granted' | 'denied' | 'pending';
