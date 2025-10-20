@@ -5,6 +5,8 @@ import Signup from './pages/Auth/Signup'
 import LineCallback from './pages/Auth/LineCallback'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
+import { AnalyticsProvider } from './contexts/AnalyticsContext'
+import CookieConsentBanner from './components/CookieConsentBanner'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
@@ -17,12 +19,16 @@ import ProtectedRoute from './components/ProtectedRoute'
 import NotFound from './components/NotFound'
 import Terms from './pages/Legal/Terms'
 import Privacy from './pages/Legal/Privacy'
+import { useAnalytics } from './hooks/useAnalytics'
+import { trackPageView } from './utils/analytics'
+import { useEffect } from 'react'
 
 type AuthMode = 'login' | 'signup';
 
 function AppContent() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { consentStatus } = useAnalytics()
 
   const handleSwitchToLogin = () => {
     navigate('/login')
@@ -44,6 +50,13 @@ function AppContent() {
   }
 
   const isLandingPage = location.pathname === '/';
+
+  // ページビュートラッキング
+  useEffect(() => {
+    if (consentStatus === 'granted') {
+      trackPageView(location.pathname, document.title);
+    }
+  }, [location, consentStatus]);
 
   return (
     <div className={`min-h-screen ${isLandingPage ? '' : 'bg-gray-100'}`}>
@@ -92,9 +105,12 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <AnalyticsProvider>
+        <BrowserRouter>
+          <CookieConsentBanner />
+          <AppContent />
+        </BrowserRouter>
+      </AnalyticsProvider>
     </AuthProvider>
   )
 }

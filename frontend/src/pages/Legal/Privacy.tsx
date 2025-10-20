@@ -7,7 +7,7 @@ const Privacy: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-sm rounded-lg p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">プライバシーポリシー</h1>
-          <p className="text-sm text-gray-600 mb-8">最終更新日: 2025年10月1日</p>
+          <p className="text-sm text-gray-600 mb-8">最終更新日: 2025年10月20日</p>
 
           <div className="prose prose-green max-w-none">
             <section className="mb-8">
@@ -78,9 +78,25 @@ const Privacy: React.FC = () => {
                 <li>LINE（ユーザー認証、メッセージ送信）</li>
                 <li>Google Cloud Vision API（画像認識）</li>
                 <li>OpenAI APIまたはGoogle Gemini API（レシピ生成）</li>
+                <li>Google Analytics 4（アクセス解析・統計）</li>
               </ul>
               <p className="text-gray-700 leading-relaxed mt-4">
                 これらのサービスを利用する際、必要最小限の情報のみが送信されます。
+              </p>
+              <p className="text-gray-700 leading-relaxed mt-4">
+                当サービスでは、サービスの利用状況を分析し、改善するためにGoogle Analytics 4を使用しています。
+                Google Analytics 4は、クッキーを使用してユーザーの行動データ（ページビュー、デバイス情報等）を
+                匿名で収集します。収集されたデータはGoogleのプライバシーポリシーに従って処理されます。
+                詳細は
+                <a
+                  href="https://policies.google.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-600 hover:underline ml-1"
+                >
+                  Googleのプライバシーポリシー
+                </a>
+                をご確認ください。
               </p>
             </section>
 
@@ -89,8 +105,22 @@ const Privacy: React.FC = () => {
               <p className="text-gray-700 leading-relaxed mb-4">
                 当サービスは、ユーザー体験の向上、サービスの利用状況の分析のため、Cookieおよび類似技術を使用します。
               </p>
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">使用するCookieの種類</h3>
+              <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4 mb-4">
+                <li>必須Cookie: サービスの基本機能に必要なCookie（ログイン状態の維持等）</li>
+                <li>分析Cookie: Google Analytics 4により、サービスの利用状況を匿名で収集するCookie</li>
+              </ul>
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Cookieの管理</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                ユーザーは、初回訪問時に表示されるクッキー同意バナーで、分析Cookieの使用について同意または拒否を
+                選択できます。また、設定ページからいつでも同意状態を変更できます。
+              </p>
+
               <p className="text-gray-700 leading-relaxed">
-                ユーザーは、ブラウザの設定によりCookieの受け入れを拒否することができますが、その場合、当サービスの一部機能が利用できなくなる可能性があります。
+                ブラウザの設定によりCookieの受け入れを拒否することもできますが、その場合、当サービスの一部機能が
+                利用できなくなる可能性があります。
               </p>
             </section>
 

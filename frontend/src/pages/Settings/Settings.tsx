@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan } from 'react-icons/fa';
+import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan, FaShieldAlt } from 'react-icons/fa';
 import { getUserProfile, getUserSettings, updateUserProfile, updateUserSettings } from '../../api/users';
 import type { UserProfile, UserSettings } from '../../api/users';
 import { DIFFICULTY_OPTIONS, COOKING_TIME_OPTIONS, SHOPPING_FREQUENCY_OPTIONS } from '../../constants/settings';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import { getAllergyIngredients, createAllergyIngredient, updateAllergyIngredient, deleteAllergyIngredient } from '../../api/allergyIngredients';
 import type { AllergyIngredient } from '../../types/allergy';
 import { getDislikedIngredients, createDislikedIngredient, updateDislikedIngredient, deleteDislikedIngredient } from '../../api/dislikedIngredients';
@@ -16,7 +17,7 @@ import EditDislikedModal from '../../components/settings/EditDislikedModal';
 import { generateLineNonce } from '../../api/auth';
 import { generateState } from '../../utils/crypto';
 
-type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked';
+type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked' | 'cookie';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
@@ -34,12 +35,14 @@ const Settings: React.FC = () => {
   const [editingDisliked, setEditingDisliked] = useState<DislikedIngredient | null>(null);
   const { showToast } = useToast();
   const { logout } = useAuth();
+  const { consentStatus, updateConsent } = useAnalytics();
 
   const menuItems = [
     { id: 'basic', label: '基本設定', icon: FaCog },
     { id: 'profile', label: 'プロフィール', icon: FaUser },
     { id: 'allergy', label: 'アレルギー食材', icon: FaExclamationTriangle },
     { id: 'disliked', label: '苦手な食材', icon: FaBan },
+    { id: 'cookie', label: 'クッキー設定', icon: FaShieldAlt },
     { id: 'account', label: 'アカウント', icon: FaClipboard }
   ];
 
@@ -579,6 +582,77 @@ const Settings: React.FC = () => {
     </div>
   );
 
+  const renderCookieSettings = () => {
+    const handleGrantConsent = () => {
+      updateConsent('granted');
+      showToast('クッキーの使用に同意しました', 'success');
+    };
+
+    const handleRevokeConsent = () => {
+      if (confirm('クッキーの使用を拒否しますか？アクセス解析が無効になります。')) {
+        updateConsent('denied');
+        showToast('クッキーの使用を拒否しました', 'success');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">クッキー設定</h2>
+
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-medium text-gray-900 mb-2">アクセス解析Cookie</h3>
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 mb-2">
+              現在のステータス:
+              <span className={`ml-2 font-medium ${
+                consentStatus === 'granted' ? 'text-green-600' :
+                consentStatus === 'denied' ? 'text-red-600' :
+                'text-gray-600'
+              }`}>
+                {consentStatus === 'granted' && '同意済み'}
+                {consentStatus === 'denied' && '拒否済み'}
+                {consentStatus === 'pending' && '未設定'}
+              </span>
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              当サービスでは、サービス改善のためにGoogle Analytics 4を使用してアクセス解析を行っています。
+              収集されたデータは匿名化され、統計的な分析にのみ使用されます。
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            {consentStatus !== 'granted' && (
+              <button
+                onClick={handleGrantConsent}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                同意する
+              </button>
+            )}
+            {consentStatus === 'granted' && (
+              <button
+                onClick={handleRevokeConsent}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                同意を撤回する
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 rounded">
+            <p className="text-xs text-gray-700">
+              詳細については
+              <a href="/privacy" className="text-blue-600 hover:underline ml-1">
+                プライバシーポリシー
+              </a>
+              をご確認ください。
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'basic':
@@ -589,6 +663,8 @@ const Settings: React.FC = () => {
         return renderAllergyIngredients();
       case 'disliked':
         return renderDislikedIngredients();
+      case 'cookie':
+        return renderCookieSettings();
       case 'account':
         return renderAccount();
       default:
@@ -635,7 +711,7 @@ const Settings: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-6">
               {renderContent()}
 
-              {activeTab !== 'account' && activeTab !== 'allergy' && activeTab !== 'disliked' && (
+              {activeTab !== 'account' && activeTab !== 'allergy' && activeTab !== 'disliked' && activeTab !== 'cookie' && (
                 <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
                   <button
                     className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
