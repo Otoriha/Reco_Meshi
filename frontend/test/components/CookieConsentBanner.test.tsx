@@ -1,12 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import CookieConsentBanner from '../../src/components/CookieConsentBanner';
 import { AnalyticsContext } from '../../src/contexts/AnalyticsContext';
 
 // テスト用のAnalyticsProviderラッパー
 const createMockAnalyticsProvider = (consentStatus: 'granted' | 'denied' | 'pending', updateConsent = vi.fn()) => {
-  return ({ children }: { children: React.ReactNode }) => (
+  return ({ children }: { children: ReactNode }) => (
     <AnalyticsContext.Provider value={{ consentStatus, updateConsent }}>
       {children}
     </AnalyticsContext.Provider>
