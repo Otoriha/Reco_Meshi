@@ -65,7 +65,7 @@ class ShoppingList < ApplicationRecord
       return title
     end
 
-    return recipe.title if recipe&.title.present?
+    return "#{recipe.title}の買い物リスト" if recipe&.title.present?
 
     "買い物リスト"
   end

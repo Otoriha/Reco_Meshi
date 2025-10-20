@@ -12,6 +12,24 @@ class ImageRecognitionJob < ApplicationJob
   discard_on Google::Cloud::PermissionDeniedError
   discard_on Google::Cloud::NotFoundError
 
+  # リトライ失敗時のコールバック設定
+  sidekiq_retries_exhausted do |job, ex|
+    Rails.logger.error "All retries exhausted for ImageRecognitionJob: #{ex.class}: #{ex.message}"
+
+    # エラーメッセージをユーザーに通知（最終失敗時のみ）
+    begin
+      line_user_id = job["args"][0]
+      line_bot_service = LineBotService.new
+      message = line_bot_service.create_text_message(
+        "❌ 画像解析中にエラーが発生しました。しばらく経ってから再度お試しください。\n\n" \
+        "🔄 再度お試しいただくか、しばらく経ってからお試しください。"
+      )
+      line_bot_service.push_message(line_user_id, message)
+    rescue => e
+      Rails.logger.error "Failed to send final error notification: #{e.class}: #{e.message}"
+    end
+  end
+
   def perform(line_user_id, message_id)
     Rails.logger.info "Starting image recognition job: user=#{line_user_id}, message=#{message_id}"
 
@@ -62,10 +80,9 @@ class ImageRecognitionJob < ApplicationJob
       # FridgeImageのステータスを失敗に更新
       fridge_image&.fail_with_error!("#{e.class}: #{e.message}")
 
-      # 最終失敗時のエラーメッセージ
-      send_error_message(line_bot_service, line_user_id, "画像解析中にエラーが発生しました。しばらく経ってから再度お試しください。")
-
-      # raise eを削除（エラーは既にログに記録済み、無限リトライを防ぐ）
+      # エラーを再raiseしてSidekiqにリトライを委ねる
+      # ユーザー通知はdiscard_on, retry_onの最終失敗時に実行されるようにする
+      raise e
     end
   end
 

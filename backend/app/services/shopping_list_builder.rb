@@ -80,28 +80,46 @@ class ShoppingListBuilder
       if ingredient
         ingredient_unit = ingredient.unit
 
-        shortage_amount = if require_exact_amount
+        shortage_amount = 0
+        final_unit = "適量"
+
+        if require_exact_amount
+          # レシピ単位を在庫単位（基準単位）に変換
           converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
           available_amount = user_inventory[ingredient.id] || 0
 
           if converted_required_amount.nil?
+            # 変換失敗時は在庫チェックをスキップしてレシピ量をそのまま使用
             log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit)
-            required_amount
+            shortage_amount = required_amount
+            # 変換失敗時の単位決定：レシピ単位が許可されていれば使用、なければ在庫単位
+            final_unit = if recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
+              recipe_unit
+            elsif ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
+              ingredient_unit
+            else
+              "個"
+            end
           else
+            # 在庫単位で不足量を計算
             shortage = converted_required_amount - available_amount
-            shortage > 0 ? shortage : 0
+            if shortage > 0
+              shortage_amount = shortage
+              # 在庫単位を使用（変換成功時は常に在庫単位を使う）
+              final_unit = if ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
+                ingredient_unit
+              else
+                "個"
+              end
+            end
           end
         else
-          required_amount
+          # 適量の場合
+          shortage_amount = required_amount
+          final_unit = "適量"
         end
 
         if shortage_amount > 0
-          final_unit = if require_exact_amount
-            resolve_unit(recipe_unit, ingredient_unit)
-          else
-            "適量"
-          end
-
           missing_ingredients << {
             ingredient_id: ingredient.id,
             quantity: normalize_quantity(shortage_amount),

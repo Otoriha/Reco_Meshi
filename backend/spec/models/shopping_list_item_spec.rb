@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe ShoppingListItem, type: :model do
   describe 'associations' do
     it { is_expected.to belong_to(:shopping_list) }
-    it { is_expected.to belong_to(:ingredient) }
+    it { is_expected.to belong_to(:ingredient).optional }
   end
 
   describe 'validations' do
@@ -12,7 +12,7 @@ RSpec.describe ShoppingListItem, type: :model do
     it { is_expected.to validate_presence_of(:unit) }
 
     describe 'unit inclusion validation' do
-      let(:shopping_list_item) { build(:shopping_list_item) }
+      let(:shopping_list_item) { build(:shopping_list_item, ingredient_name: 'テスト食材') }
 
       it 'allows valid units' do
         ShoppingListItem::ALLOWED_UNITS.each do |unit|
@@ -176,22 +176,40 @@ RSpec.describe ShoppingListItem, type: :model do
 
     describe '#display_quantity_with_unit' do
       it 'displays whole numbers without decimals' do
-        item = create(:shopping_list_item, quantity: 3.0, unit: '個')
+        item = create(:shopping_list_item, quantity: 3.0, unit: '個', ingredient_name: 'テスト')
         expect(item.display_quantity_with_unit).to eq('3個')
       end
 
       it 'displays decimals when present' do
-        item = create(:shopping_list_item, quantity: 2.5, unit: 'g')
+        item = create(:shopping_list_item, quantity: 2.5, unit: 'g', ingredient_name: 'テスト')
         expect(item.display_quantity_with_unit).to eq('2.5g')
       end
     end
 
-    describe '#ingredient_name' do
-      let(:ingredient) { create(:ingredient, name: 'トマト') }
-      let(:item) { create(:shopping_list_item, ingredient: ingredient) }
+    describe '#ingredient_display_name' do
+      context 'when ingredient is associated' do
+        let(:ingredient) { create(:ingredient, name: 'トマト') }
+        let(:item) { create(:shopping_list_item, ingredient: ingredient) }
 
-      it 'returns ingredient name' do
-        expect(item.ingredient_name).to eq('トマト')
+        it 'returns ingredient name from association' do
+          expect(item.ingredient_display_name).to eq('トマト')
+        end
+      end
+
+      context 'when only ingredient_name is set' do
+        let(:item) { create(:shopping_list_item, ingredient: nil, ingredient_name: 'きゅうり') }
+
+        it 'returns ingredient_name attribute' do
+          expect(item.ingredient_display_name).to eq('きゅうり')
+        end
+      end
+
+      context 'when neither ingredient nor ingredient_name is set' do
+        let(:item) { build(:shopping_list_item, ingredient: nil, ingredient_name: nil, quantity: 1, unit: '個') }
+
+        it 'returns default message' do
+          expect(item.ingredient_display_name).to eq('不明な材料')
+        end
       end
     end
 

@@ -11,21 +11,23 @@ RSpec.describe CleanupCompletedShoppingListItemsJob, type: :job do
         # 2日前に完了したアイテム（削除対象）
         old_completed_item = create(:shopping_list_item,
           shopping_list: shopping_list,
-          status: 'completed',
+          is_checked: true,
+          checked_at: 2.days.ago,
           updated_at: 2.days.ago
         )
 
         # 12時間前に完了したアイテム（削除対象外）
         recent_completed_item = create(:shopping_list_item,
           shopping_list: shopping_list,
-          status: 'completed',
+          is_checked: true,
+          checked_at: 12.hours.ago,
           updated_at: 12.hours.ago
         )
 
         # 未完了のアイテム（削除対象外）
         pending_item = create(:shopping_list_item,
           shopping_list: shopping_list,
-          status: 'pending',
+          is_checked: false,
           updated_at: 3.days.ago
         )
 

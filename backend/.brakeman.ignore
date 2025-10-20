@@ -1,0 +1,66 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "099bac572591434ba5b232e45cd2813110023c26806b58a00ac79a7f744b221f",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/ingredient_matcher.rb",
+      "line": 181,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Ingredient.find_by(\"#{sql_normalize_column(\"name\")} = ?\", normalized_name)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "IngredientMatcher",
+        "method": "find_exact_match"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "sql_normalize_columnメソッドはprivateメソッドで、引数は常にハードコードされた文字列リテラル（'name'）です。ユーザー入力は一切含まれておらず、実際のSQLインジェクションのリスクはありません。プレースホルダー（?）を使用してnormalized_nameは適切にエスケープされています。"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "70c263ba934e66ab76ff2ce99e93c2a35255b453463d5f8a59ce03b35887edf9",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/ingredient_matcher.rb",
+      "line": 188,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Ingredient.where(\"#{sql_normalize_column(\"name\")} LIKE ?\", \"#{normalized_name}%\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "IngredientMatcher",
+        "method": "find_forward_match"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "sql_normalize_columnメソッドはprivateメソッドで、引数は常にハードコードされた文字列リテラル（'name'）です。ユーザー入力は一切含まれておらず、実際のSQLインジェクションのリスクはありません。プレースホルダー（?）を使用してnormalized_nameは適切にエスケープされています。"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "aa30ea24d127f180e555251b01eaf80a582fec6e1d55a02a4e40c30c14f9ec05",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/ingredient_matcher.rb",
+      "line": 213,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Ingredient.where(\"#{sql_normalize_column(\"name\")} LIKE ?\", \"%#{normalized_name}%\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "IngredientMatcher",
+        "method": "find_partial_match"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "sql_normalize_columnメソッドはprivateメソッドで、引数は常にハードコードされた文字列リテラル（'name'）です。ユーザー入力は一切含まれておらず、実際のSQLインジェクションのリスクはありません。プレースホルダー（?）を使用してnormalized_nameは適切にエスケープされています。"
+    }
+  ],
+  "updated": "2025-10-20 00:00:00 +0000",
+  "brakeman_version": "6.2.2"
+}
