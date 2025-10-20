@@ -9,10 +9,10 @@ RSpec.describe ImageRecognitionService, type: :service do
   # Vision APIのモックレスポンス
   let(:mock_vision_result) do
     GoogleCloudVisionResult.new(
-      [ { name: "tomato", score: 0.95 } ], # labels
-      [ { name: "vegetable", score: 0.88 } ], # objects
-      { full_text: "2024/12/31", blocks: [] }, # texts
-      [ { name: "トマト", confidence: 0.95 }, { name: "玉ねぎ", confidence: 0.88 } ] # ingredients
+      labels: [ { name: "tomato", score: 0.95 } ],
+      objects: [ { name: "vegetable", score: 0.88 } ],
+      texts: { full_text: "2024/12/31", blocks: [] },
+      ingredients: [ { name: "トマト", confidence: 0.95 }, { name: "玉ねぎ", confidence: 0.88 } ]
     )
   end
 
@@ -120,8 +120,10 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: image_content) }
       let(:error_vision_result) do
         GoogleCloudVisionResult.new(
-          [], [], {},
-          [ { name: "エラー", confidence: 0.0, error: "画像解析に失敗しました" } ]
+          labels: [],
+          objects: [],
+          texts: {},
+          ingredients: [ { name: "エラー", confidence: 0.0, error: "画像解析に失敗しました" } ]
         )
       end
 
