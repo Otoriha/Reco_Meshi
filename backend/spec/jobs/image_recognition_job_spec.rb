@@ -222,18 +222,14 @@ RSpec.describe ImageRecognitionJob, type: :job do
       before do
         allow(mock_line_service).to receive(:get_message_content).and_return(test_image_data)
         allow(mock_vision_service).to receive(:analyze_image).and_raise(StandardError.new('Unexpected error'))
-        allow(mock_line_service).to receive(:push_message)
       end
 
-      it 'sends generic error message and re-raises error' do
+      it 're-raises error for Sidekiq retry mechanism' do
         job = described_class.new
 
-        expect(mock_line_service).to receive(:create_text_message) do |text|
-          expect(text).to include('❌ 画像解析中にエラーが発生しました')
-          { type: 'text', text: text }
-        end
-
-        expect { job.perform(line_user_id, message_id) }.to raise_error(StandardError)
+        # エラーが再raiseされることを確認（Sidekiqリトライのため）
+        # 通知は sidekiq_retries_exhausted コールバックで送られる
+        expect { job.perform(line_user_id, message_id) }.to raise_error(StandardError, 'Unexpected error')
       end
     end
   end

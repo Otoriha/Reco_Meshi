@@ -96,6 +96,9 @@ RSpec.describe LineTokenExchangeService do
       before do
         allow(ENV).to receive(:[]).and_call_original
         allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_CHANNEL_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_SECRET').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_CHANNEL_SECRET').and_return(nil)
       end
 
       it 'ArgumentErrorを発生させること' do
