@@ -9,10 +9,10 @@ RSpec.describe ImageRecognitionService, type: :service do
   # Vision APIのモックレスポンス
   let(:mock_vision_result) do
     GoogleCloudVisionResult.new(
-      [ { name: "tomato", score: 0.95 } ], # labels
-      [ { name: "vegetable", score: 0.88 } ], # objects
-      { full_text: "2024/12/31", blocks: [] }, # texts
-      [ { name: "トマト", confidence: 0.95 }, { name: "玉ねぎ", confidence: 0.88 } ] # ingredients
+      labels: [ { name: "tomato", score: 0.95 } ],
+      objects: [ { name: "vegetable", score: 0.88 } ],
+      texts: { full_text: "2024/12/31", blocks: [] },
+      ingredients: [ { name: "トマト", confidence: 0.95 }, { name: "玉ねぎ", confidence: 0.88 } ]
     )
   end
 
@@ -120,8 +120,10 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: image_content) }
       let(:error_vision_result) do
         GoogleCloudVisionResult.new(
-          [], [], {},
-          [ { name: "エラー", confidence: 0.0, error: "画像解析に失敗しました" } ]
+          labels: [],
+          objects: [],
+          texts: {},
+          ingredients: [ { name: "エラー", confidence: 0.0, error: "画像解析に失敗しました" } ]
         )
       end
 
@@ -149,6 +151,10 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: large_content) }
 
       before do
+        # GoogleCloudVisionServiceをモック化
+        mock_vision_service = instance_double(GoogleCloudVisionService)
+        allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
+
         mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
@@ -166,6 +172,10 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: "") }
 
       before do
+        # GoogleCloudVisionServiceをモック化
+        mock_vision_service = instance_double(GoogleCloudVisionService)
+        allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
+
         mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
@@ -225,13 +235,15 @@ RSpec.describe ImageRecognitionService, type: :service do
       let(:service) { described_class.new(user: user, image_source: image_content) }
 
       before do
-        # initializeでGoogleCloudVisionService.newが呼ばれる前にFridgeImageをモック化
+        # GoogleCloudVisionServiceをモック化し、analyze_imageでエラーを発生させる
+        mock_vision_service = instance_double(GoogleCloudVisionService)
+        allow(GoogleCloudVisionService).to receive(:new).and_return(mock_vision_service)
+        allow(mock_vision_service).to receive(:analyze_image).and_raise(StandardError, "Unexpected error")
+
+        # FridgeImageをモック化
         mock_fridge_image = instance_double(FridgeImage, id: 123, user: user, user_id: user.id)
         allow(FridgeImage).to receive(:create!).and_return(mock_fridge_image)
         allow(mock_fridge_image).to receive(:fail_with_error!)
-
-        # recognize_and_convertメソッド内でエラーが発生するようにモック化
-        allow_any_instance_of(GoogleCloudVisionService).to receive(:analyze_image).and_raise(StandardError, "Unexpected error")
       end
 
       it "一般的なエラーメッセージを返す" do

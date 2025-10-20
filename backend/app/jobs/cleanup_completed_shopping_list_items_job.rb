@@ -7,9 +7,14 @@ class CleanupCompletedShoppingListItemsJob < ApplicationJob
   def perform
     cutoff_date = CLEANUP_DAYS.days.ago
 
+    # checked_atを優先して判定し、nullの場合はupdated_atにフォールバック
     deleted_count = ShoppingListItem.joins(:shopping_list)
-      .where(status: "completed")
-      .where("shopping_list_items.updated_at < ?", cutoff_date)
+      .where(is_checked: true)
+      .where(
+        "shopping_list_items.checked_at < ? OR " \
+        "(shopping_list_items.checked_at IS NULL AND shopping_list_items.updated_at < ?)",
+        cutoff_date, cutoff_date
+      )
       .delete_all
 
     Rails.logger.info "Cleaned up #{deleted_count} completed shopping list items older than #{CLEANUP_DAYS} day"

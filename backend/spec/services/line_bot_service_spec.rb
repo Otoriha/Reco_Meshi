@@ -1,4 +1,5 @@
 require 'rails_helper'
+require 'webmock/rspec'
 
 RSpec.describe LineBotService, type: :service do
   let(:service) { described_class.new }
@@ -59,6 +60,20 @@ RSpec.describe LineBotService, type: :service do
     let(:text_message) { { type: 'text', text: 'Hello' } }
 
     it 'converts message and sends reply without error' do
+      # LINE APIへのHTTPリクエストをスタブ（正しいレスポンス形式）
+      stub_request(:post, 'https://api.line.me/v2/bot/message/reply')
+        .with(
+          headers: {
+            'Authorization' => "Bearer #{line_channel_access_token}",
+            'Content-Type' => 'application/json'
+          }
+        )
+        .to_return(
+          status: 200,
+          body: { sentMessages: [ { id: 'test-message-id' } ] }.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        )
+
       # V2テンプレートメッセージのconvert_to_v2_messageが正常に動作するかをテスト
       expect { service.reply_message(reply_token, text_message) }.not_to raise_error
     end

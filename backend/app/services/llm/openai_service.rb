@@ -26,7 +26,7 @@ module Llm
       }.compact
 
       # GPT-5系モデルの場合はmax_completion_tokensを使用し、推論関連パラメータを付与
-      # temperatureは1（デフォルト）のみサポートのため除外
+      # temperatureはデフォルト値1のみサポートのため除外
       if model.start_with?("gpt-5")
         params[:max_completion_tokens] = max_tokens
         params[:reasoning_effort] = config_value(:reasoning_effort)

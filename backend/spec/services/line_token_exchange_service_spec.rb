@@ -96,12 +96,15 @@ RSpec.describe LineTokenExchangeService do
       before do
         allow(ENV).to receive(:[]).and_call_original
         allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_CHANNEL_ID').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_LOGIN_CHANNEL_SECRET').and_return(nil)
+        allow(ENV).to receive(:[]).with('LINE_CHANNEL_SECRET').and_return(nil)
       end
 
       it 'ArgumentErrorを発生させること' do
         expect {
           service.exchange_code_for_token(code: code, redirect_uri: redirect_uri)
-        }.to raise_error(ArgumentError, 'LINE_LOGIN_CHANNEL_ID and LINE_LOGIN_CHANNEL_SECRET must be set')
+        }.to raise_error(ArgumentError, 'LINE_LOGIN_CHANNEL_ID (or LINE_CHANNEL_ID) and LINE_LOGIN_CHANNEL_SECRET (or LINE_CHANNEL_SECRET) must be set')
       end
     end
   end

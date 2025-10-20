@@ -119,6 +119,12 @@ class Api::V1::RecipeHistoriesController < ApplicationController
       end
     end
 
+    # 評価済みフィルタ（ratingがnullでないもの）
+    if params[:rated_only].present?
+      is_rated_only = ActiveModel::Type::Boolean.new.cast(params[:rated_only])
+      histories = histories.where.not(rating: nil) if is_rated_only
+    end
+
     histories
   end
 
