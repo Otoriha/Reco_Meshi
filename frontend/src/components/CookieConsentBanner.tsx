@@ -1,34 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 const CookieConsentBanner: React.FC = () => {
-  const [showBanner, setShowBanner] = useState(false);
+  const { consentStatus, updateConsent } = useAnalytics();
 
-  useEffect(() => {
-    const consent = localStorage.getItem('cookie_consent_analytics');
-
-    // 未設定の場合のみバナーを表示
-    if (consent === null) {
-      setShowBanner(true);
-    }
-  }, []);
+  // consentStatusが'pending'の場合のみバナーを表示
+  // 設定ページで同意状態を変更した場合も自動的に反映される
+  if (consentStatus !== 'pending') {
+    return null;
+  }
 
   const handleAccept = () => {
-    localStorage.setItem('cookie_consent_analytics', 'granted');
-    setShowBanner(false);
-    // 実際の初期化はAnalyticsProviderが担当
-    window.dispatchEvent(new Event('cookie-consent-updated'));
+    updateConsent('granted');
   };
 
   const handleReject = () => {
-    localStorage.setItem('cookie_consent_analytics', 'denied');
-    setShowBanner(false);
-    // 実際の処理はAnalyticsProviderが担当
-    window.dispatchEvent(new Event('cookie-consent-updated'));
-  };
-
-  if (!showBanner) {
-    return null;
+    updateConsent('denied');
   }
 
   return (
