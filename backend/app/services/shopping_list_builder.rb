@@ -84,7 +84,6 @@ class ShoppingListBuilder
         final_unit = "適量"
 
         if require_exact_amount
-          # レシピ単位を在庫単位（基準単位）に変換
           converted_required_amount = convert_to_base_unit(required_amount, recipe_unit, ingredient_unit)
           available_amount = user_inventory[ingredient.id] || 0
 
@@ -92,7 +91,7 @@ class ShoppingListBuilder
             # 変換失敗時は在庫チェックをスキップしてレシピ量をそのまま使用
             log_conversion_warning(ingredient.name, recipe_unit, ingredient_unit)
             shortage_amount = required_amount
-            # 変換失敗時の単位決定：レシピ単位が許可されていれば使用、なければ在庫単位にフォールバック
+            # 変換失敗時の単位決定：resolve_unitでフォールバック
             final_unit = resolve_unit(recipe_unit, ingredient_unit)
           else
             # 在庫単位で不足量を計算
