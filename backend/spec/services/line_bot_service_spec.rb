@@ -70,7 +70,7 @@ RSpec.describe LineBotService, type: :service do
         )
         .to_return(
           status: 200,
-          body: { sentMessages: [{ id: 'test-message-id' }] }.to_json,
+          body: { sentMessages: [ { id: 'test-message-id' } ] }.to_json,
           headers: { 'Content-Type' => 'application/json' }
         )
 
