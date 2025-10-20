@@ -26,9 +26,9 @@ module Llm
       }.compact
 
       # GPT-5系モデルの場合はmax_completion_tokensを使用し、推論関連パラメータを付与
-      # temperatureは1（デフォルト）のみサポートのため除外
       if model.start_with?("gpt-5")
         params[:max_completion_tokens] = max_tokens
+        params[:temperature] = temperature
         params[:reasoning_effort] = config_value(:reasoning_effort)
         params[:verbosity] = config_value(:verbosity)
         Rails.logger.warn("[LLM] Using GPT-5 model; applying reasoning_effort/verbosity") if defined?(Rails)
