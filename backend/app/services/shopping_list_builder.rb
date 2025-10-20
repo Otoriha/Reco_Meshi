@@ -104,12 +104,32 @@ class ShoppingListBuilder
             # 在庫単位で不足量を計算
             shortage = converted_required_amount - available_amount
             if shortage > 0
-              shortage_amount = shortage
-              # 在庫単位を使用（変換成功時は常に在庫単位を使う）
-              final_unit = if ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
-                ingredient_unit
+              # 不足量を在庫単位からレシピ単位に戻す
+              shortage_in_recipe_unit = convert_from_base_unit(shortage, ingredient_unit, recipe_unit)
+
+              if shortage_in_recipe_unit.nil?
+                # 逆変換に失敗した場合は在庫単位をそのまま使用
+                Rails.logger.warn({
+                  event: "reverse_unit_conversion_failed",
+                  ingredient_name: ingredient.name,
+                  from_unit: ingredient_unit,
+                  to_unit: recipe_unit,
+                  message: "不足量の単位変換に失敗しました。在庫単位（#{ingredient_unit}）を使用します。"
+                }.to_json)
+                shortage_amount = shortage
+                final_unit = if ingredient_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(ingredient_unit)
+                  ingredient_unit
+                else
+                  "個"
+                end
               else
-                "個"
+                # 変換成功：レシピ単位を使用
+                shortage_amount = shortage_in_recipe_unit
+                final_unit = if recipe_unit.present? && ShoppingListItem::ALLOWED_UNITS.include?(recipe_unit)
+                  recipe_unit
+                else
+                  "個"
+                end
               end
             end
           end
@@ -203,6 +223,13 @@ class ShoppingListBuilder
     return amount if recipe_unit.blank? || recipe_unit == ingredient_unit
 
     UnitConverterService.convert(amount, from: recipe_unit, to: ingredient_unit)
+  end
+
+  # 食材マスター単位からレシピ単位に逆変換
+  def convert_from_base_unit(amount, ingredient_unit, recipe_unit)
+    return amount if ingredient_unit.blank? || ingredient_unit == recipe_unit
+
+    UnitConverterService.convert(amount, from: ingredient_unit, to: recipe_unit)
   end
 
   # 単位変換の警告ログを出力
