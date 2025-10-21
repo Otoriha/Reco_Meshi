@@ -17,6 +17,8 @@ export interface UserSettings {
   recipe_difficulty: 'easy' | 'medium' | 'hard';
   cooking_time: number;
   shopping_frequency: string;
+  inventory_reminder_enabled: boolean;
+  inventory_reminder_time: string; // HH:MM形式
 }
 
 export interface UpdateProfileData {
@@ -28,6 +30,8 @@ export interface UpdateSettingsData {
   recipe_difficulty?: 'easy' | 'medium' | 'hard';
   cooking_time?: number;
   shopping_frequency?: string;
+  inventory_reminder_enabled?: boolean;
+  inventory_reminder_time?: string;
 }
 
 export interface ChangePasswordData {
