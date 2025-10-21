@@ -30,7 +30,7 @@ class Api::V1::Users::SettingsController < ApplicationController
     render json: {
       success: false,
       error: {
-        code: 'INVALID_TIME_FORMAT',
+        code: "INVALID_TIME_FORMAT",
         message: e.message
       }
     }, status: :unprocessable_entity
@@ -51,7 +51,7 @@ class Api::V1::Users::SettingsController < ApplicationController
 
   def format_time(time_obj)
     return nil if time_obj.blank?
-    time_obj.strftime('%H:%M')
+    time_obj.strftime("%H:%M")
   end
 
   def parse_notification_params(params)
@@ -64,7 +64,7 @@ class Api::V1::Users::SettingsController < ApplicationController
 
       # 厳密なフォーマット検証: HH:MM形式（09:00はOK、9:00はNG）
       unless time_string.match?(/\A([01][0-9]|2[0-3]):[0-5][0-9]\z/)
-        raise InvalidTimeFormatError, '時刻はHH:MM形式で入力してください（例: 09:00）'
+        raise InvalidTimeFormatError, "時刻はHH:MM形式で入力してください（例: 09:00）"
       end
 
       # Time型に変換
@@ -72,7 +72,7 @@ class Api::V1::Users::SettingsController < ApplicationController
 
       # パース失敗時（nilの場合）
       if parsed_time.nil?
-        raise InvalidTimeFormatError, '時刻の解析に失敗しました'
+        raise InvalidTimeFormatError, "時刻の解析に失敗しました"
       end
 
       parsed[:inventory_reminder_time] = parsed_time
