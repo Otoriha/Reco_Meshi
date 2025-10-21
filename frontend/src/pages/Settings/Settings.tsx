@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan, FaShieldAlt } from 'react-icons/fa';
+import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan, FaShieldAlt, FaBell } from 'react-icons/fa';
 import { getUserProfile, getUserSettings, updateUserProfile, updateUserSettings } from '../../api/users';
 import type { UserProfile, UserSettings } from '../../api/users';
 import { DIFFICULTY_OPTIONS, COOKING_TIME_OPTIONS, SHOPPING_FREQUENCY_OPTIONS } from '../../constants/settings';
@@ -17,7 +17,7 @@ import EditDislikedModal from '../../components/settings/EditDislikedModal';
 import { generateLineNonce } from '../../api/auth';
 import { generateState } from '../../utils/crypto';
 
-type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked' | 'cookie';
+type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked' | 'cookie' | 'notification';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
@@ -40,6 +40,7 @@ const Settings: React.FC = () => {
   const menuItems = [
     { id: 'basic', label: '基本設定', icon: FaCog },
     { id: 'profile', label: 'プロフィール', icon: FaUser },
+    { id: 'notification', label: '通知設定', icon: FaBell },
     { id: 'allergy', label: 'アレルギー食材', icon: FaExclamationTriangle },
     { id: 'disliked', label: '苦手な食材', icon: FaBan },
     { id: 'cookie', label: 'クッキー設定', icon: FaShieldAlt },
@@ -107,10 +108,26 @@ const Settings: React.FC = () => {
       const response = await updateUserSettings(settings);
       showToast(response.message, 'success');
     } catch (error) {
-      const err = error as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
+      const err = error as {
+        response?: {
+          status?: number;
+          data?: {
+            errors?: Record<string, string[]>;
+            error?: { code: string; message: string };
+          }
+        }
+      };
       if (err.response?.status === 422) {
-        setErrors(err.response.data?.errors || {});
-        showToast('入力内容を確認してください', 'error');
+        // バリデーションエラー
+        if (err.response.data?.errors) {
+          setErrors(err.response.data.errors);
+        }
+        // カスタムエラー（INVALID_TIME_FORMAT）
+        if (err.response.data?.error?.code === 'INVALID_TIME_FORMAT') {
+          showToast(err.response.data.error.message, 'error');
+        } else {
+          showToast('入力内容を確認してください', 'error');
+        }
       } else if (err.response?.status === 401) {
         showToast('セッションが切れました。再度ログインしてください', 'error');
         logout();
@@ -582,6 +599,86 @@ const Settings: React.FC = () => {
     </div>
   );
 
+  const renderNotificationSettings = () => (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">通知設定</h2>
+      <p className="text-gray-600 mb-6">在庫確認のリマインダー通知を設定できます</p>
+
+      {loading.settings ? (
+        <div className="text-center py-8">読み込み中...</div>
+      ) : settings && (
+        <div className="space-y-6">
+          {/* 通知有効/無効トグル */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-medium text-gray-900">在庫確認リマインダー</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  冷蔵庫の食材を定期的に確認するリマインダーを受け取ります
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={settings.inventory_reminder_enabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setSettings({
+                      ...settings,
+                      inventory_reminder_enabled: enabled,
+                      // トグルON時に時刻が空ならデフォルト値を設定
+                      inventory_reminder_time: enabled && !settings.inventory_reminder_time
+                        ? '09:00'
+                        : settings.inventory_reminder_time
+                    });
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            {/* 通知時刻設定（有効時のみ表示） */}
+            {settings.inventory_reminder_enabled && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  通知時刻
+                </label>
+                <input
+                  type="time"
+                  value={settings.inventory_reminder_time ?? ''}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    inventory_reminder_time: e.target.value
+                  })}
+                  className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                {errors.inventory_reminder_time && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.inventory_reminder_time.join(', ')}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  毎日この時刻に通知が送信されます（HH:MM形式）
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 注意事項 */}
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">注意事項</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• 通知はLINEアカウントと連携している場合のみ受け取れます</li>
+              <li>• 時刻は日本時間（JST）で設定されます</li>
+              <li>• 通知の送信には数分の遅延が発生する場合があります</li>
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const renderCookieSettings = () => {
     const handleGrantConsent = () => {
       updateConsent('granted');
@@ -659,6 +756,8 @@ const Settings: React.FC = () => {
         return renderBasicSettings();
       case 'profile':
         return renderProfile();
+      case 'notification':
+        return renderNotificationSettings();
       case 'allergy':
         return renderAllergyIngredients();
       case 'disliked':
@@ -675,7 +774,7 @@ const Settings: React.FC = () => {
   const handleSave = () => {
     if (activeTab === 'profile') {
       handleProfileSave();
-    } else if (activeTab === 'basic') {
+    } else if (activeTab === 'basic' || activeTab === 'notification') {
       handleSettingsSave();
     }
   };
