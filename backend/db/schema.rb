@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_10_082038) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_21_062802) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -155,6 +155,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_10_082038) do
     t.string "shopping_frequency", default: "2-3日に1回", comment: "買い物の頻度"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "inventory_reminder_enabled", default: false, null: false, comment: "在庫確認リマインダーの有効/無効"
+    t.time "inventory_reminder_time", default: "2000-01-01 09:00:00", null: false, comment: "通知送信時刻（JST、HH:MM:SS形式）"
     t.index ["user_id"], name: "index_settings_on_user_id", unique: true
   end
 
