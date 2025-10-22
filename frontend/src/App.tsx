@@ -83,6 +83,7 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth/line/callback" element={<LineCallback />} />
+            <Route path="/settings/email-confirmation" element={<EmailConfirmationSuccess />} />
 
             {/* 保護ルート */}
             <Route element={<ProtectedRoute />}>
@@ -95,7 +96,6 @@ function AppContent() {
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/change-email" element={<ChangeEmail />} />
-              <Route path="/settings/email-confirmation-success" element={<EmailConfirmationSuccess />} />
             </Route>
 
             {/* 404ルート */}

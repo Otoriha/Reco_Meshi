@@ -60,9 +60,8 @@ const EmailConfirmationSuccess: React.FC = () => {
     if (locationState?.unconfirmedEmail) {
       // メールアドレス変更ページから遷移した場合
       setUnconfirmedEmail(locationState.unconfirmedEmail);
-    }
-
-    if (token) {
+      setState('success');
+    } else if (token) {
       // メール内のリンクをクリックして遷移した場合
       handleConfirmation(token);
     }

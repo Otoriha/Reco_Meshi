@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { changeEmail } from '../../api/users';
+import { changeEmail, getUserProfile } from '../../api/users';
+import type { UserProfile } from '../../api/users';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -9,12 +10,36 @@ const ChangeEmail: React.FC = () => {
   const { showToast } = useToast();
   const { logout } = useAuth();
 
+  const [currentEmail, setCurrentEmail] = useState<string>('');
   const [formData, setFormData] = useState({
     email: '',
     currentPassword: '',
   });
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
+
+  // ページ読み込み時にユーザープロフィールを取得
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile: UserProfile = await getUserProfile();
+        setCurrentEmail(profile.email);
+      } catch (error) {
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 401) {
+          showToast('セッションが切れました。再度ログインしてください', 'error');
+          logout();
+        } else {
+          showToast('プロフィール取得に失敗しました', 'error');
+        }
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [logout, showToast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,6 +62,14 @@ const ChangeEmail: React.FC = () => {
     setLoading(true);
     setErrors({});
 
+    // 同一メール確認
+    if (formData.email === currentEmail) {
+      setErrors({ email: ['新しいメールアドレスが現在のアドレスと同じです'] });
+      showToast('新しいメールアドレスを入力してください', 'error');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await changeEmail({
         email: formData.email,
@@ -46,7 +79,7 @@ const ChangeEmail: React.FC = () => {
       showToast(response.message, 'success');
 
       // メールアドレス変更成功画面へナビゲート
-      navigate('/settings/email-confirmation-success', {
+      navigate('/settings/email-confirmation', {
         state: { unconfirmedEmail: response.unconfirmedEmail },
       });
     } catch (error) {
@@ -71,12 +104,35 @@ const ChangeEmail: React.FC = () => {
     }
   };
 
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-lg shadow p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">メールアドレスを変更</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="currentEmail" className="block text-sm font-medium text-gray-700 mb-2">
+              現在のメールアドレス
+            </label>
+            <input
+              type="email"
+              id="currentEmail"
+              value={currentEmail}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+            />
+          </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               新しいメールアドレス

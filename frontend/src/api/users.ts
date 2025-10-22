@@ -95,12 +95,11 @@ export const changeEmail = async (data: ChangeEmailData): Promise<ChangeEmailRes
 
 // メールアドレス確認API
 export const confirmEmail = async (confirmationToken: string): Promise<ConfirmEmailResponse> => {
-  const response = await apiClient.get('/auth/confirmation', {
+  const response = await apiClient.get<{ message: string; email: string }>('/auth/confirmation', {
     params: {
       confirmation_token: confirmationToken,
     },
   });
-  // snake_case → camelCase 変換
   return {
     message: response.data.message,
     email: response.data.email,

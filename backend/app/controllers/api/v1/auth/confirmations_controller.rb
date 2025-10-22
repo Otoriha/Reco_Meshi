@@ -10,7 +10,8 @@ class Api::V1::Auth::ConfirmationsController < Devise::ConfirmationsController
 
     if resource.errors.empty?
       render json: {
-        message: "メールアドレスを確認しました。ログインしてください"
+        message: "メールアドレスを確認しました。ログインしてください",
+        email: resource.email
       }, status: :ok
     else
       render json: {
