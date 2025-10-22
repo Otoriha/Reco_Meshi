@@ -1,0 +1,10 @@
+# Sidekiq Scheduler設定
+# ユーザーが設定した任意の時刻に在庫確認リマインダーを送信
+# 1分ごとにチェックし、現在時刻に設定しているユーザーを抽出して通知
+
+check_inventory_reminders:
+  cron: '* * * * *'  # 毎分実行（ユーザー設定時刻に即座に対応）
+  class: CheckInventoryRemindersJob
+  queue: default
+  description: '在庫確認リマインダーチェック'
+  timezone: 'Asia/Tokyo'  # JSTで実行

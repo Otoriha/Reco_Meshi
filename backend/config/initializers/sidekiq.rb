@@ -18,6 +18,16 @@ Sidekiq.configure_server do |config|
   else
     config.queues = %w[default mailers]
   end
+
+  # スケジュールファイルの読み込み（sidekiq-scheduler）
+  config.on(:startup) do
+    schedule_file = Rails.root.join("config", "schedule.yml")
+    if File.exist?(schedule_file)
+      Sidekiq.schedule = YAML.load_file(schedule_file)
+      Sidekiq::Scheduler.reload_schedule!
+      Rails.logger.info "Sidekiq scheduler loaded: #{schedule_file}"
+    end
+  end
 end
 
 Sidekiq.configure_client do |config|
