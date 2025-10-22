@@ -21,6 +21,9 @@ gem "bcrypt", "~> 3.1.7"
 gem "devise", "~> 4.9"
 gem "devise-jwt", "~> 0.12.0"
 
+# Email: SendGrid SMTP integration (and future REST API use)
+gem "sendgrid-ruby", "~> 6.0"
+
 # JSON Serialization
 gem "jsonapi-serializer"
 
@@ -80,6 +83,8 @@ end
 
 group :development do
   gem "pry-rails"
+  # Email preview for development environment
+  gem "letter_opener_web", "~> 2.0"
 end
 
 # Pagination

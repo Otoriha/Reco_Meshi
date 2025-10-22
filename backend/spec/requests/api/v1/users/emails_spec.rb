@@ -23,14 +23,24 @@ RSpec.describe "Api::V1::Users::Emails", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
-    it "有効なパラメータでメールアドレスを変更する" do
+    it "有効なパラメータでメールアドレスを変更する（確認待ち状態）" do
       headers = auth_header_for(user)
-      post "/api/v1/users/change_email", params: valid_params, headers: headers, as: :json
+      original_email = user.email
+
+      expect {
+        post "/api/v1/users/change_email", params: valid_params, headers: headers, as: :json
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
+
       expect(response).to have_http_status(:ok)
       body = JSON.parse(response.body)
-      expect(body["message"]).to eq("メールアドレスを変更しました。確認メールを送信しました")
+      expect(body["message"]).to include("確認メールを送信しました")
+      expect(body["unconfirmed_email"]).to eq("newemail@example.com")
+
+      # reconfirmable: email remains unchanged until confirmation
       user.reload
-      expect(user.email).to eq("newemail@example.com")
+      expect(user.email).to eq(original_email)
+      expect(user.unconfirmed_email).to eq("newemail@example.com")
+      expect(user.confirmation_token).not_to be_nil
     end
 
     it "current_passwordが不一致の場合401を返す" do

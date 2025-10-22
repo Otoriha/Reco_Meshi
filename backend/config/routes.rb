@@ -17,7 +17,9 @@ Rails.application.routes.draw do
       devise_for :users,
         controllers: {
           sessions: "api/v1/users/sessions",
-          registrations: "api/v1/users/registrations"
+          registrations: "api/v1/users/registrations",
+          passwords: "api/v1/auth/passwords",
+          confirmations: "api/v1/auth/confirmations"
         },
         path: "auth",
         path_names: {
@@ -82,6 +84,11 @@ Rails.application.routes.draw do
         post "change_email", to: "emails#create"
       end
     end
+  end
+
+  # letter_opener_web for development email preview
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
   end
 
   # Defines the root path route ("/")

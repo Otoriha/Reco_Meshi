@@ -1,0 +1,27 @@
+<p><%= @email %>様</p>
+
+<p>レコめしへようこそ!</p>
+
+<p>以下のリンクをクリックして、メールアドレスを確認してください：</p>
+
+<% confirmation_url = mailer.build_email_url('/confirmation', 'confirmation_token', @token) %>
+<p>
+  <%= link_to "メールアドレスを確認する", confirmation_url %>
+</p>
+
+<p>このリンクは24時間有効です。</p>
+
+<hr />
+
+<p>
+  このリンクをクリックできない場合は、以下のURLをブラウザに貼り付けてください：<br>
+  <%= confirmation_url %>
+</p>
+
+<p>
+  心当たりがない場合は、このメールを無視してください。
+</p>
+
+<p>
+  レコめしチーム
+</p>

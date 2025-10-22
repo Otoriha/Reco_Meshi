@@ -39,10 +39,13 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
 
   # Devise mailer configuration
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = { address: "localhost", port: 1025 }
-  # For development, you can use letter_opener gem or mailcatcher
+  config.action_mailer.default_url_options = {
+    host: ENV.fetch("MAILER_HOST", "localhost:3001"),
+    protocol: "http"
+  }
+  # Use letter_opener_web for development email preview
+  config.action_mailer.delivery_method = :letter_opener_web
+  config.action_mailer.perform_deliveries = true
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
