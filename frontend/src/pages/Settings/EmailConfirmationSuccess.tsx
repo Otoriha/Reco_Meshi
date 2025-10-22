@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmEmail } from '../../api/users';
 import { useToast } from '../../hooks/useToast';
@@ -16,22 +16,7 @@ const EmailConfirmationSuccess: React.FC = () => {
   const [confirmedEmail, setConfirmedEmail] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  useEffect(() => {
-    const token = searchParams.get('confirmation_token');
-    const locationState = location.state as { unconfirmedEmail?: string } | null;
-
-    if (locationState?.unconfirmedEmail) {
-      // メールアドレス変更ページから遷移した場合
-      setUnconfirmedEmail(locationState.unconfirmedEmail);
-    }
-
-    if (token) {
-      // メール内のリンクをクリックして遷移した場合
-      handleConfirmation(token);
-    }
-  }, [searchParams, location]);
-
-  const handleConfirmation = async (token: string) => {
+  const handleConfirmation = useCallback(async (token: string) => {
     setState('loading');
 
     try {
@@ -48,21 +33,40 @@ const EmailConfirmationSuccess: React.FC = () => {
         }
       };
 
+      let errorMsg = 'メールアドレスの確認に失敗しました';
+
       if (err.response?.status === 401) {
-        setErrorMessage('セッションが切れました。再度ログインしてください');
+        errorMsg = 'セッションが切れました。再度ログインしてください';
+        setErrorMessage(errorMsg);
         logout();
       } else if (err.response?.status === 422) {
-        setErrorMessage(
+        errorMsg =
           err.response.data?.message ||
-          'トークンが無効またはメールアドレスが既に確認されています'
-        );
+          'トークンが無効またはメールアドレスが既に確認されています';
+        setErrorMessage(errorMsg);
       } else {
-        setErrorMessage('メールアドレスの確認に失敗しました');
+        setErrorMessage(errorMsg);
       }
+
       setState('error');
-      showToast(errorMessage, 'error');
+      showToast(errorMsg, 'error');
     }
-  };
+  }, [showToast, logout]);
+
+  useEffect(() => {
+    const token = searchParams.get('confirmation_token');
+    const locationState = location.state as { unconfirmedEmail?: string } | null;
+
+    if (locationState?.unconfirmedEmail) {
+      // メールアドレス変更ページから遷移した場合
+      setUnconfirmedEmail(locationState.unconfirmedEmail);
+    }
+
+    if (token) {
+      // メール内のリンクをクリックして遷移した場合
+      handleConfirmation(token);
+    }
+  }, [searchParams, location, handleConfirmation]);
 
   if (state === 'loading') {
     return (
