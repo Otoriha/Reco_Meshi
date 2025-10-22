@@ -12,7 +12,7 @@ RSpec.describe CheckInventoryRemindersJob, type: :job do
       it '10:00に設定しているユーザーのジョブをエンキューする' do
         user = create(:user)
         create(:line_account, user: user, linked_at: Time.current)
-        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: Time.zone.parse("10:00"))
+        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: "10:00:00")
 
         expect(SendInventoryReminderJob).to receive(:perform_later).with(user.id)
 
@@ -22,7 +22,7 @@ RSpec.describe CheckInventoryRemindersJob, type: :job do
       it '22:00に設定しているユーザーは除外される' do
         user = create(:user)
         create(:line_account, user: user, linked_at: Time.current)
-        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: Time.zone.parse("22:00"))
+        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: "22:00:00")
 
         expect {
           described_class.new.perform
@@ -40,7 +40,7 @@ RSpec.describe CheckInventoryRemindersJob, type: :job do
       it '22:00に設定しているユーザーのジョブをエンキューする' do
         user = create(:user)
         create(:line_account, user: user, linked_at: Time.current)
-        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: Time.zone.parse("22:00"))
+        user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: "22:00:00")
 
         expect(SendInventoryReminderJob).to receive(:perform_later).with(user.id)
 
@@ -53,7 +53,7 @@ RSpec.describe CheckInventoryRemindersJob, type: :job do
 
       user = create(:user)
       create(:line_account, user: user, linked_at: nil)
-      user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: Time.zone.parse("10:00"))
+      user.setting.update!(inventory_reminder_enabled: true, inventory_reminder_time: "10:00:00")
 
       expect {
         described_class.new.perform
@@ -65,7 +65,7 @@ RSpec.describe CheckInventoryRemindersJob, type: :job do
 
       user = create(:user)
       create(:line_account, user: user, linked_at: Time.current)
-      user.setting.update!(inventory_reminder_enabled: false, inventory_reminder_time: Time.zone.parse("10:00"))
+      user.setting.update!(inventory_reminder_enabled: false, inventory_reminder_time: "10:00:00")
 
       expect {
         described_class.new.perform
