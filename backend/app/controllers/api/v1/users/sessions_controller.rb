@@ -12,19 +12,44 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
 
   # カスタム認証（devise-jwtのdispatchは sign_in 呼び出しで発火）
   def create
-    self.resource = User.find_for_database_authentication(email: sign_in_params[:email])
+    email = sign_in_params[:email]
+    password = sign_in_params[:password]
 
-    if resource&.valid_password?(sign_in_params[:password])
+    Rails.logger.debug "[SessionsController] Login attempt - Email: #{email}"
+
+    self.resource = User.find_for_database_authentication(email: email)
+
+    if resource.nil?
+      Rails.logger.warn "[SessionsController] User not found - Email: #{email}"
+      render json: { error: "メールアドレスまたはパスワードが正しくありません" }, status: :unauthorized
+      return
+    end
+
+    Rails.logger.debug "[SessionsController] User found - ID: #{resource.id}"
+
+    if resource.valid_password?(password)
+      Rails.logger.debug "[SessionsController] Password valid"
+
       # CONFIRMABLE_ENABLED が有効な場合は confirmed_at を厳密に確認
       if ENV["CONFIRMABLE_ENABLED"] == "true" && !resource.confirmed_at.present?
+        Rails.logger.warn "[SessionsController] Email not confirmed"
         render json: { error: "メールアドレスの確認が必要です" }, status: :unauthorized
         return
       end
 
-      # APIモードではセッションを書かない
-      sign_in(resource_name, resource, store: false)
-      respond_with(resource)
+      Rails.logger.debug "[SessionsController] Signing in user"
+      begin
+        # APIモードではセッションを書かない
+        sign_in(resource_name, resource, store: false)
+        Rails.logger.info "[SessionsController] Sign in successful"
+        respond_with(resource)
+      rescue => e
+        Rails.logger.error "[SessionsController] Sign in error: #{e.class} - #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
+        render json: { error: "ログイン処理中にエラーが発生しました" }, status: :internal_server_error
+      end
     else
+      Rails.logger.warn "[SessionsController] Password invalid"
       render json: { error: "メールアドレスまたはパスワードが正しくありません" }, status: :unauthorized
     end
   end
@@ -46,10 +71,20 @@ class Api::V1::Users::SessionsController < Devise::SessionsController
   end
 
   def respond_with(resource, _opts = {})
-    render json: {
-      status: { code: 200, message: "ログインしました。" },
-      data: UserSerializer.new(resource).serializable_hash[:data][:attributes]
-    }, status: :ok
+    begin
+      Rails.logger.info "[SessionsController] respond_with called for user #{resource.id}"
+      serialized = UserSerializer.new(resource).serializable_hash
+      Rails.logger.info "[SessionsController] Serialization successful"
+
+      render json: {
+        status: { code: 200, message: "ログインしました。" },
+        data: serialized[:data][:attributes]
+      }, status: :ok
+    rescue => e
+      Rails.logger.error "[SessionsController] respond_with error: #{e.class} - #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: { error: "レスポンス生成エラー: #{e.message}" }, status: :internal_server_error
+    end
   end
 
   def respond_to_on_destroy

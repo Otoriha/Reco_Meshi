@@ -36,7 +36,8 @@ class Api::V1::Users::RegistrationsController < Devise::RegistrationsController
       end
     else
       render json: {
-        status: { message: "登録できませんでした。入力内容をご確認ください。" }
+        status: { message: "登録できませんでした。入力内容をご確認ください。" },
+        errors: resource.errors.messages
       }, status: :unprocessable_entity
     end
   end
