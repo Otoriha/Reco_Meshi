@@ -11,6 +11,8 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
+import ChangeEmail from './pages/Settings/ChangeEmail'
+import EmailConfirmationSuccess from './pages/Settings/EmailConfirmationSuccess'
 import RecipeList from './pages/Recipes/RecipeList'
 import RecipeDetail from './pages/Recipes/RecipeDetail'
 import ShoppingLists from './pages/ShoppingLists/ShoppingLists'
@@ -92,6 +94,8 @@ function AppContent() {
               <Route path="/shopping-lists/:id" element={<ShoppingListDetail />} />
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/change-email" element={<ChangeEmail />} />
+              <Route path="/settings/email-confirmation-success" element={<EmailConfirmationSuccess />} />
             </Route>
 
             {/* 404ルート */}

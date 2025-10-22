@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaUser, FaCog, FaClipboard, FaExclamationTriangle, FaBan, FaShieldAlt, FaBell } from 'react-icons/fa';
 import { getUserProfile, getUserSettings, updateUserProfile, updateUserSettings } from '../../api/users';
 import type { UserProfile, UserSettings } from '../../api/users';
@@ -20,6 +21,7 @@ import { generateState } from '../../utils/crypto';
 type SettingsTab = 'basic' | 'profile' | 'account' | 'allergy' | 'disliked' | 'cookie' | 'notification';
 
 const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTab>('basic');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -576,25 +578,25 @@ const Settings: React.FC = () => {
 
         <div className="flex gap-4">
           <button
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled
           >
             パスワード変更
           </button>
           <button
+            onClick={() => navigate('/settings/change-email')}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-            disabled
           >
             メールアドレス変更
           </button>
           <button
-            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled
           >
             アカウント削除
           </button>
         </div>
-        <p className="text-xs text-gray-500 text-center">パスワード・メール変更機能は準備中です</p>
+        <p className="text-xs text-gray-500 text-center">パスワード・アカウント削除機能は準備中です</p>
       </div>
     </div>
   );
