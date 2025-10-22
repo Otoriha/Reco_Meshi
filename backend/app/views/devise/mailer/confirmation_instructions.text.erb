@@ -4,7 +4,7 @@
 
 以下のリンクをクリックして、メールアドレスを確認してください：
 
-<%= confirmation_url(@resource, confirmation_token: @token) %>
+<%= "#{root_url}confirmation?confirmation_token=#{@token}" %>
 
 このリンクは24時間有効です。
 
