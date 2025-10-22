@@ -20,7 +20,7 @@ RSpec.describe Devise::Mailer do
       mail = ActionMailer::Base.deliveries.last
 
       expect(mail.subject).to eq('Confirmation instructions')
-      expect(mail.to).to eq([user.email])
+      expect(mail.to).to eq([ user.email ])
       expect(mail.from).to include('noreply@recomeshi.com')
     end
 
@@ -68,7 +68,7 @@ RSpec.describe Devise::Mailer do
       mail = ActionMailer::Base.deliveries.last
 
       expect(mail.subject).to eq('Reset password instructions')
-      expect(mail.to).to eq([user.email])
+      expect(mail.to).to eq([ user.email ])
       expect(mail.from).to include('noreply@recomeshi.com')
     end
 

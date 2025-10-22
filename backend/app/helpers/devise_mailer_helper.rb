@@ -4,7 +4,7 @@ module DeviseMailerHelper
     protocol = Rails.application.config.action_mailer.default_url_options[:protocol]
 
     # Safely build URL avoiding double slashes
-    host_without_trailing_slash = host.gsub(%r{/$}, '')
+    host_without_trailing_slash = host.gsub(%r{/$}, "")
     "#{protocol}://#{host_without_trailing_slash}#{path}?#{token_param}=#{token}"
   end
 end

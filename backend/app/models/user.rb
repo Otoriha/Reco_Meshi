@@ -40,9 +40,9 @@ class User < ApplicationRecord
   def jwt_payload
     is_confirmed = if ENV["CONFIRMABLE_ENABLED"] == "true"
                      confirmed_at.present?
-                   else
+    else
                      true
-                   end
+    end
 
     { "email" => email, "confirmed" => is_confirmed }
   end
