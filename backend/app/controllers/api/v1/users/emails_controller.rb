@@ -9,13 +9,19 @@ class Api::V1::Users::EmailsController < ApplicationController
       return
     end
 
-    # Use Devise's reconfirmable mechanism by updating the email attribute
-    # This automatically sets unconfirmed_email and generates a confirmation token
+    # Use Devise's reconfirmable mechanism
+    # Skip confirmation if the new email matches the current email
+    if current_user.email == email_params[:email]
+      render json: { error: "新しいメールアドレスが現在のメールアドレスと同じです" }, status: :unprocessable_entity
+      return
+    end
+
+    # Update email to trigger reconfirmable flow
+    # This sets unconfirmed_email and generates confirmation token
     if current_user.update(email: email_params[:email])
       render json: {
         message: "確認メールを送信しました。新しいメールアドレスのメールをご確認ください",
-        unconfirmed_email: current_user.unconfirmed_email,
-        current_email: current_user.email
+        unconfirmed_email: current_user.unconfirmed_email
       }, status: :ok
     else
       render json: { errors: current_user.errors.messages }, status: :unprocessable_entity

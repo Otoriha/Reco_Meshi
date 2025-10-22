@@ -25,6 +25,8 @@ RSpec.describe "Api::V1::Users::Emails", type: :request do
 
     it "有効なパラメータでメールアドレスを変更する（確認待ち状態）" do
       headers = auth_header_for(user)
+      original_email = user.email
+
       expect {
         post "/api/v1/users/change_email", params: valid_params, headers: headers, as: :json
       }.to change { ActionMailer::Base.deliveries.count }.by(1)
@@ -33,11 +35,10 @@ RSpec.describe "Api::V1::Users::Emails", type: :request do
       body = JSON.parse(response.body)
       expect(body["message"]).to include("確認メールを送信しました")
       expect(body["unconfirmed_email"]).to eq("newemail@example.com")
-      expect(body["current_email"]).to eq(user.email)
 
-      # reconfirmable: email is still the old one until confirmation
+      # reconfirmable: email remains unchanged until confirmation
       user.reload
-      expect(user.email).to eq(user.email) # unchanged
+      expect(user.email).to eq(original_email)
       expect(user.unconfirmed_email).to eq("newemail@example.com")
       expect(user.confirmation_token).not_to be_nil
     end

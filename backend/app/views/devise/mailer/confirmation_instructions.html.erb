@@ -4,7 +4,7 @@
 
 <p>以下のリンクをクリックして、メールアドレスを確認してください：</p>
 
-<% confirmation_url = "#{root_url}confirmation?confirmation_token=#{@token}" %>
+<% confirmation_url = mailer.build_email_url('/confirmation', 'confirmation_token', @token) %>
 <p>
   <%= link_to "メールアドレスを確認する", confirmation_url %>
 </p>
