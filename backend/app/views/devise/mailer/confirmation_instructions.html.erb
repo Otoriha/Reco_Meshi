@@ -4,9 +4,15 @@
 
 <p>以下のリンクをクリックして、メールアドレスを確認してください：</p>
 
-<% confirmation_url = mailer.build_email_url('/settings/email-confirmation', 'confirmation_token', @token) %>
+<%
+  host = Rails.application.config.action_mailer.default_url_options[:host]
+  protocol = Rails.application.config.action_mailer.default_url_options[:protocol]
+  host_without_trailing_slash = host.gsub(%r{/$}, '')
+  confirmation_url = "#{protocol}://#{host_without_trailing_slash}/settings/email-confirmation?confirmation_token=#{@token}"
+%>
+
 <p>
-  <%= link_to "メールアドレスを確認する", confirmation_url %>
+  <a href="<%= confirmation_url %>">メールアドレスを確認する</a>
 </p>
 
 <p>このリンクは24時間有効です。</p>

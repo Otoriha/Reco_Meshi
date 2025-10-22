@@ -4,7 +4,13 @@
 
 以下のリンクをクリックして、メールアドレスを確認してください：
 
-<%= mailer.build_email_url('/settings/email-confirmation', 'confirmation_token', @token) %>
+<%
+  host = Rails.application.config.action_mailer.default_url_options[:host]
+  protocol = Rails.application.config.action_mailer.default_url_options[:protocol]
+  host_without_trailing_slash = host.gsub(%r{/$}, '')
+  confirmation_url = "#{protocol}://#{host_without_trailing_slash}/settings/email-confirmation?confirmation_token=#{@token}"
+%>
+<%= confirmation_url %>
 
 このリンクは24時間有効です。
 
