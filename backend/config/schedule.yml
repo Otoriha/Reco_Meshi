@@ -1,0 +1,16 @@
+# Sidekiq Scheduler設定
+# 在庫確認リマインダーを1日2回（10時と22時）送信
+
+# 朝10時に実行
+check_inventory_reminders_morning:
+  cron: '0 10 * * *'  # 毎日10:00（JST）に実行
+  class: CheckInventoryRemindersJob
+  queue: default
+  description: '在庫確認リマインダー（朝）'
+
+# 夜22時に実行
+check_inventory_reminders_night:
+  cron: '0 22 * * *'  # 毎日22:00（JST）に実行
+  class: CheckInventoryRemindersJob
+  queue: default
+  description: '在庫確認リマインダー（夜）'
