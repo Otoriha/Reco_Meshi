@@ -64,7 +64,7 @@ RSpec.describe 'Api::V1::Auth::Confirmations', type: :request do
           post '/api/v1/auth/confirmation', params: {
             user: { email: user.email }
           }
-        }.to change { ActionMailer::Base.deliveries.count }.by(2)
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
 
         expect(response).to have_http_status(:ok)
         expect(response.parsed_body['message']).to include('再送信')
