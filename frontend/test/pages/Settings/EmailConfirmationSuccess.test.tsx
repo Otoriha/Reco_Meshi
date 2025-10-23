@@ -42,7 +42,7 @@ describe('EmailConfirmationSuccess Page', () => {
   });
 
   it('should display awaiting state after email change submission', async () => {
-    const { getByText, getByDisplayValue } = render(
+    const { getByText } = render(
       <MemoryRouter
         initialEntries={[
           {
@@ -57,7 +57,7 @@ describe('EmailConfirmationSuccess Page', () => {
 
     await waitFor(() => {
       expect(getByText('確認メールを送信しました')).toBeInTheDocument();
-      expect(getByDisplayValue('new@example.com')).toBeInTheDocument();
+      expect(getByText('new@example.com')).toBeInTheDocument();
     });
 
     expect(getByText('メール内のリンクをクリックして、メールアドレスの確認を完了してください。')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('EmailConfirmationSuccess Page', () => {
   });
 
   it('should display success state after email confirmation', async () => {
-    const { getByText, getByDisplayValue } = render(
+    const { getByText } = render(
       <MemoryRouter
         initialEntries={['/settings/email-confirmation?confirmation_token=test-token']}
       >
@@ -88,7 +88,7 @@ describe('EmailConfirmationSuccess Page', () => {
 
     await waitFor(() => {
       expect(getByText('メールアドレス確認完了')).toBeInTheDocument();
-      expect(getByDisplayValue('confirmed@example.com')).toBeInTheDocument();
+      expect(getByText('confirmed@example.com')).toBeInTheDocument();
     });
 
     expect(mockShowToast).toHaveBeenCalledWith(
