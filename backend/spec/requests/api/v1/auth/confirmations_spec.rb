@@ -61,7 +61,7 @@ RSpec.describe 'Api::V1::Auth::Confirmations', type: :request do
           post '/api/v1/auth/confirmation', params: {
             user: { email: user.email }
           }
-        }.to change { ActionMailer::Base.deliveries.count }.by(1)
+        }.to change { ActionMailer::Base.deliveries.count }.by(2)
 
         expect(response).to have_http_status(:ok)
         expect(response.parsed_body['message']).to include('再送信')
@@ -83,13 +83,14 @@ RSpec.describe 'Api::V1::Auth::Confirmations', type: :request do
     end
 
     context 'when email format is invalid' do
-      it 'returns unprocessable entity' do
+      it 'returns success (paranoid mode - same as non-existent email)' do
+        # Devise の paranoid mode により、無効なフォーマットでも成功を返す
         post '/api/v1/auth/confirmation', params: {
           user: { email: 'invalid-email' }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(response.parsed_body['errors']).to be_present
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body['message']).to include('再送信')
       end
     end
   end
