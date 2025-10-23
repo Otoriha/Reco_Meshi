@@ -1,7 +1,6 @@
 class Api::V1::Auth::ConfirmationsController < Devise::ConfirmationsController
   respond_to :json
   skip_before_action :authenticate_user!
-  protect_from_forgery with: :null_session
 
   # GET /api/v1/auth/confirmation?confirmation_token=XXX
   # Confirm user email with token
