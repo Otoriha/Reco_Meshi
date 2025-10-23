@@ -8,7 +8,7 @@ const EmailConfirmationSuccess: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [state, setState] = useState<'pending' | 'awaiting' | 'loading' | 'success' | 'error'>('pending');
@@ -177,18 +177,18 @@ const EmailConfirmationSuccess: React.FC = () => {
 
             <p className="text-gray-600 text-center mb-6">
               メールアドレスの変更が完了しました。
-              {isAuthenticated
+              {isLoggedIn
                 ? '今後はこのメールアドレスでログインしてください。'
                 : '新しいメールアドレスでログインしてください。'}
             </p>
 
             <button
               onClick={() =>
-                isAuthenticated ? navigate('/settings') : navigate('/login')
+                isLoggedIn ? navigate('/settings') : navigate('/login')
               }
               className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
             >
-              {isAuthenticated ? '設定ページに戻る' : 'ログインする'}
+              {isLoggedIn ? '設定ページに戻る' : 'ログインする'}
             </button>
           </>
         ) : (
@@ -230,21 +230,21 @@ const EmailConfirmationSuccess: React.FC = () => {
             <div className="flex gap-4">
               <button
                 onClick={() =>
-                  isAuthenticated ? navigate('/settings') : navigate('/login')
+                  isLoggedIn ? navigate('/settings') : navigate('/login')
                 }
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
               >
-                {isAuthenticated ? '戻る' : 'ログインする'}
+                {isLoggedIn ? '戻る' : 'ログインする'}
               </button>
               <button
                 onClick={() =>
-                  isAuthenticated
+                  isLoggedIn
                     ? navigate('/settings/change-email')
                     : navigate('/login')
                 }
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
               >
-                {isAuthenticated ? '再度変更' : 'ログイン'}
+                {isLoggedIn ? '再度変更' : 'ログイン'}
               </button>
             </div>
           </>

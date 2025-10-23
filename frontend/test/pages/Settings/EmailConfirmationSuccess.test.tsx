@@ -27,8 +27,11 @@ describe('EmailConfirmationSuccess Page', () => {
 
     vi.mocked(authHooks.useAuth).mockReturnValue({
       logout: mockLogout,
-      isAuthenticated: true,
+      isLoggedIn: true,
+      isAuthResolved: true,
       user: null,
+      login: vi.fn(),
+      setAuthState: vi.fn(),
     } as ReturnType<typeof authHooks.useAuth>);
 
     vi.mocked(toastHooks.useToast).mockReturnValue({
