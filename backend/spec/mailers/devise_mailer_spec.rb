@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Devise::Mailer do
+  before(:all) { skip('Confirmable is disabled') if ENV['CONFIRMABLE_ENABLED'] != 'true' }
+
   describe 'confirmation_instructions' do
     let(:user) { create(:user, confirmed_at: nil) }
 

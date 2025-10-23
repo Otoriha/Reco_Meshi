@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::Users::Emails", type: :request do
+  before(:all) { skip('Confirmable is disabled - email reconfirm requires confirmable') if ENV['CONFIRMABLE_ENABLED'] != 'true' }
+
   let(:user) { create(:user, :confirmed, password: "password123", password_confirmation: "password123") }
 
   def auth_header_for(user)

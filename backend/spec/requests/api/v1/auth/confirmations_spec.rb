@@ -1,6 +1,9 @@
 require 'rails_helper'
 
 RSpec.describe 'Api::V1::Auth::Confirmations', type: :request do
+  # These tests require Confirmable module to be enabled
+  before(:all) { skip('Confirmable is disabled') if ENV['CONFIRMABLE_ENABLED'] != 'true' }
+
   describe 'GET /api/v1/auth/confirmation' do
     let(:user) { create(:user, confirmed_at: nil) }
 
