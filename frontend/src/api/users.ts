@@ -59,6 +59,10 @@ export interface ConfirmEmailResponse {
   email: string;
 }
 
+export interface ConfirmEmailErrorResponse {
+  errors: string[];
+}
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   const response = await apiClient.get('/users/profile');
   return response.data;

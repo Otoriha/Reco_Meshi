@@ -124,7 +124,7 @@ describe('EmailConfirmationSuccess Page', () => {
     });
   });
 
-  it('should handle 401 errors and logout', async () => {
+  it('should display error message for 401 errors without logging out', async () => {
     const error = new Error('Unauthorized') as Error & {
       response?: { status: number; data: Record<string, unknown> };
     };
@@ -135,7 +135,7 @@ describe('EmailConfirmationSuccess Page', () => {
 
     vi.mocked(usersAPI.confirmEmail).mockRejectedValue(error);
 
-    render(
+    const { getByText } = render(
       <MemoryRouter
         initialEntries={['/settings/email-confirmation?confirmation_token=test-token']}
       >
@@ -144,8 +144,11 @@ describe('EmailConfirmationSuccess Page', () => {
     );
 
     await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
+      expect(getByText('ログインしてください')).toBeInTheDocument();
     });
+
+    // Note: logout should NOT be called on public route
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 
   it('should display back button and retry button in error state', async () => {

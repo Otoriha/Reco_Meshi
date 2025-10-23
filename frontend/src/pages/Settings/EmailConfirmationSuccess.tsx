@@ -8,7 +8,7 @@ const EmailConfirmationSuccess: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { logout } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [state, setState] = useState<'pending' | 'awaiting' | 'loading' | 'success' | 'error'>('pending');
@@ -29,20 +29,24 @@ const EmailConfirmationSuccess: React.FC = () => {
       const err = error as {
         response?: {
           status?: number;
-          data?: { message?: string };
+          data?: { message?: string; errors?: string[] };
         }
       };
 
       let errorMsg = 'メールアドレスの確認に失敗しました';
 
       if (err.response?.status === 401) {
-        errorMsg = 'セッションが切れました。再度ログインしてください';
+        // 未ログイン状態での401エラーの場合、logout()は呼ばない
+        // ログイン画面への遷移を明示的に促す
+        errorMsg = 'ログインしてください';
         setErrorMessage(errorMsg);
-        logout();
       } else if (err.response?.status === 422) {
-        errorMsg =
-          err.response.data?.message ||
-          'トークンが無効またはメールアドレスが既に確認されています';
+        // バリデーションエラー: errorsフィールドを優先的に表示
+        const errorList = err.response.data?.errors || [];
+        errorMsg = errorList.length > 0
+          ? errorList[0]
+          : err.response.data?.message ||
+            'トークンが無効またはメールアドレスが既に確認されています';
         setErrorMessage(errorMsg);
       } else {
         setErrorMessage(errorMsg);
@@ -51,7 +55,7 @@ const EmailConfirmationSuccess: React.FC = () => {
       setState('error');
       showToast(errorMsg, 'error');
     }
-  }, [showToast, logout]);
+  }, [showToast]);
 
   useEffect(() => {
     const token = searchParams.get('confirmation_token');
@@ -172,14 +176,19 @@ const EmailConfirmationSuccess: React.FC = () => {
             </div>
 
             <p className="text-gray-600 text-center mb-6">
-              メールアドレスの変更が完了しました。今後はこのメールアドレスでログインしてください。
+              メールアドレスの変更が完了しました。
+              {isAuthenticated
+                ? '今後はこのメールアドレスでログインしてください。'
+                : '新しいメールアドレスでログインしてください。'}
             </p>
 
             <button
-              onClick={() => navigate('/settings')}
+              onClick={() =>
+                isAuthenticated ? navigate('/settings') : navigate('/login')
+              }
               className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
             >
-              設定ページに戻る
+              {isAuthenticated ? '設定ページに戻る' : 'ログインする'}
             </button>
           </>
         ) : (
@@ -220,16 +229,22 @@ const EmailConfirmationSuccess: React.FC = () => {
 
             <div className="flex gap-4">
               <button
-                onClick={() => navigate('/settings')}
+                onClick={() =>
+                  isAuthenticated ? navigate('/settings') : navigate('/login')
+                }
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
               >
-                戻る
+                {isAuthenticated ? '戻る' : 'ログインする'}
               </button>
               <button
-                onClick={() => navigate('/settings/change-email')}
+                onClick={() =>
+                  isAuthenticated
+                    ? navigate('/settings/change-email')
+                    : navigate('/login')
+                }
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
               >
-                再度変更
+                {isAuthenticated ? '再度変更' : 'ログイン'}
               </button>
             </div>
           </>
