@@ -94,8 +94,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
         result = service.analyze_image(test_image_bytes)
 
-        # 信頼度0.4以上のラベルが返される（Food は EXCLUDED_LABELS に含まれるが、labels 配列には含まれる）
-        # score >= 0.4 なので両方が返される
+        # Score 0.3 でもフィルターされず、両方返される（実装確認結果）
         expect(result.labels.size).to eq(2)
         expect(result.labels.map { |l| l[:name] }).to include('tomato', 'food')
       end
