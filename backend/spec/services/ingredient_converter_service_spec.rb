@@ -54,7 +54,7 @@ RSpec.describe IngredientConverterService, type: :service do
         expect(metrics[:successful_conversions]).to eq(3)
         expect(metrics[:new_ingredients]).to eq(3)
         expect(metrics[:duplicate_updates]).to eq(0)
-        # Low confidence filtering - 低信頼度食材は除外される
+        # Low confidence filtering - 低信頼度食材はスキップされない
         expect(metrics[:skipped_low_confidence]).to eq(0)
         expect(metrics[:unmatched_ingredients]).to eq(2) # 不明な食材 + 低信頼度食材
       end
