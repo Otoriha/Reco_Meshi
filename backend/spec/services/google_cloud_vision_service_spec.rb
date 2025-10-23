@@ -94,7 +94,7 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
         result = service.analyze_image(test_image_bytes)
 
-        # Score 0.3 でもフィルターされず、両方返される（実装確認結果）
+        # Score 0.3 でもフィルターされず返される
         expect(result.labels.size).to eq(2)
         expect(result.labels.map { |l| l[:name] }).to include('tomato', 'food')
       end
