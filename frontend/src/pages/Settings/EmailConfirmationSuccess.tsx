@@ -11,7 +11,7 @@ const EmailConfirmationSuccess: React.FC = () => {
   const { logout } = useAuth();
   const [searchParams] = useSearchParams();
 
-  const [state, setState] = useState<'pending' | 'loading' | 'success' | 'error'>('pending');
+  const [state, setState] = useState<'pending' | 'awaiting' | 'loading' | 'success' | 'error'>('pending');
   const [unconfirmedEmail, setUnconfirmedEmail] = useState<string>('');
   const [confirmedEmail, setConfirmedEmail] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -58,9 +58,9 @@ const EmailConfirmationSuccess: React.FC = () => {
     const locationState = location.state as { unconfirmedEmail?: string } | null;
 
     if (locationState?.unconfirmedEmail) {
-      // メールアドレス変更ページから遷移した場合
+      // メールアドレス変更ページから遷移した場合（確認メール送信直後）
       setUnconfirmedEmail(locationState.unconfirmedEmail);
-      setState('success');
+      setState('awaiting');
     } else if (token) {
       // メール内のリンクをクリックして遷移した場合
       handleConfirmation(token);
@@ -73,6 +73,63 @@ const EmailConfirmationSuccess: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">メールアドレスを確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === 'awaiting') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow p-8">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+              <svg
+                className="h-8 w-8 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-4">
+            確認メールを送信しました
+          </h1>
+
+          <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <p className="text-sm text-blue-800 text-center">
+              メールアドレス確認用のメールを以下のアドレスに送信しました：
+            </p>
+            <p className="text-sm font-medium text-blue-900 text-center mt-2 break-all">
+              {unconfirmedEmail}
+            </p>
+          </div>
+
+          <p className="text-gray-600 text-center mb-6">
+            メール内のリンクをクリックして、メールアドレスの確認を完了してください。
+          </p>
+
+          <div className="p-4 bg-yellow-50 rounded-lg mb-6">
+            <p className="text-sm text-yellow-800">
+              メールが届かない場合は、迷惑メールフォルダをご確認ください。
+              それでも見つからない場合は、設定ページから再度メール送信を試みてください。
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium"
+          >
+            設定ページに戻る
+          </button>
         </div>
       </div>
     );
