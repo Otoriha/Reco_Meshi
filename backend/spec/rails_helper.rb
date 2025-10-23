@@ -33,6 +33,11 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
+  # ActiveJob configuration for testing
+  config.before(:suite) do
+    ActiveJob::Base.queue_adapter = :test
+  end
+
   # Include Devise test helpers
   config.include Devise::Test::IntegrationHelpers, type: :request
   config.include FactoryBot::Syntax::Methods
