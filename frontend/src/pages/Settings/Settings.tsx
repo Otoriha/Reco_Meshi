@@ -578,8 +578,8 @@ const Settings: React.FC = () => {
 
         <div className="flex gap-4">
           <button
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled
+            onClick={() => navigate('/settings/change-password')}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
           >
             パスワード変更
           </button>
@@ -596,7 +596,7 @@ const Settings: React.FC = () => {
             アカウント削除
           </button>
         </div>
-        <p className="text-xs text-gray-500 text-center">パスワード・アカウント削除機能は準備中です</p>
+        <p className="text-xs text-gray-500 text-center">アカウント削除機能は準備中です</p>
       </div>
     </div>
   );
