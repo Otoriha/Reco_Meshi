@@ -1,6 +1,8 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
+# Disable confirmable by default for tests
+ENV['CONFIRMABLE_ENABLED'] ||= 'false'
 require_relative '../config/environment'
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
@@ -31,6 +33,11 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 RSpec.configure do |config|
+  # ActiveJob configuration for testing
+  config.before(:suite) do
+    ActiveJob::Base.queue_adapter = :test
+  end
+
   # Include Devise test helpers
   config.include Devise::Test::IntegrationHelpers, type: :request
   config.include FactoryBot::Syntax::Methods

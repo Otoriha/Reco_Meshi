@@ -1,7 +1,6 @@
 class Api::V1::Auth::PasswordsController < Devise::PasswordsController
   respond_to :json
   skip_before_action :authenticate_user!
-  protect_from_forgery with: :null_session
 
   # POST /api/v1/auth/password
   # Request a password reset email

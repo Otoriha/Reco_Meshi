@@ -49,6 +49,20 @@ export interface MessageResponse {
   message: string;
 }
 
+export interface ChangeEmailResponse {
+  message: string;
+  unconfirmedEmail: string;
+}
+
+export interface ConfirmEmailResponse {
+  message: string;
+  email: string;
+}
+
+export interface ConfirmEmailErrorResponse {
+  errors: string[];
+}
+
 export const getUserProfile = async (): Promise<UserProfile> => {
   const response = await apiClient.get('/users/profile');
   return response.data;
@@ -74,7 +88,24 @@ export const changePassword = async (data: ChangePasswordData): Promise<MessageR
   return response.data;
 };
 
-export const changeEmail = async (data: ChangeEmailData): Promise<MessageResponse> => {
+export const changeEmail = async (data: ChangeEmailData): Promise<ChangeEmailResponse> => {
   const response = await apiClient.post('/users/change_email', { email_change: data });
-  return response.data;
+  // snake_case → camelCase 変換
+  return {
+    message: response.data.message,
+    unconfirmedEmail: response.data.unconfirmed_email,
+  };
+};
+
+// メールアドレス確認API
+export const confirmEmail = async (confirmationToken: string): Promise<ConfirmEmailResponse> => {
+  const response = await apiClient.get<{ message: string; email: string }>('/auth/confirmation', {
+    params: {
+      confirmation_token: confirmationToken,
+    },
+  });
+  return {
+    message: response.data.message,
+    email: response.data.email,
+  };
 };

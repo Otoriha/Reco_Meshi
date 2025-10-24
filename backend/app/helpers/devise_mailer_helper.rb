@@ -1,5 +1,4 @@
-class DeviseMailer < Devise::Mailer
-  # Helper method to build safe frontend URLs for email links
+module DeviseMailerHelper
   def build_email_url(path, token_param, token)
     host = Rails.application.config.action_mailer.default_url_options[:host]
     protocol = Rails.application.config.action_mailer.default_url_options[:protocol]
