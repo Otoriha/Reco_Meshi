@@ -47,6 +47,9 @@ RSpec.describe IngredientConverterService, type: :service do
       end
 
       it 'メトリクスを正しく記録する' do
+        # MIN_CONFIDENCE を 0.0 に設定して低信頼度食材もスキップされないようにする
+        stub_const('IngredientConverterService::MIN_CONFIDENCE', 0.0)
+
         result = converter.convert_and_save
 
         metrics = result[:metrics]
@@ -54,7 +57,7 @@ RSpec.describe IngredientConverterService, type: :service do
         expect(metrics[:successful_conversions]).to eq(3)
         expect(metrics[:new_ingredients]).to eq(3)
         expect(metrics[:duplicate_updates]).to eq(0)
-        # Low confidence filtering - 低信頼度食材はスキップされない
+        # Low confidence filtering - MIN_CONFIDENCE が 0.0 のため、低信頼度食材もスキップされない
         expect(metrics[:skipped_low_confidence]).to eq(0)
         expect(metrics[:unmatched_ingredients]).to eq(2) # 不明な食材 + 低信頼度食材
       end
@@ -182,6 +185,9 @@ RSpec.describe IngredientConverterService, type: :service do
       end
 
       it '個別の食材処理でエラーが発生しても継続する' do
+        # MIN_CONFIDENCE を 0.0 に設定して低信頼度食材もスキップされないようにする
+        stub_const('IngredientConverterService::MIN_CONFIDENCE', 0.0)
+
         # 既存の食材を削除してエラーを発生させる
         tomato.destroy
 

@@ -92,9 +92,13 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
         allow(mock_annotation).to receive(:label_annotations).and_return([ mock_label, low_score_label ])
 
+        # 環境変数で閾値を 0.0 に設定して、低スコアラベルも含まれることを確認
+        allow(ENV).to receive(:fetch).and_call_original
+        allow(ENV).to receive(:fetch).with('VISION_LABEL_MIN_SCORE', '0.4').and_return('0.0')
+
         result = service.analyze_image(test_image_bytes)
 
-        # Score 0.3 のラベルも含まれる（フィルタリングが機能していない）
+        # Score 0.3 のラベルも含まれる（閾値を 0.0 に設定したため）
         expect(result.labels.size).to eq(2)
         expect(result.labels.first[:name]).to eq('tomato')
       end
