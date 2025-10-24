@@ -97,12 +97,13 @@ RSpec.describe ShoppingListItem, type: :model do
     describe '.ordered_by_ingredient_name' do
       let(:ingredient_a) { create(:ingredient, name: 'Apple') }
       let(:ingredient_z) { create(:ingredient, name: 'Zucchini') }
-      let!(:item_z) { create(:shopping_list_item, ingredient: ingredient_z, shopping_list: shopping_list) }
       let!(:item_a) { create(:shopping_list_item, ingredient: ingredient_a, shopping_list: shopping_list) }
+      let!(:item_z) { create(:shopping_list_item, ingredient: ingredient_z, shopping_list: shopping_list) }
 
       it 'orders by ingredient name' do
-        expect(ShoppingListItem.ordered_by_ingredient_name.first).to eq(item_a)
-        expect(ShoppingListItem.ordered_by_ingredient_name.last).to eq(item_z)
+        result = shopping_list.shopping_list_items.ordered_by_ingredient_name
+        expect(result.first.ingredient.name).to eq('Apple')
+        expect(result.last.ingredient.name).to eq('Zucchini')
       end
     end
   end
