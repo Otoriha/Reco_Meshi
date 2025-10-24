@@ -10,15 +10,6 @@ describe('PasswordResetSuccess', () => {
   });
 
   it('emailが渡された場合、待機状態が表示されること', () => {
-    const mockNavigate = vi.fn();
-    vi.mock('react-router-dom', async () => {
-      const actual = await vi.importActual('react-router-dom');
-      return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-      };
-    });
-
     render(
       <MemoryRouter initialEntries={[{ pathname: '/password/reset/success', state: { email: 'test@example.com' } }]}>
         <PasswordResetSuccess />
@@ -41,7 +32,7 @@ describe('PasswordResetSuccess', () => {
     expect(screen.getByRole('button', { name: 'ログインする' })).toBeInTheDocument();
   });
 
-  it('stateがない場合、ログイン画面にリダイレクトされること', () => {
+  it('stateがない場合、ログイン画面にリダイレクトされること', async () => {
     render(
       <MemoryRouter initialEntries={[{ pathname: '/password/reset/success' }]}>
         <Routes>
@@ -52,8 +43,8 @@ describe('PasswordResetSuccess', () => {
     );
 
     // stateなしでリダイレクトされるため、PasswordResetSuccessの内容が表示されず、
-    // 代わりに何も表示されないか、リダイレクト処理が実行される
-    waitFor(() => {
+    // 代わりにログイン画面へ遷移する
+    await waitFor(() => {
       expect(screen.getByText('ログイン画面')).toBeInTheDocument();
     });
   });

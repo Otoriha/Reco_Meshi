@@ -51,13 +51,9 @@ describe('ForgotPassword', () => {
   });
 
   it('APIエラー時にエラーメッセージを表示すること', async () => {
-    const errorMessage = '無効なメールアドレスです';
-    vi.mocked(authApi.requestPasswordReset).mockRejectedValue({
-      response: {
-        status: 422,
-        data: { errors: [errorMessage] }
-      }
-    });
+    vi.mocked(authApi.requestPasswordReset).mockRejectedValue(
+      new Error('API Error')
+    );
 
     const user = userEvent.setup();
 
@@ -70,11 +66,18 @@ describe('ForgotPassword', () => {
     const emailInput = screen.getByLabelText('メールアドレス');
     const submitButton = screen.getByRole('button', { name: /パスワードリセットメールを送信/ });
 
-    await user.type(emailInput, 'invalid-email');
+    // 形式的に正しいメール形式で入力（HTML5バリデーション対応）
+    await user.type(emailInput, 'notregistered@example.com');
     await user.click(submitButton);
 
+    // APIが呼び出されたことを確認
     await waitFor(() => {
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(authApi.requestPasswordReset).toHaveBeenCalledTimes(1);
+    });
+
+    // エラーメッセージが表示されるまで待つ
+    await waitFor(() => {
+      expect(screen.getByText(/送信に失敗しました/)).toBeInTheDocument();
     });
   });
 
