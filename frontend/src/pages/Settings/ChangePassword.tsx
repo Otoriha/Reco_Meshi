@@ -105,7 +105,6 @@ const ChangePassword: React.FC = () => {
               onChange={handleInputChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="••••••••"
               disabled={loading}
             />
             {errors.currentPassword && (
@@ -128,7 +127,6 @@ const ChangePassword: React.FC = () => {
               onChange={handleInputChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="••••••••"
               disabled={loading}
             />
             {errors.newPassword && (
@@ -152,7 +150,6 @@ const ChangePassword: React.FC = () => {
               onChange={handleInputChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="••••••••"
               disabled={loading}
             />
             {errors.newPasswordConfirmation && (
