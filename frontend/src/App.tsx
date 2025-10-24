@@ -3,6 +3,9 @@ import Landing from './pages/Landing/Landing'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import LineCallback from './pages/Auth/LineCallback'
+import ForgotPassword from './pages/Auth/ForgotPassword'
+import ResetPassword from './pages/Auth/ResetPassword'
+import PasswordResetSuccess from './pages/Auth/PasswordResetSuccess'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
 import { AnalyticsProvider } from './contexts/AnalyticsContext'
@@ -80,6 +83,9 @@ function AppContent() {
                 />
               }
             />
+            <Route path="/password/forgot" element={<ForgotPassword />} />
+            <Route path="/password/reset" element={<ResetPassword />} />
+            <Route path="/password/reset/success" element={<PasswordResetSuccess />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth/line/callback" element={<LineCallback />} />

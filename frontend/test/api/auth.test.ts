@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateLineNonce, lineLoginWithCode } from '../../src/api/auth';
+import { generateLineNonce, lineLoginWithCode, requestPasswordReset, resetPassword } from '../../src/api/auth';
 import { apiClient } from '../../src/api/client';
 import { dispatchAuthTokenChanged } from '../../src/api/authEvents';
 
