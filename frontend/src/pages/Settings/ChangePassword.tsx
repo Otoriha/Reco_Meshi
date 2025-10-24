@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { changePassword } from '../../api/users';
 import type { ChangePasswordData } from '../../api/users';
 import { useToast } from '../../hooks/useToast';
-import { useAuth } from '../../hooks/useAuth';
 
 const ChangePassword: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { logout } = useAuth();
 
   const [formData, setFormData] = useState({
     currentPassword: '',

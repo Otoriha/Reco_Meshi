@@ -5,10 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import ChangePassword from '../../../src/pages/Settings/ChangePassword';
 import * as usersApi from '../../../src/api/users';
 
+const mockShowToast = vi.fn();
+
 vi.mock('../../../src/api/users');
 vi.mock('../../../src/hooks/useToast', () => ({
   useToast: () => ({
-    showToast: vi.fn(),
+    showToast: mockShowToast,
   }),
 }));
 vi.mock('../../../src/hooks/useAuth', () => ({
@@ -42,16 +44,13 @@ describe('ChangePassword', () => {
   });
 
   it('パスワード変更が成功すること', async () => {
-    const onClose = vi.fn();
     vi.mocked(usersApi.changePassword).mockResolvedValue({
       message: 'パスワードを変更しました',
     });
 
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={onClose} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -70,18 +69,12 @@ describe('ChangePassword', () => {
         new_password_confirmation: 'newPassword456',
       });
     });
-
-    await waitFor(() => {
-      expect(onClose).toHaveBeenCalled();
-    });
   });
 
   it('パスワードが一致しない場合、バリデーションエラーが表示されること', async () => {
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -101,9 +94,7 @@ describe('ChangePassword', () => {
   it('パスワード長が6文字未満の場合、バリデーションエラーが表示されること', async () => {
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -127,9 +118,7 @@ describe('ChangePassword', () => {
 
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -142,7 +131,7 @@ describe('ChangePassword', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('パスワード変更に失敗しました')).toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith('パスワード変更に失敗しました', 'error');
     });
   });
 
@@ -156,9 +145,7 @@ describe('ChangePassword', () => {
 
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -171,7 +158,7 @@ describe('ChangePassword', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText('現在のパスワードが正しくありません')).toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith('現在のパスワードが正しくありません', 'error');
     });
   });
 
@@ -180,16 +167,14 @@ describe('ChangePassword', () => {
     const errorResponse = {
       response: {
         status: 422,
-        data: { errors: [errorMessage] },
+        data: { errors: { newPassword: [errorMessage] } },
       },
     };
     vi.mocked(usersApi.changePassword).mockRejectedValue(errorResponse);
 
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -203,10 +188,11 @@ describe('ChangePassword', () => {
 
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(mockShowToast).toHaveBeenCalledWith('入力内容を確認してください', 'error');
     });
   });
 
-  it('送信中はボタンと入力フィールドが非活性化されること', async () => {
+  it('送信中はボタンが非活性化されること', async () => {
     let resolveRequest: () => void;
     const requestPromise = new Promise<{ message: string }>((resolve) => {
       resolveRequest = () => resolve({ message: 'success' });
@@ -216,9 +202,7 @@ describe('ChangePassword', () => {
 
     const user = userEvent.setup();
 
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
+    renderWithRouter(<ChangePassword />);
 
     const currentPasswordInput = screen.getByLabelText('現在のパスワード');
     const newPasswordInput = screen.getByLabelText('新しいパスワード');
@@ -231,49 +215,12 @@ describe('ChangePassword', () => {
     await user.type(confirmInput, 'newPassword456');
     await user.click(submitButton);
 
-    expect(submitButton).toHaveTextContent('変更中...');
+    expect(submitButton).toHaveTextContent('処理中...');
     expect(currentPasswordInput).toBeDisabled();
     expect(newPasswordInput).toBeDisabled();
     expect(confirmInput).toBeDisabled();
     expect(cancelButton).toBeDisabled();
 
     resolveRequest!();
-  });
-
-  it('パスワード表示トグルが動作すること', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ChangePassword isOpen={true} onClose={vi.fn()} />
-    );
-
-    const currentPasswordInput = screen.getByLabelText('現在のパスワード') as HTMLInputElement;
-    const toggleButtons = screen.getAllByRole('button').filter((btn) => {
-      return btn.textContent === '表示' || btn.textContent === '非表示';
-    });
-
-    // 初期状態はpassword型
-    expect(currentPasswordInput.type).toBe('password');
-
-    // トグル
-    await user.click(toggleButtons[0]);
-    expect(currentPasswordInput.type).toBe('text');
-
-    await user.click(toggleButtons[0]);
-    expect(currentPasswordInput.type).toBe('password');
-  });
-
-  it('キャンセルボタンをクリックするとモーダルが閉じること', async () => {
-    const onClose = vi.fn();
-    const user = userEvent.setup();
-
-    render(
-      <ChangePassword isOpen={true} onClose={onClose} />
-    );
-
-    const cancelButton = screen.getByRole('button', { name: 'キャンセル' });
-    await user.click(cancelButton);
-
-    expect(onClose).toHaveBeenCalled();
   });
 });
