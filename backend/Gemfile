@@ -47,7 +47,7 @@ gem "sidekiq", "~> 7.2"
 gem "sidekiq-scheduler", "~> 5.0"
 
 # LINE Bot API (V2)
-gem "line-bot-api", "~> 2.1", require: "line/bot"
+gem "line-bot-api", "~> 2.4", require: "line/bot"
 
 # Google Cloud Vision API
 gem "google-cloud-vision", "~> 2.0"
