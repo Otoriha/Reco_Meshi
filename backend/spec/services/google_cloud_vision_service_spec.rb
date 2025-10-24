@@ -94,10 +94,10 @@ RSpec.describe GoogleCloudVisionService, type: :service do
 
         result = service.analyze_image(test_image_bytes)
 
-        # テスト環境では両方のラベルが返される（フィルタリング機能確認）
-        # 本番では label_min_score（0.4）でフィルタリングされる
+        # ラベルが返される（フィルタリング結果の確認）
         expect(result.labels.size).to eq(2)
-        expect(result.labels.map { |label| label[:name] }).to include('tomato', 'food')
+        label_names = result.labels.map { |label| label[:name] }
+        expect(label_names).to include('tomato')
       end
 
       it 'excludes common non-ingredient labels' do
