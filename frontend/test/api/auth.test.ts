@@ -124,3 +124,89 @@ describe('LINE Login API', () => {
     });
   });
 });
+
+describe('Password Reset API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('requestPasswordReset', () => {
+    it('パスワードリセットメール送信が成功すること', async () => {
+      const mockMessage = 'パスワードリセットメールを送信しました。メールをご確認ください';
+      const testEmail = 'test@example.com';
+
+      vi.mocked(apiClient.post).mockResolvedValue({
+        data: { message: mockMessage }
+      });
+
+      const result = await requestPasswordReset({ email: testEmail });
+
+      expect(apiClient.post).toHaveBeenCalledWith('/auth/password', {
+        user: { email: testEmail }
+      });
+      expect(result).toEqual({ message: mockMessage });
+    });
+
+    it('バリデーションエラー時に例外をスローすること', async () => {
+      const errorResponse = {
+        response: {
+          status: 422,
+          data: {
+            errors: ['無効なメールアドレスです']
+          }
+        },
+        isAxiosError: true
+      };
+
+      vi.mocked(apiClient.post).mockRejectedValue(errorResponse);
+
+      await expect(
+        requestPasswordReset({ email: 'invalid-email' })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('パスワード変更が成功すること', async () => {
+      const mockMessage = 'パスワードを変更しました。新しいパスワードでログインしてください';
+      const resetData = {
+        password: 'newPassword123',
+        password_confirmation: 'newPassword123',
+        reset_password_token: 'test-token-123'
+      };
+
+      vi.mocked(apiClient.put).mockResolvedValue({
+        data: { message: mockMessage }
+      });
+
+      const result = await resetPassword(resetData);
+
+      expect(apiClient.put).toHaveBeenCalledWith('/auth/password', {
+        user: resetData
+      });
+      expect(result).toEqual({ message: mockMessage });
+    });
+
+    it('無効なトークンでバリデーションエラーが発生すること', async () => {
+      const errorResponse = {
+        response: {
+          status: 422,
+          data: {
+            errors: ['トークンが無効またはメールアドレスが既に確認されています']
+          }
+        },
+        isAxiosError: true
+      };
+
+      vi.mocked(apiClient.put).mockRejectedValue(errorResponse);
+
+      const resetData = {
+        password: 'newPassword123',
+        password_confirmation: 'newPassword123',
+        reset_password_token: 'invalid-token'
+      };
+
+      await expect(resetPassword(resetData)).rejects.toThrow();
+    });
+  });
+});
