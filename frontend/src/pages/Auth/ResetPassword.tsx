@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { resetPassword, ResetPasswordData } from '../../api/auth';
+import { resetPassword } from '../../api/auth';
+import type { ResetPasswordData } from '../../api/auth';
 
 type PageState = 'pending' | 'ready' | 'submitting' | 'error';
 
