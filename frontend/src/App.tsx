@@ -3,6 +3,9 @@ import Landing from './pages/Landing/Landing'
 import Login from './pages/Auth/Login'
 import Signup from './pages/Auth/Signup'
 import LineCallback from './pages/Auth/LineCallback'
+import ForgotPassword from './pages/Auth/ForgotPassword'
+import ResetPassword from './pages/Auth/ResetPassword'
+import PasswordResetSuccess from './pages/Auth/PasswordResetSuccess'
 import Header from './components/Header'
 import { AuthProvider } from './contexts/AuthContext'
 import { AnalyticsProvider } from './contexts/AnalyticsContext'
@@ -12,6 +15,7 @@ import Ingredients from './pages/Ingredients/Ingredients'
 import RecipeHistory from './pages/RecipeHistory/RecipeHistory'
 import Settings from './pages/Settings/Settings'
 import ChangeEmail from './pages/Settings/ChangeEmail'
+import ChangePassword from './pages/Settings/ChangePassword'
 import EmailConfirmationSuccess from './pages/Settings/EmailConfirmationSuccess'
 import RecipeList from './pages/Recipes/RecipeList'
 import RecipeDetail from './pages/Recipes/RecipeDetail'
@@ -80,6 +84,9 @@ function AppContent() {
                 />
               }
             />
+            <Route path="/password/forgot" element={<ForgotPassword />} />
+            <Route path="/password/reset" element={<ResetPassword />} />
+            <Route path="/password/reset/success" element={<PasswordResetSuccess />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/auth/line/callback" element={<LineCallback />} />
@@ -96,6 +103,7 @@ function AppContent() {
               <Route path="/recipe-history" element={<RecipeHistory />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/change-email" element={<ChangeEmail />} />
+              <Route path="/settings/change-password" element={<ChangePassword />} />
             </Route>
 
             {/* 404ルート */}

@@ -273,3 +273,38 @@ export const lineLinkWithCode = async (data: LineExchangeData): Promise<UserData
     throw new Error('LINE連携に失敗しました。もう一度お試しください。');
   }
 };
+
+// パスワードリセット関連の型定義
+export interface RequestPasswordResetData {
+  email: string;
+}
+
+export interface RequestPasswordResetResponse {
+  message: string;
+}
+
+export interface ResetPasswordData {
+  password: string;
+  password_confirmation: string;
+  reset_password_token: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+// パスワードリセットメール送信
+export const requestPasswordReset = async (
+  data: RequestPasswordResetData
+): Promise<RequestPasswordResetResponse> => {
+  const response = await apiClient.post('/auth/password', { user: data });
+  return response.data;
+};
+
+// パスワード変更（トークン使用）
+export const resetPassword = async (
+  data: ResetPasswordData
+): Promise<ResetPasswordResponse> => {
+  const response = await apiClient.put('/auth/password', { user: data });
+  return response.data;
+};

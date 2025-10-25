@@ -153,6 +153,16 @@ const Login: React.FC<LoginProps> = ({ onSwitchToSignup }) => {
               </button>
             </div>
           </div>
+          <div className="text-right mb-4">
+            <button
+              type="button"
+              onClick={() => navigate('/password/forgot')}
+              className="text-sm text-green-600 hover:underline"
+              disabled={isLoading}
+            >
+              パスワードをお忘れですか?
+            </button>
+          </div>
           <button
             type="submit"
             disabled={isLoading}
