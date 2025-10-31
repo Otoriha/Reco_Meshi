@@ -234,7 +234,7 @@ GEM
       letter_opener (~> 1.7)
       railties (>= 5.2)
       rexml
-    line-bot-api (2.1.1)
+    line-bot-api (2.4.0)
       base64 (~> 0.2)
       multipart-post (~> 2.4)
     lint_roller (1.1.0)
@@ -472,7 +472,7 @@ DEPENDENCIES
   jsonapi-serializer
   kaminari
   letter_opener_web (~> 2.0)
-  line-bot-api (~> 2.1)
+  line-bot-api (~> 2.4)
   mini_magick (~> 4.12)
   pg (~> 1.1)
   pry-rails
